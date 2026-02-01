@@ -18,4 +18,4 @@ main = [2]
 type = "ICPC"
 
 # [scoring]
-# type = "IOI"
+# type = "IOI"1

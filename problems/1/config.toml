@@ -1,0 +1,21 @@
+[problem]
+id = 1
+title = "Сумма чисел"
+
+[statement]
+legend = "statement/legend.typ"
+input = "statement/input.typ"
+output = "statement/output.typ"
+
+[checker]
+path = "checker/checker.rs"
+
+[test_groups]
+samples = [1]
+main = [2]
+
+[scoring]
+type = "ICPC"
+
+# [scoring]
+# type = "IOI"

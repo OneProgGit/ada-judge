@@ -6,10 +6,11 @@
 ```
 
 ### Checker's verdicts:
-0 - OK \
-1 - WrongAnswer \ 
-2 - PresentationError \ 
-3 - Fail \
+```
+0 - OK
+1 - WrongAnswer
+2 - PresentationError
+```
 
 ### Ada Judge's verdict is an enum:
 ```

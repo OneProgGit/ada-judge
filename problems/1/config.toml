@@ -7,9 +7,9 @@ time_limit_ms = 1000
 memory_limit_mb = 32
 
 [statement]
-legend = "statement/legend.typ"
-input = "statement/input.typ"
-output = "statement/output.typ"
+legend = "/statement/legend.typ"
+input = "/statement/input.typ"
+output = "/statement/output.typ"
 
 [checker]
 path = "/checkers/checker.rs"
@@ -23,4 +23,4 @@ main = [2]
 type = "ICPC"
 
 [main_solution]
-path = "solutions/ok.rs"
+path = "/solutions/ok.rs"

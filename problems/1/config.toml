@@ -1,6 +1,10 @@
-[problem]
+[general]
 id = 1
-title = "Сумма чисел"
+name = "Сумма чисел"
+
+[limits]
+time_limit_ms = 1000
+memory_limit_mb = 32
 
 [statement]
 legend = "statement/legend.typ"
@@ -8,14 +12,15 @@ input = "statement/input.typ"
 output = "statement/output.typ"
 
 [checker]
-path = "checker/checker.rs"
+path = "/checkers/checker.rs"
 
-[test_groups]
-samples = [1]
+[tests]
+path = "/tests"
+sample = [1]
 main = [2]
 
 [scoring]
 type = "ICPC"
 
-# [scoring]
-# type = "IOI"1
+[main_solution]
+path = "solutions/ok.rs"

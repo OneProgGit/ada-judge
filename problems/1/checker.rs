@@ -7,8 +7,8 @@ const WRONG_ANSWER: i32 = 1;
 const _PRESENTATION_ERROR: i32 = 2;
 const FAIL: i32 = 3;
 
-fn die(code: i32, msg: &str) {
-    eprintln!({ msg });
+fn die(code: i32, msg: &str) -> ! {
+    eprintln!("{msg}");
     exit(code);
 }
 

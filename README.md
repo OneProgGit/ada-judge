@@ -15,7 +15,7 @@
 
 ### Ada Judge's verdict is an enum:
 ```
-OK,
+Ok,
 Rejected,
 CompilationError,
 RuntimeError,
@@ -24,4 +24,5 @@ MemoryLimitExceeded,
 SecurityError,
 WrongAnswer,
 PresentationError,
+Skipped
 ```

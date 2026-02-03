@@ -1,26 +1,19 @@
 [general]
-id = 1
 name = "Сумма чисел"
 
 [limits]
 time_limit_ms = 1000
 memory_limit_mb = 32
 
-[statement]
-legend = "/statement/legend.typ"
-input = "/statement/input.typ"
-output = "/statement/output.typ"
-
 [checker]
-path = "/checkers/checker.rs"
+path = "checker"
 
-[tests]
-path = "/tests"
-sample = [1]
-main = [2]
+[[test_groups]]
+type = "sample"
+tests = ["tests/0"]
+score = 0
 
-[scoring]
-type = "ICPC"
-
-[main_solution]
-path = "/solutions/ok.rs"
+[[test_group]]
+type = "main"
+tests = ["tests/1", "tests/2"]
+score = 100

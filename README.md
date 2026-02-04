@@ -2,7 +2,7 @@
 
 ### Checker API:
 ```
-(input: string, output: string, answer: string) -> Verdict
+(input: path, output: path, answer: path) -> Verdict
 ```
 
 ### Checker's verdicts:
@@ -16,7 +16,6 @@
 ### Ada Judge's verdict is an enum:
 ```
 Ok,
-Rejected,
 CompilationError,
 RuntimeError,
 TimeLimitExceeded,
@@ -24,5 +23,7 @@ MemoryLimitExceeded,
 SecurityError,
 WrongAnswer,
 PresentationError,
-Skipped
+Skipped,
+InvalidProblem,
+Fail
 ```

@@ -1,7 +1,6 @@
 /// Verdicts
 pub enum Verdict {
     Ok,
-    Rejected,
     CompilationError,
     RuntimeError,
     TimeLimitExceeded,
@@ -10,5 +9,6 @@ pub enum Verdict {
     WrongAnswer,
     PresentationError,
     Skipped,
-    InvalidProblem,
+    InvalidProblem(String),
+    Fail(String),
 }

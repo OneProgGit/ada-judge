@@ -8,12 +8,15 @@ memory_limit_mb = 32
 [checker]
 path = "checker"
 
+[tests]
+path = "tests"
+
 [[test_groups]]
 type = "sample"
-tests = ["tests/0"]
+tests = [0]
 score = 0
 
 [[test_group]]
 type = "main"
-tests = ["tests/1", "tests/2"]
+tests = [1, 2]
 score = 100

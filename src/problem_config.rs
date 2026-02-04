@@ -5,43 +5,50 @@ use serde::Deserialize;
 /// Problem's config
 #[derive(Deserialize)]
 pub struct ProblemConfig {
-    general: General,
-    limits: Limits,
-    checker: Checker,
-    test_groups: Vec<TestGroup>,
+    pub general: General,
+    pub limits: Limits,
+    pub checker: Checker,
+    pub tests: Tests,
+    pub test_groups: Vec<TestGroup>,
 }
 
 /// General data
 #[derive(Deserialize)]
-struct General {
-    name: String,
+pub struct General {
+    pub name: String,
 }
 
 /// Limits
 #[derive(Deserialize)]
-struct Limits {
-    time_limit_ms: u16,
-    memory_limit_mb: u16,
+pub struct Limits {
+    pub time_limit_ms: u64,
+    pub memory_limit_mb: u16,
 }
 
 /// Checker info
 #[derive(Deserialize)]
-struct Checker {
-    path: PathBuf,
+pub struct Checker {
+    pub path: PathBuf,
+}
+
+/// Tests general info
+#[derive(Deserialize)]
+pub struct Tests {
+    pub path: PathBuf,
 }
 
 /// Test group
 #[derive(Deserialize)]
-struct TestGroup {
-    r#type: TestGroupType,
-    tests: Vec<PathBuf>,
-    score: u8,
+pub struct TestGroup {
+    pub r#type: TestGroupType,
+    pub tests: Vec<u8>,
+    pub score: u8,
 }
 
 /// Test group's type
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum TestGroupType {
+pub enum TestGroupType {
     Sample,
     Main,
 }

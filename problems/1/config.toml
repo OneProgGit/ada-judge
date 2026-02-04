@@ -16,7 +16,7 @@ type = "sample"
 tests = [0]
 score = 0
 
-[[test_group]]
+[[test_groups]]
 type = "main"
 tests = [1, 2]
 score = 100

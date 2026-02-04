@@ -2,7 +2,6 @@
 
 use std::{
     fs::{self, File, read_to_string},
-    os::unix::fs::PermissionsExt,
     path::PathBuf,
     process::{Command, Stdio},
     time::Duration,
@@ -45,12 +44,6 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8
         &opt,
     )
     .map_err(|err| Verdict::InvalidProblem(format!("Invalid tests path: {err}")))?;
-
-    // fs::set_permissions(run_path.join("checker"), fs::Permissions::from_mode(0o555))
-    //     .map_err(|err| Verdict::Fail(format!("Failed to set permissions to `checker`: {err}")))?;
-
-    // fs::set_permissions(run_path.join("run"), fs::Permissions::from_mode(0o555))
-    //     .map_err(|err| Verdict::Fail(format!("Failed to set permissions to `run`: {err}")))?;
 
     fs::write(run_path.join("stderr.txt"), "")
         .map_err(|err| Verdict::Fail(format!("Failed to create `stderr.txt`: {err}")))?;

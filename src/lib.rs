@@ -8,6 +8,7 @@ use std::{
     time::Duration,
 };
 
+use fs_extra::dir::CopyOptions;
 use wait_timeout::ChildExt;
 
 use crate::{problem_config::ProblemConfig, verdicts::Verdict};
@@ -23,32 +24,36 @@ const CHECKER_PE: i32 = 2;
 pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8)>, Verdict> {
     let problem: ProblemConfig = toml::from_str(
         &read_to_string(problem_path.join("config.toml"))
-            .map_err(|_| Verdict::InvalidProblem("Invalid config path".into()))?,
+            .map_err(|err| Verdict::InvalidProblem(format!("Invalid config path: {err}")))?,
     )
-    .map_err(|_| Verdict::InvalidProblem("Invalid config".into()))?;
+    .map_err(|err| Verdict::InvalidProblem(format!("Invalid config: {err}")))?;
 
     fs::copy(
         problem_path.join(problem.checker.path),
         run_path.join("checker"),
     )
-    .map_err(|_| Verdict::InvalidProblem("Invalid checker path".into()))?;
+    .map_err(|err| Verdict::InvalidProblem(format!("Invalid checker path: {err}")))?;
 
-    fs::copy(
+    let mut opt = CopyOptions::new();
+    opt.overwrite = true;
+    opt.copy_inside = true;
+    opt.content_only = false;
+
+    fs_extra::dir::copy(
         problem_path.join(problem.tests.path),
         run_path.join("tests"),
+        &opt,
     )
-    .map_err(|_| Verdict::InvalidProblem("Invalid tests path".into()))?;
+    .map_err(|err| Verdict::InvalidProblem(format!("Invalid tests path: {err}")))?;
 
-    fs::set_permissions(run_path.join("checker"), fs::Permissions::from_mode(0o555))
-        .map_err(|_| Verdict::Fail("Permission denied on `run_path`".into()))?;
+    // fs::set_permissions(run_path.join("checker"), fs::Permissions::from_mode(0o555))
+    //     .map_err(|err| Verdict::Fail(format!("Failed to set permissions to `checker`: {err}")))?;
 
-    fs::set_permissions(run_path.join("run"), fs::Permissions::from_mode(0o555))
-        .map_err(|_| Verdict::Fail("Permission denied on `run_path`".into()))?;
+    // fs::set_permissions(run_path.join("run"), fs::Permissions::from_mode(0o555))
+    //     .map_err(|err| Verdict::Fail(format!("Failed to set permissions to `run`: {err}")))?;
 
-    fs::write(run_path.join("stdout.txt"), "")
-        .map_err(|_| Verdict::Fail("Permission denied on `run_path`".into()))?;
     fs::write(run_path.join("stderr.txt"), "")
-        .map_err(|_| Verdict::Fail("Permission denied on `run_path`".into()))?;
+        .map_err(|err| Verdict::Fail(format!("Failed to create `stderr.txt`: {err}")))?;
 
     let mut res: Vec<(Verdict, u8)> = Vec::with_capacity(problem.test_groups.len());
 
@@ -62,26 +67,28 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8
             let output_path = run_path.join("stdout.txt");
             let answer_path = test_path.join("out");
 
-            let solution_path = run_path.join("solution");
+            let solution_path = run_path.join("run");
             let checker_path = run_path.join("checker");
 
-            let stdin_file = File::open(input_path.clone()).map_err(|_| {
-                Verdict::InvalidProblem(format!("Invalid test format on test `{}`", test_id))
+            let stdin_file = File::open(input_path.clone()).map_err(|err| {
+                Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
             })?;
-            let stdout_file = File::open(output_path.clone()).map_err(|_| {
-                Verdict::InvalidProblem(format!("Invalid test format on test `{}`", test_id))
+            let stdout_file = File::create(output_path.clone()).map_err(|err| {
+                Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
             })?;
 
             let mut solution_cmd = Command::new(solution_path)
                 .stdin(Stdio::from(stdin_file))
                 .stdout(Stdio::from(stdout_file))
                 .spawn()
-                .map_err(|_| Verdict::Fail("Failed to test solution".into()))?;
+                .map_err(|err| {
+                    Verdict::Fail(format!("Failed to test solution on test `{test}`: {err}"))
+                })?;
 
             let timeout = Duration::from_millis(problem.limits.time_limit_ms);
-            let solution_status = solution_cmd
-                .wait_timeout(timeout)
-                .map_err(|_| Verdict::Fail("Failed to test solution".into()))?;
+            let solution_status = solution_cmd.wait_timeout(timeout).map_err(|err| {
+                Verdict::Fail(format!("Failed to test solution on test `{test}`: {err}"))
+            })?;
 
             _ = solution_cmd.kill();
             match solution_status {
@@ -99,16 +106,25 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8
                                 answer_path.as_os_str(),
                             ])
                             .spawn()
-                            .map_err(|_| Verdict::Fail("Failed to check solution".into()))?;
+                            .map_err(|err| {
+                                Verdict::Fail(format!(
+                                    "Failed to check solution on test `{test}`: {err}"
+                                ))
+                            })?;
 
                         let timeout = Duration::from_millis(problem.limits.time_limit_ms);
-                        let solution_status = checker_cmd
-                            .wait_timeout(timeout)
-                            .map_err(|_| Verdict::Fail("Failed to check solution".into()))?;
+                        let checker_status = checker_cmd.wait_timeout(timeout).map_err(|err| {
+                            Verdict::Fail(format!(
+                                "Failed to check solution on test `{test}`: {err}"
+                            ))
+                        })?;
 
-                        match solution_status {
+                        _ = checker_cmd.kill();
+                        match checker_status {
                             None => {
-                                return Err(Verdict::Fail("Failed to check solution".into()));
+                                return Err(Verdict::Fail(format!(
+                                    "Failed to check solution on test `{test}`: waiting checker for too long"
+                                )));
                             }
                             Some(status) => match status.code() {
                                 Some(CHECKER_OK) => {}
@@ -123,7 +139,9 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8
                                     break;
                                 }
                                 _ => {
-                                    return Err(Verdict::Fail("Failed to check solution".into()));
+                                    return Err(Verdict::Fail(format!(
+                                        "Failed to check solution on test `{test}`: checker failed"
+                                    )));
                                 }
                             },
                         }

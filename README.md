@@ -1,5 +1,7 @@
 # Ada Judge - a judgement system made with Rust
 
+**To use it, you need nsjail to be installed!!!**
+
 ### Checker API:
 ```
 (input: path, output: path, answer: path) -> Verdict

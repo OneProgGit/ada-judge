@@ -22,7 +22,7 @@ pub struct General {
 #[derive(Deserialize)]
 pub struct Limits {
     pub time_limit_ms: u64,
-    pub memory_limit_mb: u16,
+    pub memory_limit_mb: u64,
 }
 
 /// Checker info

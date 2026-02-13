@@ -53,19 +53,18 @@ pub fn test(
 
     let mut res: Vec<(Verdict, u8, String)> = Vec::with_capacity(problem.test_groups.len());
 
+    let output_path = run_path.join("stdout.txt");
+    let error_path = run_path.join("stderr.txt");
+    let solution_path = run_path.join("run");
+    let checker_path = run_path.join("checker");
+
     for test_group in problem.test_groups {
         let (mut verdict, mut test, mut checker_msg) = (Verdict::Ok, 0, String::new());
 
         for test_id in test_group.tests {
             let test_path = run_path.join("tests").join(test_id.to_string());
-
             let input_path = test_path.join("in");
-            let output_path = run_path.join("stdout.txt");
-            let error_path = test_path.join("stderr.txt");
             let answer_path = test_path.join("out");
-
-            let solution_path = run_path.join("run");
-            let checker_path = run_path.join("checker");
 
             let stdin_file = File::open(input_path.clone()).map_err(|err| {
                 Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
@@ -77,7 +76,27 @@ pub fn test(
                 Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
             })?;
 
-            let mut solution_cmd = Command::new(solution_path)
+            let mut solution_cmd = Command::new("nsjail")
+                .args([
+                    "--mode",
+                    "o",
+                    "--rlimit_as",
+                    &problem.limits.memory_limit_mb.to_string(),
+                    "--disable_proc",
+                    "--iface_no_lo",
+                    "--chroot",
+                    run_path.to_str().ok_or_else(|| {
+                        Verdict::InvalidProblem(format!(
+                            "Invalid solution path: `{solution_path:?}`",
+                        ))
+                    })?,
+                    "--user",
+                    "1000",
+                    "--group",
+                    "1000",
+                    "--",
+                    &format!(".{solution_path:?}"),
+                ])
                 .stdin(Stdio::from(stdin_file))
                 .stdout(Stdio::from(stdout_file))
                 .stderr(Stdio::from(stderr_file))
@@ -107,7 +126,7 @@ pub fn test(
                             ))
                         })?;
 
-                        let mut checker_cmd = Command::new(checker_path)
+                        let mut checker_cmd = Command::new(checker_path.clone())
                             .args([
                                 input_path.as_os_str(),
                                 output_path.as_os_str(),
@@ -140,11 +159,19 @@ pub fn test(
                                 Some(CHECKER_WA) => {
                                     verdict = Verdict::WrongAnswer;
                                     test = test_id;
+                                    checker_msg =
+                                        fs::read_to_string(error_path.clone()).map_err(|_| {
+                                            Verdict::Fail("Failed to open stderr file".into())
+                                        })?;
                                     break;
                                 }
                                 Some(CHECKER_PE) => {
                                     verdict = Verdict::PresentationError;
                                     test = test_id;
+                                    checker_msg =
+                                        fs::read_to_string(error_path.clone()).map_err(|_| {
+                                            Verdict::Fail("Failed to open stderr file".into())
+                                        })?;
                                     break;
                                 }
                                 _ => {
@@ -155,6 +182,11 @@ pub fn test(
                             },
                         }
                     }
+                    Some(9) => {
+                        verdict = Verdict::MemoryLimitExceeded;
+                        test = test_id;
+                        break;
+                    }
                     _ => {
                         verdict = Verdict::RuntimeError;
                         test = test_id;
@@ -162,9 +194,6 @@ pub fn test(
                     }
                 },
             }
-
-            checker_msg = fs::read_to_string(error_path)
-                .map_err(|_| Verdict::Fail("Failed to open stderr file".into()))?;
         }
 
         res.push((verdict, test, checker_msg));

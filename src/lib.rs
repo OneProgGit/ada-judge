@@ -76,49 +76,6 @@ pub fn test(
                 Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
             })?;
 
-            println!(
-                "{:?}",
-                Command::new("nsjail")
-                    .args([
-                        "--mode",
-                        "o",
-                        "--rlimit_as",
-                        &problem.limits.memory_limit_mb.to_string(),
-                        "--disable_proc",
-                        "--iface_no_lo",
-                        "--chroot",
-                        run_path.to_str().ok_or_else(|| {
-                            Verdict::InvalidProblem(format!("Invalid run path: `{run_path:?}`",))
-                        })?,
-                        "--user",
-                        "1000",
-                        "--group",
-                        "1000",
-                        "--",
-                        &format!(
-                            ".{}",
-                            solution_path.to_str().ok_or_else(|| {
-                                Verdict::InvalidProblem(format!(
-                                    "Invalid solution path: `{solution_path:?}`",
-                                ))
-                            })?
-                        ),
-                    ])
-                    .stdin(Stdio::from(stdin_file))
-                    .stdout(Stdio::from(stdout_file))
-                    .stderr(Stdio::from(stderr_file))
-            );
-
-            let stdin_file = File::open(input_path.clone()).map_err(|err| {
-                Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
-            })?;
-            let stdout_file = File::create(output_path.clone()).map_err(|err| {
-                Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
-            })?;
-            let stderr_file = File::open(error_path.clone()).map_err(|err| {
-                Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
-            })?;
-
             let mut solution_cmd = Command::new("nsjail")
                 .args([
                     "--mode",
@@ -128,22 +85,17 @@ pub fn test(
                     "--disable_proc",
                     "--iface_no_lo",
                     "--chroot",
-                    run_path.to_str().ok_or_else(|| {
-                        Verdict::InvalidProblem(format!("Invalid run path: `{run_path:?}`",))
-                    })?,
+                    "/",
                     "--user",
-                    "1000",
+                    "99999",
                     "--group",
-                    "1000",
+                    "99999",
                     "--",
-                    &format!(
-                        ".{}",
-                        solution_path.to_str().ok_or_else(|| {
-                            Verdict::InvalidProblem(format!(
-                                "Invalid solution path: `{solution_path:?}`",
-                            ))
-                        })?
-                    ),
+                    solution_path.to_str().ok_or_else(|| {
+                        Verdict::InvalidProblem(format!(
+                            "Invalid solution path: `{solution_path:?}`",
+                        ))
+                    })?,
                 ])
                 .stdin(Stdio::from(stdin_file))
                 .stdout(Stdio::from(stdout_file))
@@ -230,7 +182,7 @@ pub fn test(
                             },
                         }
                     }
-                    Some(9) => {
+                    Some(139) => {
                         verdict = Verdict::MemoryLimitExceeded;
                         test = test_id;
                         break;

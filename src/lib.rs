@@ -20,7 +20,10 @@ const CHECKER_WA: i32 = 1;
 const CHECKER_PE: i32 = 2;
 
 /// Test solution and return a verdict for each subgroup.
-pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8)>, Verdict> {
+pub fn test(
+    problem_path: PathBuf,
+    run_path: PathBuf,
+) -> Result<Vec<(Verdict, u8, String)>, Verdict> {
     let problem: ProblemConfig = toml::from_str(
         &read_to_string(problem_path.join("config.toml"))
             .map_err(|err| Verdict::InvalidProblem(format!("Invalid config path: {err}")))?,
@@ -48,16 +51,17 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8
     fs::write(run_path.join("stderr.txt"), "")
         .map_err(|err| Verdict::Fail(format!("Failed to create `stderr.txt`: {err}")))?;
 
-    let mut res: Vec<(Verdict, u8)> = Vec::with_capacity(problem.test_groups.len());
+    let mut res: Vec<(Verdict, u8, String)> = Vec::with_capacity(problem.test_groups.len());
 
     for test_group in problem.test_groups {
-        let (mut verdict, mut test) = (Verdict::Ok, 0);
+        let (mut verdict, mut test, mut checker_msg) = (Verdict::Ok, 0, String::new());
 
         for test_id in test_group.tests {
             let test_path = run_path.join("tests").join(test_id.to_string());
 
             let input_path = test_path.join("in");
             let output_path = run_path.join("stdout.txt");
+            let error_path = test_path.join("stderr.txt");
             let answer_path = test_path.join("out");
 
             let solution_path = run_path.join("run");
@@ -69,10 +73,14 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8
             let stdout_file = File::create(output_path.clone()).map_err(|err| {
                 Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
             })?;
+            let stderr_file = File::open(error_path.clone()).map_err(|err| {
+                Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
+            })?;
 
             let mut solution_cmd = Command::new(solution_path)
                 .stdin(Stdio::from(stdin_file))
                 .stdout(Stdio::from(stdout_file))
+                .stderr(Stdio::from(stderr_file))
                 .spawn()
                 .map_err(|err| {
                     Verdict::Fail(format!("Failed to test solution on test `{test}`: {err}"))
@@ -92,12 +100,20 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8
                 }
                 Some(status) => match status.code() {
                     Some(0) => {
+                        let stderr_file = File::open(error_path.clone()).map_err(|err| {
+                            Verdict::InvalidProblem(format!(
+                                "Invalid test format on test `{}`: {err}",
+                                test_id
+                            ))
+                        })?;
+
                         let mut checker_cmd = Command::new(checker_path)
                             .args([
                                 input_path.as_os_str(),
                                 output_path.as_os_str(),
                                 answer_path.as_os_str(),
                             ])
+                            .stderr(Stdio::from(stderr_file))
                             .spawn()
                             .map_err(|err| {
                                 Verdict::Fail(format!(
@@ -146,9 +162,12 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<(Verdict, u8
                     }
                 },
             }
+
+            checker_msg = fs::read_to_string(error_path)
+                .map_err(|_| Verdict::Fail("Failed to open stderr file".into()))?;
         }
 
-        res.push((verdict, test));
+        res.push((verdict, test, checker_msg));
     }
 
     Ok(res)

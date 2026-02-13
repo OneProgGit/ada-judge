@@ -72,7 +72,7 @@ pub fn test(
             let stdout_file = File::create(output_path.clone()).map_err(|err| {
                 Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
             })?;
-            let stderr_file = File::open(error_path.clone()).map_err(|err| {
+            let stderr_file = File::create(error_path.clone()).map_err(|err| {
                 Verdict::InvalidProblem(format!("Invalid test format on test `{}`: {err}", test_id))
             })?;
 
@@ -119,7 +119,7 @@ pub fn test(
                 }
                 Some(status) => match status.code() {
                     Some(0) => {
-                        let stderr_file = File::open(error_path.clone()).map_err(|err| {
+                        let stderr_file = File::create(error_path.clone()).map_err(|err| {
                             Verdict::InvalidProblem(format!(
                                 "Invalid test format on test `{}`: {err}",
                                 test_id

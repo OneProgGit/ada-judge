@@ -18,7 +18,11 @@ fn check(output: String, answer: String) {
     } else {
         die(
             WRONG_ANSWER,
-            &format!("Wrong answer: `{output}` and `{answer}`"),
+            &format!(
+                "Wrong answer: `{}` and `{}`",
+                output.trim_end(),
+                answer.trim_end()
+            ),
         )
     }
 }

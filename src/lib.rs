@@ -54,25 +54,32 @@ fn run_solution(
     let stdout_file = File::create(tests_paths.output.clone())?;
     let stderr_file = File::create(tests_paths.error.clone())?;
 
-    let mut solution_cmd = Command::new("nsjail")
+    println!("stdin file size: {}", input_path.display());
+
+    let mut solution_cmd = Command::new("docker")
         .args([
-            "--mode",
-            "o",
-            "--rlimit_as",
-            &config.limits.memory_limit_mb.to_string(),
-            "--disable_proc",
-            "--iface_no_lo",
-            "--chroot",
-            "/",
-            "--user",
-            "99999",
-            "--group",
-            "99999",
-            "--",
-            tests_paths
-                .solution
-                .to_str()
-                .ok_or_else(|| anyhow!("Invalid solution path"))?,
+            "run",
+            "--rm",
+            "--network",
+            "none",
+            "--memory",
+            &format!("{}m", config.limits.memory_limit_mb),
+            "--cpus",
+            "0.3",
+            "--pids-limit",
+            "32",
+            "--read-only",
+            "--cap-drop",
+            "ALL",
+            "-i",
+            "--security-opt",
+            "no-new-privileges",
+            "-v",
+            &format!("{}:/sandbox/bin:ro", tests_paths.solution.display()),
+            "-w",
+            "/sandbox",
+            "sandbox-runner",
+            "/sandbox/bin",
         ])
         .stdin(Stdio::from(stdin_file))
         .stdout(Stdio::from(stdout_file))

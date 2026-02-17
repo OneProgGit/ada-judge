@@ -163,6 +163,9 @@ fn run_single_test(
 
 /// Test solution and return a verdict for each subgroup.
 pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<TestResult>> {
+    let problem_path = problem_path.canonicalize()?;
+    let run_path = run_path.canonicalize()?;
+
     let config: ProblemConfig = toml::from_str(&read_to_string(problem_path.join("config.toml"))?)?;
     let tests_paths = TestsPaths::new(&run_path);
 

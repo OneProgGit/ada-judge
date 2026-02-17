@@ -10,13 +10,13 @@ pub struct TestResult {
 }
 
 #[derive(Clone)]
-pub struct CheckerResult {
+pub(crate) struct CheckerResult {
     pub verdict: Verdict,
     pub checker_msg: String,
 }
 
 #[derive(Clone)]
-pub struct TestsPaths {
+pub(crate) struct TestsPaths {
     pub output: PathBuf,
     pub error: PathBuf,
     pub solution: PathBuf,

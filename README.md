@@ -26,6 +26,4 @@ SecurityError,
 WrongAnswer,
 PresentationError,
 Skipped,
-InvalidProblem,
-Fail
 ```

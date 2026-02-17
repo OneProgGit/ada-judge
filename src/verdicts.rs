@@ -1,4 +1,5 @@
 /// Verdicts
+#[derive(Clone, PartialEq)]
 pub enum Verdict {
     Ok,
     CompilationError,
@@ -9,6 +10,4 @@ pub enum Verdict {
     WrongAnswer,
     PresentationError,
     Skipped,
-    InvalidProblem(String),
-    Fail(String),
 }

@@ -6,11 +6,18 @@ version = 4
 name = "ada-judge"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "fs_extra",
  "serde",
  "toml",
  "wait-timeout",
 ]
+
+[[package]]
+name = "anyhow"
+version = "1.0.101"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f0e0fee31ef5ed1ba1316088939cea399010ed7731dba877ed44aeb407a75ea"
 
 [[package]]
 name = "equivalent"

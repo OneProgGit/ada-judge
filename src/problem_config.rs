@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 
 /// Problem's config
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct ProblemConfig {
     pub general: General,
     pub limits: Limits,
@@ -13,32 +13,32 @@ pub struct ProblemConfig {
 }
 
 /// General data
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct General {
     pub name: String,
 }
 
 /// Limits
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Limits {
     pub time_limit_ms: u64,
     pub memory_limit_mb: u64,
 }
 
 /// Checker info
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Checker {
     pub path: PathBuf,
 }
 
 /// Tests general info
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Tests {
     pub path: PathBuf,
 }
 
 /// Test group
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct TestGroup {
     pub r#type: TestGroupType,
     pub tests: Vec<u8>,
@@ -46,7 +46,7 @@ pub struct TestGroup {
 }
 
 /// Test group's type
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum TestGroupType {
     Sample,

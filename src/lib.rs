@@ -54,8 +54,6 @@ fn run_solution(
     let stdout_file = File::create(tests_paths.output.clone())?;
     let stderr_file = File::create(tests_paths.error.clone())?;
 
-    println!("stdin file size: {}", input_path.display());
-
     let mut solution_cmd = Command::new("docker")
         .args([
             "run",

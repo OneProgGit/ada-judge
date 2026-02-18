@@ -30,6 +30,8 @@ fn test_ok() {
     assert_eq!(res.groups_result[0].verdict, Verdict::Ok);
     assert_eq!(res.groups_result[1].verdict, Verdict::Ok);
     assert_eq!(res.total_score, 100);
+    assert_eq!(res.groups_result[0].score, 0);
+    assert_eq!(res.groups_result[1].score, 100);
 }
 
 #[test]
@@ -47,6 +49,8 @@ fn test_wa() {
     assert_eq!(res.groups_result[0].verdict, Verdict::WrongAnswer);
     assert_eq!(res.groups_result[1].verdict, Verdict::WrongAnswer);
     assert_eq!(res.total_score, 0);
+    assert_eq!(res.groups_result[0].score, 0);
+    assert_eq!(res.groups_result[1].score, 0);
 }
 
 #[test]
@@ -64,6 +68,8 @@ fn test_tle() {
     assert_eq!(res.groups_result[0].verdict, Verdict::TimeLimitExceeded);
     assert_eq!(res.groups_result[1].verdict, Verdict::TimeLimitExceeded);
     assert_eq!(res.total_score, 0);
+    assert_eq!(res.groups_result[0].score, 0);
+    assert_eq!(res.groups_result[1].score, 0);
 }
 
 #[test]
@@ -81,6 +87,8 @@ fn test_mle() {
     assert_eq!(res.groups_result[0].verdict, Verdict::MemoryLimitExceeded);
     assert_eq!(res.groups_result[1].verdict, Verdict::MemoryLimitExceeded);
     assert_eq!(res.total_score, 0);
+    assert_eq!(res.groups_result[0].score, 0);
+    assert_eq!(res.groups_result[1].score, 0);
 }
 
 #[test]
@@ -98,4 +106,6 @@ fn test_re() {
     assert_eq!(res.groups_result[0].verdict, Verdict::RuntimeError);
     assert_eq!(res.groups_result[1].verdict, Verdict::RuntimeError);
     assert_eq!(res.total_score, 0);
+    assert_eq!(res.groups_result[0].score, 0);
+    assert_eq!(res.groups_result[1].score, 0);
 }

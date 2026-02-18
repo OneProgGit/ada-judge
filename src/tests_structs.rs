@@ -2,10 +2,16 @@ use std::path::{Path, PathBuf};
 
 use crate::verdicts::Verdict;
 
+pub struct TestingResult {
+    pub groups_result: Vec<GroupResult>,
+    pub total_score: u8,
+}
+
 #[derive(Clone)]
-pub struct TestResult {
+pub struct GroupResult {
     pub verdict: Verdict,
     pub test: u8,
+    pub score: u8,
     pub checker_msg: String,
 }
 

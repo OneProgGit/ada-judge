@@ -46,7 +46,6 @@ fn prepare_test_env(
 
 fn run_solution(
     config: &ProblemConfig,
-    run_path: &Path,
     input_path: &Path,
     tests_paths: &TestsPaths,
 ) -> Result<Verdict> {
@@ -91,7 +90,7 @@ fn run_solution(
     match solution_status {
         None => Ok(Verdict::TimeLimitExceeded),
         Some(status) => match status.code() {
-            Some(0) => Ok(Verdict::Ok),
+            Some(VERDICT_OK) => Ok(Verdict::Ok),
             Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
             _ => Ok(Verdict::RuntimeError),
         },
@@ -145,7 +144,6 @@ fn run_checker(
 
 fn run_single_test(
     config: &ProblemConfig,
-    run_path: &Path,
     tests_paths: &TestsPaths,
     test_id: u8,
 ) -> Result<CheckerResult> {
@@ -154,7 +152,7 @@ fn run_single_test(
     let input_path = test_path.join("in");
     let answer_path = test_path.join("out");
 
-    let solution_verdict = run_solution(config, run_path, &input_path, tests_paths)?;
+    let solution_verdict = run_solution(config, &input_path, tests_paths)?;
 
     if solution_verdict != Verdict::Ok {
         return Ok(CheckerResult {
@@ -167,7 +165,7 @@ fn run_single_test(
 }
 
 /// Test solution and return a verdict for each subgroup.
-pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<TestResult>> {
+pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<TestingResult> {
     let problem_path = problem_path.canonicalize()?;
     let run_path = run_path.canonicalize()?;
 
@@ -176,29 +174,36 @@ pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<Vec<TestResult>>
 
     prepare_test_env(problem_path, &config, &tests_paths)?;
 
-    let mut result: Vec<TestResult> = Vec::with_capacity(config.test_groups.len());
+    let mut groups_result: Vec<GroupResult> = Vec::with_capacity(config.test_groups.len());
+    let mut total_score = 0;
 
     for test_group in config.test_groups.clone() {
-        let mut test_result = TestResult {
+        let mut test_result = GroupResult {
             verdict: Verdict::Ok,
             test: 0,
+            score: test_group.score,
             checker_msg: String::new(),
         };
 
         for test_id in test_group.tests {
-            let run_result = run_single_test(&config, &run_path, &tests_paths, test_id)?;
+            let run_result = run_single_test(&config, &tests_paths, test_id)?;
 
             test_result.verdict = run_result.verdict.clone();
             test_result.test = test_id;
             test_result.checker_msg = run_result.checker_msg;
 
             if run_result.verdict != Verdict::Ok {
+                test_result.score = 0;
                 break;
             }
         }
 
-        result.push(test_result);
+        total_score += test_result.score;
+        groups_result.push(test_result);
     }
 
-    Ok(result)
+    Ok(TestingResult {
+        groups_result,
+        total_score,
+    })
 }

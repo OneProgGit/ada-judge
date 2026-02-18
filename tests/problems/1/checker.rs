@@ -14,7 +14,10 @@ fn die(code: i32, msg: &str) -> ! {
 
 fn check(output: String, answer: String) {
     if output.trim_end() == answer.trim_end() {
-        exit(OK);
+        die(
+            OK,
+            &format!("OK: `{}` and `{}`", output.trim_end(), answer.trim_end()),
+        )
     } else {
         die(
             WRONG_ANSWER,

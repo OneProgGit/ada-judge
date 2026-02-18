@@ -165,7 +165,10 @@ fn run_single_test(
 }
 
 /// Test solution and return a verdict for each subgroup.
-pub fn test(problem_path: PathBuf, run_path: PathBuf) -> Result<TestingResult> {
+pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Result<TestingResult> {
+    let problem_path = problem_path.as_ref();
+    let run_path = run_path.as_ref();
+
     let problem_path = problem_path.canonicalize()?;
     let run_path = run_path.canonicalize()?;
 

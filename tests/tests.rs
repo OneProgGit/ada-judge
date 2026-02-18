@@ -1,6 +1,5 @@
 use ada_judge::verdicts::Verdict;
-use std::process::Command;
-use std::{fs, path::PathBuf};
+use std::{fs, process::Command};
 
 fn compile(solution_name: &str) {
     Command::new("rustc")
@@ -18,11 +17,7 @@ fn compile(solution_name: &str) {
 #[test]
 fn test_ok() {
     compile("ok");
-    let res = ada_judge::test(
-        PathBuf::from("tests/problems/1"),
-        PathBuf::from("tests/env_ok"),
-    )
-    .unwrap();
+    let res = ada_judge::test("tests/problems/1", "tests/env_ok").unwrap();
 
     fs::remove_dir_all("tests/env_ok").unwrap();
     fs::create_dir("tests/env_ok").unwrap();
@@ -37,11 +32,7 @@ fn test_ok() {
 #[test]
 fn test_wa() {
     compile("wa");
-    let res = ada_judge::test(
-        PathBuf::from("tests/problems/1"),
-        PathBuf::from("tests/env_wa"),
-    )
-    .unwrap();
+    let res = ada_judge::test("tests/problems/1", "tests/env_wa").unwrap();
 
     fs::remove_dir_all("tests/env_wa").unwrap();
     fs::create_dir("tests/env_wa").unwrap();
@@ -56,11 +47,7 @@ fn test_wa() {
 #[test]
 fn test_tle() {
     compile("tle");
-    let res = ada_judge::test(
-        PathBuf::from("tests/problems/1"),
-        PathBuf::from("tests/env_tle"),
-    )
-    .unwrap();
+    let res = ada_judge::test("tests/problems/1", "tests/env_tle").unwrap();
 
     fs::remove_dir_all("tests/env_tle").unwrap();
     fs::create_dir("tests/env_tle").unwrap();
@@ -75,11 +62,7 @@ fn test_tle() {
 #[test]
 fn test_mle() {
     compile("mle");
-    let res = ada_judge::test(
-        PathBuf::from("tests/problems/1"),
-        PathBuf::from("tests/env_mle"),
-    )
-    .unwrap();
+    let res = ada_judge::test("tests/problems/1", "tests/env_mle").unwrap();
 
     fs::remove_dir_all("tests/env_mle").unwrap();
     fs::create_dir("tests/env_mle").unwrap();
@@ -94,11 +77,7 @@ fn test_mle() {
 #[test]
 fn test_re() {
     compile("re");
-    let res = ada_judge::test(
-        PathBuf::from("tests/problems/1"),
-        PathBuf::from("tests/env_re"),
-    )
-    .unwrap();
+    let res = ada_judge::test("tests/problems/1", "tests/env_re").unwrap();
 
     fs::remove_dir_all("tests/env_re").unwrap();
     fs::create_dir("tests/env_re").unwrap();

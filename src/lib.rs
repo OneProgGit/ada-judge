@@ -173,6 +173,19 @@ pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Resul
     let run_path = run_path.canonicalize()?;
 
     let config: ProblemConfig = toml::from_str(&read_to_string(problem_path.join("config.toml"))?)?;
+
+    for (i, group) in config.test_groups.iter().enumerate() {
+        if let Some(depends_on) = group.depends_on.clone() {
+            for x in depends_on {
+                if x > i {
+                    return Err(anyhow!(
+                        "Incorrect config: subgroup `{i}` depends on subgroup `{x}`, but `{x}` > `{i}`"
+                    ));
+                }
+            }
+        }
+    }
+
     let tests_paths = TestsPaths::new(&run_path);
 
     prepare_test_env(problem_path, &config, &tests_paths)?;
@@ -188,16 +201,28 @@ pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Resul
             checker_msg: String::new(),
         };
 
-        for test_id in test_group.tests {
-            let run_result = run_single_test(&config, &tests_paths, test_id)?;
+        if let Some(depends_on) = test_group.depends_on {
+            for i in depends_on {
+                if groups_result[i].verdict != Verdict::Ok {
+                    test_result.verdict = Verdict::Skipped;
+                    test_result.score = 0;
+                    break;
+                }
+            }
+        }
 
-            test_result.verdict = run_result.verdict.clone();
-            test_result.test = test_id;
-            test_result.checker_msg = run_result.checker_msg;
+        if test_result.verdict != Verdict::Skipped {
+            for test_id in test_group.tests {
+                let run_result = run_single_test(&config, &tests_paths, test_id)?;
 
-            if run_result.verdict != Verdict::Ok {
-                test_result.score = 0;
-                break;
+                test_result.verdict = run_result.verdict.clone();
+                test_result.test = test_id;
+                test_result.checker_msg = run_result.checker_msg;
+
+                if run_result.verdict != Verdict::Ok {
+                    test_result.score = 0;
+                    break;
+                }
             }
         }
 

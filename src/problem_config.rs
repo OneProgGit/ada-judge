@@ -44,6 +44,7 @@ pub(crate) struct TestGroup {
     pub r#type: TestGroupType,
     pub tests: Vec<u8>,
     pub score: u8,
+    pub depends_on: Option<Vec<usize>>,
 }
 
 /// Test group's type

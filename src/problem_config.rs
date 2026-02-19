@@ -1,11 +1,10 @@
-use std::path::PathBuf;
-
 use serde::Deserialize;
+use std::path::PathBuf;
 
 /// Problem's config
 #[derive(Deserialize, Clone)]
 pub(crate) struct ProblemConfig {
-    pub general: General,
+    pub _general: General,
     pub limits: Limits,
     pub checker: Checker,
     pub tests: Tests,
@@ -15,7 +14,7 @@ pub(crate) struct ProblemConfig {
 /// General data
 #[derive(Deserialize, Clone)]
 pub(crate) struct General {
-    pub name: String,
+    pub _name: String,
 }
 
 /// Limits
@@ -40,7 +39,7 @@ pub(crate) struct Tests {
 /// Test group
 #[derive(Deserialize, Clone)]
 pub(crate) struct TestGroup {
-    pub r#type: TestGroupType,
+    pub _type: TestGroupType,
     pub tests: Vec<u8>,
     pub score: u8,
 }

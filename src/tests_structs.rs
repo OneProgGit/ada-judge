@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::verdicts::Verdict;
 
+#[derive(Clone, Debug)]
 /// Result of testing, including result for each subgroup and total score
 pub struct TestingResult {
     pub groups_result: Vec<GroupResult>,
@@ -9,7 +10,7 @@ pub struct TestingResult {
 }
 
 /// Subgroup result, including verdict, test of that verdict, score and checker's message
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GroupResult {
     pub verdict: Verdict,
     pub test: u8,
@@ -18,14 +19,14 @@ pub struct GroupResult {
 }
 
 /// Checker result, including checker's verdict and message
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct CheckerResult {
     pub verdict: Verdict,
     pub checker_msg: String,
 }
 
 /// Useful paths for testing
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct TestsPaths {
     pub output: PathBuf,
     pub error: PathBuf,

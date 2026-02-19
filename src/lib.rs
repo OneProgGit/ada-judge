@@ -177,9 +177,9 @@ pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Resul
     for (i, group) in config.test_groups.iter().enumerate() {
         if let Some(depends_on) = group.depends_on.clone() {
             for x in depends_on {
-                if x > i {
+                if x >= i {
                     return Err(anyhow!(
-                        "Incorrect config: subgroup `{i}` depends on subgroup `{x}`, but `{x}` > `{i}`"
+                        "Incorrect config: subgroup `{i}` depends on subgroup `{x}`, but {x} >= {i}"
                     ));
                 }
             }

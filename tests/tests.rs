@@ -100,33 +100,48 @@ fn test_re_with_deps() {
 fn test_ok_incorrect_deps() {
     let env_path = "tests/env_ok_incorrect_deps".to_string();
     compile("ok", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path).unwrap_err();
+    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
+
+    fs::remove_dir_all(&env_path).unwrap();
+    fs::create_dir(&env_path).unwrap();
 }
 
 #[test]
 fn test_wa_incorrect_deps() {
     let env_path = "tests/env_wa_incorrect_deps".to_string();
     compile("wa", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path).unwrap_err();
+    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
+
+    fs::remove_dir_all(&env_path).unwrap();
+    fs::create_dir(&env_path).unwrap();
 }
 
 #[test]
 fn test_tle_incorrect_deps() {
     let env_path = "tests/env_tle_incorrect_deps".to_string();
     compile("tle", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path).unwrap_err();
+    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
+
+    fs::remove_dir_all(&env_path).unwrap();
+    fs::create_dir(&env_path).unwrap();
 }
 
 #[test]
 fn test_mle_incorrect_deps() {
     let env_path = "tests/env_mle_incorrect_deps".to_string();
     compile("mle", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path).unwrap_err();
+    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
+
+    fs::remove_dir_all(&env_path).unwrap();
+    fs::create_dir(&env_path).unwrap();
 }
 
 #[test]
 fn test_re_incorrect_deps() {
     let env_path = "tests/env_re_incorrect_deps".to_string();
     compile("re", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path).unwrap_err();
+    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
+
+    fs::remove_dir_all(&env_path).unwrap();
+    fs::create_dir(&env_path).unwrap();
 }

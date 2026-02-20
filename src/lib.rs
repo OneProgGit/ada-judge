@@ -105,11 +105,39 @@ fn run_checker(
 ) -> Result<CheckerResult> {
     let stderr_file = File::create(tests_paths.error.clone())?;
 
-    let mut checker_cmd = Command::new(tests_paths.checker.clone())
+    let mut checker_cmd = Command::new("docker")
         .args([
-            input_path.as_os_str(),
-            tests_paths.output.as_os_str(),
-            answer_path.as_os_str(),
+            "run",
+            "--rm",
+            "--network",
+            "none",
+            "--memory",
+            &format!("{}m", config.limits.memory_limit_mb),
+            "--cpus",
+            "0.3",
+            "--pids-limit",
+            "32",
+            "--read-only",
+            "--cap-drop",
+            "ALL",
+            "-i",
+            "--security-opt",
+            "no-new-privileges",
+            "-v",
+            &format!("{}:/sandbox/bin:ro", tests_paths.checker.display()),
+            "-v",
+            &format!("{}:/sandbox/input:ro", input_path.display()),
+            "-v",
+            &format!("{}:/sandbox/output:ro", tests_paths.output.display()),
+            "-v",
+            &format!("{}:/sandbox/answer:ro", answer_path.display()),
+            "-w",
+            "/sandbox",
+            "sandbox-runner",
+            "/sandbox/bin",
+            "/sandbox/input",
+            "/sandbox/output",
+            "/sandbox/answer",
         ])
         .stderr(Stdio::from(stderr_file))
         .spawn()?;

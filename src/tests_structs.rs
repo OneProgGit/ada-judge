@@ -38,8 +38,8 @@ pub(crate) struct TestsPaths {
 impl TestsPaths {
     pub fn new(run_path: &Path) -> Self {
         Self {
-            output: run_path.join("stdout.txt"),
-            error: run_path.join("stderr.txt"),
+            output: run_path.join("stdout"),
+            error: run_path.join("stderr"),
             solution: run_path.join("run"),
             checker: run_path.join("checker"),
             tests: run_path.join("tests"),

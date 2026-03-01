@@ -1,10 +1,10 @@
-use ada_judge::verdicts::Verdict;
+use solutions_judger::verdicts::Verdict;
 use std::{fs, process::Command};
 
 fn compile(solution_name: &str, env_path: String) {
     Command::new("rustc")
         .args([
-            &format!("tests/solutions/{}.rs", solution_name),
+            &format!("solutions/{}.rs", solution_name),
             "-o",
             &(env_path.clone() + "/run"),
         ])
@@ -16,15 +16,15 @@ fn compile(solution_name: &str, env_path: String) {
 
 fn test_usual(solution_name: &str, with_deps: bool, verdict: Verdict) {
     let env_path = if with_deps {
-        format!("tests/env_{}_with_deps", solution_name)
+        format!("env_{}_with_deps", solution_name)
     } else {
-        format!("tests/env_{}_no_deps", solution_name)
+        format!("env_{}_no_deps", solution_name)
     };
 
     compile(solution_name, env_path.clone());
 
     let problem_id = if with_deps { 2 } else { 1 };
-    let res = ada_judge::test(format!("tests/problems/{problem_id}"), &env_path).unwrap();
+    let res = solutions_judger::test(format!("problems/{problem_id}"), &env_path).unwrap();
 
     fs::remove_dir_all(&env_path).unwrap();
     fs::create_dir(&env_path).unwrap();
@@ -44,6 +44,15 @@ fn test_usual(solution_name: &str, with_deps: bool, verdict: Verdict) {
         assert_eq!(res.groups_result[1].score, 100);
         assert_eq!(res.groups_result[1].verdict, verdict);
     }
+}
+
+fn test_incorrect_deps(solution_name: &str) {
+    let env_path = format!("env_{solution_name}_incorrect_deps");
+    compile(solution_name, env_path.clone());
+    solutions_judger::test("problems/3", env_path.clone()).unwrap_err();
+
+    fs::remove_dir_all(&env_path).unwrap();
+    fs::create_dir(&env_path).unwrap();
 }
 
 #[test]
@@ -98,50 +107,25 @@ fn test_re_with_deps() {
 
 #[test]
 fn test_ok_incorrect_deps() {
-    let env_path = "tests/env_ok_incorrect_deps".to_string();
-    compile("ok", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
-
-    fs::remove_dir_all(&env_path).unwrap();
-    fs::create_dir(&env_path).unwrap();
+    test_incorrect_deps("ok");
 }
 
 #[test]
 fn test_wa_incorrect_deps() {
-    let env_path = "tests/env_wa_incorrect_deps".to_string();
-    compile("wa", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
-
-    fs::remove_dir_all(&env_path).unwrap();
-    fs::create_dir(&env_path).unwrap();
+    test_incorrect_deps("wa");
 }
 
 #[test]
 fn test_tle_incorrect_deps() {
-    let env_path = "tests/env_tle_incorrect_deps".to_string();
-    compile("tle", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
-
-    fs::remove_dir_all(&env_path).unwrap();
-    fs::create_dir(&env_path).unwrap();
+    test_incorrect_deps("tle");
 }
 
 #[test]
 fn test_mle_incorrect_deps() {
-    let env_path = "tests/env_mle_incorrect_deps".to_string();
-    compile("mle", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
-
-    fs::remove_dir_all(&env_path).unwrap();
-    fs::create_dir(&env_path).unwrap();
+    test_incorrect_deps("mle");
 }
 
 #[test]
 fn test_re_incorrect_deps() {
-    let env_path = "tests/env_re_incorrect_deps".to_string();
-    compile("re", env_path.clone());
-    ada_judge::test("tests/problems/3", env_path.clone()).unwrap_err();
-
-    fs::remove_dir_all(&env_path).unwrap();
-    fs::create_dir(&env_path).unwrap();
+    test_incorrect_deps("re");
 }

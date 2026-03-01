@@ -1,0 +1,12 @@
+[package]
+name = "tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dev-dependencies]
+solutions-judger.workspace = true
+
+[[test]]
+name = "tests"
+path = "tests.rs"

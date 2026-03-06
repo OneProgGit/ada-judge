@@ -1,4 +1,7 @@
-# Ada Judge - a judgement system made with Rust
+# ada-judge
+
+> Note: all AI-made PR's  are banned from
+> this project.
 
 **To use it, you need docker to be installed!!!**
 

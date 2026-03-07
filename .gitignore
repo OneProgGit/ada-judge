@@ -1,1 +1,7 @@
 /target
+/.vscode
+/.zed
+/.gram
+/.idea
+/.helix
+.editorconfig

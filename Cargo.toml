@@ -2,6 +2,7 @@
 name = "ada-judge"
 version = "0.2.0"
 edition = "2024"
+rust-version = "1.94.0"
 
 [dependencies]
 solutions-judger.workspace = true

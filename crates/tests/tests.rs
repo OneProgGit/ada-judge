@@ -1,4 +1,4 @@
-use solutions_judger::verdicts::Verdict;
+use solutions_judger::enums::AdaJudgeVerdict;
 use std::{fs, process::Command};
 
 fn compile(solution_name: &str, env_path: String) {
@@ -14,7 +14,7 @@ fn compile(solution_name: &str, env_path: String) {
         .unwrap();
 }
 
-fn test_usual(solution_name: &str, with_deps: bool, verdict: Verdict) {
+fn test_usual(solution_name: &str, with_deps: bool, verdict: AdaJudgeVerdict) {
     let env_path = if with_deps {
         format!("env_{}_with_deps", solution_name)
     } else {
@@ -31,11 +31,11 @@ fn test_usual(solution_name: &str, with_deps: bool, verdict: Verdict) {
 
     assert_eq!(res.groups_result[0].verdict, verdict);
     assert_eq!(res.groups_result[0].score, 0);
-    if verdict != Verdict::Ok {
+    if verdict != AdaJudgeVerdict::Ok {
         assert_eq!(res.total_score, 0);
         assert_eq!(res.groups_result[1].score, 0);
         if with_deps {
-            assert_eq!(res.groups_result[1].verdict, Verdict::Skipped);
+            assert_eq!(res.groups_result[1].verdict, AdaJudgeVerdict::Skipped);
         } else {
             assert_eq!(res.groups_result[1].verdict, verdict);
         }
@@ -57,52 +57,52 @@ fn test_incorrect_deps(solution_name: &str) {
 
 #[test]
 fn test_ok_no_deps() {
-    test_usual("ok", false, Verdict::Ok);
+    test_usual("ok", false, AdaJudgeVerdict::Ok);
 }
 
 #[test]
 fn test_wa_no_deps() {
-    test_usual("wa", false, Verdict::WrongAnswer);
+    test_usual("wa", false, AdaJudgeVerdict::WrongAnswer);
 }
 
 #[test]
 fn test_tle_no_deps() {
-    test_usual("tle", false, Verdict::TimeLimitExceeded);
+    test_usual("tle", false, AdaJudgeVerdict::TimeLimitExceeded);
 }
 
 #[test]
 fn test_mle_no_deps() {
-    test_usual("mle", false, Verdict::MemoryLimitExceeded);
+    test_usual("mle", false, AdaJudgeVerdict::MemoryLimitExceeded);
 }
 
 #[test]
 fn test_re_no_deps() {
-    test_usual("re", false, Verdict::RuntimeError);
+    test_usual("re", false, AdaJudgeVerdict::RuntimeError);
 }
 
 #[test]
 fn test_ok_with_deps() {
-    test_usual("ok", true, Verdict::Ok);
+    test_usual("ok", true, AdaJudgeVerdict::Ok);
 }
 
 #[test]
 fn test_wa_with_deps() {
-    test_usual("wa", true, Verdict::WrongAnswer);
+    test_usual("wa", true, AdaJudgeVerdict::WrongAnswer);
 }
 
 #[test]
 fn test_tle_with_deps() {
-    test_usual("tle", true, Verdict::TimeLimitExceeded);
+    test_usual("tle", true, AdaJudgeVerdict::TimeLimitExceeded);
 }
 
 #[test]
 fn test_mle_with_deps() {
-    test_usual("mle", true, Verdict::MemoryLimitExceeded);
+    test_usual("mle", true, AdaJudgeVerdict::MemoryLimitExceeded);
 }
 
 #[test]
 fn test_re_with_deps() {
-    test_usual("re", true, Verdict::RuntimeError);
+    test_usual("re", true, AdaJudgeVerdict::RuntimeError);
 }
 
 #[test]

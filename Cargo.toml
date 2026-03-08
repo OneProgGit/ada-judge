@@ -5,7 +5,10 @@ edition = "2024"
 rust-version = "1.94.0"
 
 [dependencies]
+axum.workspace = true
 solutions-judger.workspace = true
+contests-manager.workspace = true
+tokio.workspace = true
 
 [workspace]
 members = ["crates/solutions-judger", "crates/contests-manager", "crates/tests"]
@@ -14,3 +17,5 @@ resolver = "3"
 [workspace.dependencies]
 solutions-judger = { path = "crates/solutions-judger" }
 contests-manager = { path = "crates/contests-manager" }
+axum = "0.8.8"
+tokio = { version = "1.50.0", features = ["rt-multi-thread"] }

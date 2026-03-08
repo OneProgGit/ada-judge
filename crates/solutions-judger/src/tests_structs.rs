@@ -1,32 +1,41 @@
 use std::path::{Path, PathBuf};
 
-use crate::verdicts::Verdict;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+use crate::enums::AdaJudgeVerdict;
+
+/// Submission data
+#[derive(Serialize, Deserialize)]
+pub struct Submission {
+    pub problem_path: PathBuf,
+    pub run_path: PathBuf,
+}
+
 /// Result of testing, including result for each subgroup and total score
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TestingResult {
     pub groups_result: Vec<GroupResult>,
     pub total_score: u8,
 }
 
 /// Subgroup result, including verdict, test of that verdict, score and checker's message
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GroupResult {
-    pub verdict: Verdict,
+    pub verdict: AdaJudgeVerdict,
     pub test: u8,
     pub score: u8,
     pub checker_msg: String,
 }
 
 /// Checker result, including checker's verdict and message
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct CheckerResult {
-    pub verdict: Verdict,
+    pub verdict: AdaJudgeVerdict,
     pub checker_msg: String,
 }
 
 /// Useful paths for testing
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct TestsPaths {
     pub output: PathBuf,
     pub error: PathBuf,

@@ -7,26 +7,32 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Ok, Result, anyhow};
+use axum::Json;
 use fs_extra::dir::CopyOptions;
 use wait_timeout::ChildExt;
 
-use crate::{constants::*, problem_config::ProblemConfig, tests_structs::*, verdicts::Verdict};
+use crate::{
+    constants::*,
+    enums::{AdaJudgeError, AdaJudgeVerdict},
+    problem_config::ProblemConfig,
+    tests_structs::*,
+};
 
 pub mod constants;
+pub mod enums;
 pub mod problem_config;
 pub mod tests_structs;
-pub mod verdicts;
 
 fn prepare_test_env(
     problem_path: PathBuf,
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
-) -> Result<()> {
+) -> Result<(), AdaJudgeError> {
     fs::copy(
         problem_path.join(config.checker.path.clone()),
         tests_paths.checker.clone(),
-    )?;
+    )
+    .map_err(|_| AdaJudgeError::InvalidProblem)?;
 
     let mut opt = CopyOptions::new();
     opt.overwrite = true;
@@ -37,9 +43,10 @@ fn prepare_test_env(
         problem_path.join(config.tests.path.clone()),
         tests_paths.tests.clone(),
         &opt,
-    )?;
+    )
+    .map_err(|_| AdaJudgeError::InvalidProblem)?;
 
-    fs::write(tests_paths.error.clone(), "")?;
+    fs::write(tests_paths.error.clone(), "").map_err(|_| AdaJudgeError::InvalidProblem)?;
 
     Ok(())
 }
@@ -48,10 +55,12 @@ fn run_solution(
     config: &ProblemConfig,
     input_path: &Path,
     tests_paths: &TestsPaths,
-) -> Result<Verdict> {
-    let stdin_file = File::open(input_path)?;
-    let stdout_file = File::create(tests_paths.output.clone())?;
-    let stderr_file = File::create(tests_paths.error.clone())?;
+) -> Result<AdaJudgeVerdict, AdaJudgeError> {
+    let stdin_file = File::open(input_path).map_err(|_| AdaJudgeError::InvalidProblem)?;
+    let stdout_file =
+        File::create(tests_paths.output.clone()).map_err(|_| AdaJudgeError::InvalidProblem)?;
+    let stderr_file =
+        File::create(tests_paths.error.clone()).map_err(|_| AdaJudgeError::InvalidProblem)?;
 
     let mut solution_cmd = Command::new("docker")
         .args([
@@ -81,18 +90,21 @@ fn run_solution(
         .stdin(Stdio::from(stdin_file))
         .stdout(Stdio::from(stdout_file))
         .stderr(Stdio::from(stderr_file))
-        .spawn()?;
+        .spawn()
+        .map_err(|_| AdaJudgeError::Bug)?;
 
     let timeout = Duration::from_millis(config.limits.time_limit_ms);
-    let solution_status = solution_cmd.wait_timeout(timeout)?;
+    let solution_status = solution_cmd
+        .wait_timeout(timeout)
+        .map_err(|_| AdaJudgeError::Bug)?;
 
     _ = solution_cmd.kill();
     match solution_status {
-        None => Ok(Verdict::TimeLimitExceeded),
+        None => Ok(AdaJudgeVerdict::TimeLimitExceeded),
         Some(status) => match status.code() {
-            Some(VERDICT_OK) => Ok(Verdict::Ok),
-            Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
-            _ => Ok(Verdict::RuntimeError),
+            Some(VERDICT_OK) => Ok(AdaJudgeVerdict::Ok),
+            Some(VERDICT_MLE) => Ok(AdaJudgeVerdict::MemoryLimitExceeded),
+            _ => Ok(AdaJudgeVerdict::RuntimeError),
         },
     }
 }
@@ -102,8 +114,9 @@ fn run_checker(
     input_path: &Path,
     answer_path: PathBuf,
     tests_paths: &TestsPaths,
-) -> Result<CheckerResult> {
-    let stderr_file = File::create(tests_paths.error.clone())?;
+) -> Result<CheckerResult, AdaJudgeError> {
+    let stderr_file =
+        File::create(tests_paths.error.clone()).map_err(|_| AdaJudgeError::InvalidProblem)?;
 
     let mut checker_cmd = Command::new("docker")
         .args([
@@ -140,31 +153,35 @@ fn run_checker(
             "/sandbox/answer",
         ])
         .stderr(Stdio::from(stderr_file))
-        .spawn()?;
+        .spawn()
+        .map_err(|_| AdaJudgeError::Bug)?;
 
     let timeout = Duration::from_millis(config.limits.time_limit_ms);
-    let checker_status = checker_cmd.wait_timeout(timeout)?;
+    let checker_status = checker_cmd
+        .wait_timeout(timeout)
+        .map_err(|_| AdaJudgeError::Bug)?;
 
     _ = checker_cmd.kill();
     match checker_status {
-        None => Err(anyhow!("Failed to check solution: checker stucks")),
+        None => Err(AdaJudgeError::CheckerFailed),
         Some(status) => {
-            let checker_msg = fs::read_to_string(tests_paths.error.clone())?;
+            let checker_msg = fs::read_to_string(tests_paths.error.clone())
+                .map_err(|_| AdaJudgeError::InvalidProblem)?;
 
             match status.code() {
                 Some(CHECKER_OK) => Ok(CheckerResult {
-                    verdict: Verdict::Ok,
+                    verdict: AdaJudgeVerdict::Ok,
                     checker_msg,
                 }),
                 Some(CHECKER_WA) => Ok(CheckerResult {
-                    verdict: Verdict::WrongAnswer,
+                    verdict: AdaJudgeVerdict::WrongAnswer,
                     checker_msg,
                 }),
                 Some(CHECKER_PE) => Ok(CheckerResult {
-                    verdict: Verdict::PresentationError,
+                    verdict: AdaJudgeVerdict::PresentationError,
                     checker_msg,
                 }),
-                _ => Err(anyhow!("Failed to check solution: checker failed")),
+                _ => Err(AdaJudgeError::CheckerFailed),
             }
         }
     }
@@ -174,7 +191,7 @@ fn run_single_test(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
     test_id: u8,
-) -> Result<CheckerResult> {
+) -> Result<CheckerResult, AdaJudgeError> {
     let test_path = tests_paths.tests.join(test_id.to_string());
 
     let input_path = test_path.join("in");
@@ -182,33 +199,39 @@ fn run_single_test(
 
     let solution_verdict = run_solution(config, &input_path, tests_paths)?;
 
-    if solution_verdict != Verdict::Ok {
+    if solution_verdict != AdaJudgeVerdict::Ok {
         return Ok(CheckerResult {
             verdict: solution_verdict,
-            checker_msg: String::new(),
+            checker_msg: String::default(),
         });
     }
 
-    Ok(run_checker(config, &input_path, answer_path, tests_paths)?)
+    run_checker(config, &input_path, answer_path, tests_paths)
 }
 
-/// Test solution and return a verdict for each subgroup.
-pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Result<TestingResult> {
-    let problem_path = problem_path.as_ref();
-    let run_path = run_path.as_ref();
+pub async fn push_submission_to_queue(
+    Json(submission): Json<Submission>,
+) -> Result<Json<TestingResult>, Json<AdaJudgeError>> {
+    let problem_path = submission
+        .problem_path
+        .canonicalize()
+        .map_err(|_| AdaJudgeError::InvalidProblem)?;
+    let run_path = submission
+        .run_path
+        .canonicalize()
+        .map_err(|_| AdaJudgeError::InvalidProblem)?;
 
-    let problem_path = problem_path.canonicalize()?;
-    let run_path = run_path.canonicalize()?;
-
-    let config: ProblemConfig = toml::from_str(&read_to_string(problem_path.join("config.toml"))?)?;
+    let config: ProblemConfig = toml::from_str(
+        &read_to_string(problem_path.join("config.toml"))
+            .map_err(|_| AdaJudgeError::InvalidProblem)?,
+    )
+    .map_err(|_| AdaJudgeError::InvalidProblem)?;
 
     for (i, group) in config.test_groups.iter().enumerate() {
         if let Some(depends_on) = group.depends_on.clone() {
             for x in depends_on {
                 if x >= i {
-                    return Err(anyhow!(
-                        "Incorrect config: subgroup `{i}` depends on subgroup `{x}`, but {x} >= {i}"
-                    ));
+                    return Err(AdaJudgeError::InvalidProblem.into());
                 }
             }
         }
@@ -223,7 +246,7 @@ pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Resul
 
     for test_group in config.test_groups.clone() {
         let mut test_result = GroupResult {
-            verdict: Verdict::Ok,
+            verdict: AdaJudgeVerdict::Ok,
             test: 0,
             score: test_group.score,
             checker_msg: String::new(),
@@ -231,15 +254,15 @@ pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Resul
 
         if let Some(depends_on) = test_group.depends_on {
             for i in depends_on {
-                if groups_result[i].verdict != Verdict::Ok {
-                    test_result.verdict = Verdict::Skipped;
+                if groups_result[i].verdict != AdaJudgeVerdict::Ok {
+                    test_result.verdict = AdaJudgeVerdict::Skipped;
                     test_result.score = 0;
                     break;
                 }
             }
         }
 
-        if test_result.verdict != Verdict::Skipped {
+        if test_result.verdict != AdaJudgeVerdict::Skipped {
             for test_id in test_group.tests {
                 let run_result = run_single_test(&config, &tests_paths, test_id)?;
 
@@ -247,7 +270,7 @@ pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Resul
                 test_result.test = test_id;
                 test_result.checker_msg = run_result.checker_msg;
 
-                if run_result.verdict != Verdict::Ok {
+                if run_result.verdict != AdaJudgeVerdict::Ok {
                     test_result.score = 0;
                     break;
                 }
@@ -261,5 +284,6 @@ pub fn test(problem_path: impl AsRef<Path>, run_path: impl AsRef<Path>) -> Resul
     Ok(TestingResult {
         groups_result,
         total_score,
-    })
+    }
+    .into())
 }

@@ -1,6 +1,6 @@
 # ada-judge
 
-> Note: all AI-made PR's  are banned from
+> Note: all AI-made PR's are banned from
 > this project.
 
 ada-judge is a competitive programming contest manager and judger.

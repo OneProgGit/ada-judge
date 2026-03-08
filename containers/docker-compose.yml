@@ -10,13 +10,13 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-  test-env:
-    build: ./judger
+  sandbox-runner:
+    build: ./sandbox-runner
   ada-judge:
     build: ./ada-judge
     depends_on:
       - postgres
-      - test-env
+      - sandbox-runner
     environment:
       DATABASE_URL: postgres://ada-judge:ada-judge@postgres:5432/ada-judge
     ports:

@@ -16,7 +16,7 @@ git clone https://codeberg.org/oneprog/ada-judge
 ```
 Cd to the project's directory and build the container:
 ```bash
-docker build -t sandbox-runner .
+docker build -t sandbox-runner ./containers/sandbox-runner
 ```
 Then, you can run test suite with `cargo test` to make sure everything was installed properly. 
 

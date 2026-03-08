@@ -10,4 +10,6 @@ pub enum Verdict {
     WrongAnswer,
     PresentationError,
     Skipped,
+    Pending,
+    TestingOnSubgroup(usize),
 }

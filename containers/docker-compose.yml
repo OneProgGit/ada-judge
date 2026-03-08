@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: always
+    enviroment:
+      POSTGRES_USER: ada-judge
+      POSTGRES_PASSWORD: ada-judge
+      POSTGRES_DB: ada-judge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  test-env:
+    build: ./judger
+  ada-judge:
+    build: ./ada-judge
+    depends_on:
+      - postgres
+      - test-env
+    environment:
+      DATABASE_URL: postgres://ada-judge:ada-judge@postgres:5432/ada-judge
+    ports:
+      - "8080:8080"
+volumes:
+  pgdata:

@@ -8,8 +8,9 @@ rust-version = "1.94.0"
 solutions-judger.workspace = true
 
 [workspace]
-members = ["crates/solutions-judger", "crates/tests"]
+members = ["crates/solutions-judger", "crates/contests-manager", "crates/tests"]
 resolver = "3"
 
 [workspace.dependencies]
 solutions-judger = { path = "crates/solutions-judger" }
+contests-manager = { path = "crates/contests-manager" }

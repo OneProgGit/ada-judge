@@ -1,27 +1,23 @@
-//! Judgement system made with Rust.
-
+use crate::{constants::*, problem_config::ProblemConfig};
+use apalis::prelude::TaskSink;
+use axum::{Json, extract::State};
+use fs_extra::dir::CopyOptions;
+use models::AppState;
+use models::{
+    enums::{AdaJudgeError, AdaJudgeVerdict},
+    testing::*,
+};
 use std::{
     fs::{self, File, read_to_string},
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    sync::Arc,
     time::Duration,
 };
-
-use axum::Json;
-use fs_extra::dir::CopyOptions;
 use wait_timeout::ChildExt;
 
-use crate::{
-    constants::*,
-    enums::{AdaJudgeError, AdaJudgeVerdict},
-    problem_config::ProblemConfig,
-    tests_structs::*,
-};
-
 pub mod constants;
-pub mod enums;
 pub mod problem_config;
-pub mod tests_structs;
 
 fn prepare_test_env(
     problem_path: PathBuf,
@@ -209,7 +205,7 @@ fn run_single_test(
     run_checker(config, &input_path, answer_path, tests_paths)
 }
 
-pub async fn push_submission_to_queue(
+pub fn test(
     Json(submission): Json<Submission>,
 ) -> Result<Json<TestingResult>, Json<AdaJudgeError>> {
     let problem_path = submission
@@ -286,4 +282,18 @@ pub async fn push_submission_to_queue(
         total_score,
     }
     .into())
+}
+
+pub async fn push_submission_to_queue(
+    State(state): State<Arc<AppState>>,
+    Json(submission): Json<Submission>,
+) -> Result<(), Json<AdaJudgeError>> {
+    state
+        .apalis_backend
+        .lock()
+        .await
+        .push(submission)
+        .await
+        .map_err(|_| AdaJudgeError::Bug)?;
+    Ok(())
 }

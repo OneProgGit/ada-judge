@@ -1,4 +1,8 @@
-use solutions_judger::enums::AdaJudgeVerdict;
+use axum::Json;
+use models::{
+    enums::{AdaJudgeError, AdaJudgeVerdict},
+    testing::Submission,
+};
 use std::{fs, process::Command};
 
 fn compile(solution_name: &str, env_path: String) {
@@ -24,7 +28,12 @@ fn test_usual(solution_name: &str, with_deps: bool, verdict: AdaJudgeVerdict) {
     compile(solution_name, env_path.clone());
 
     let problem_id = if with_deps { 2 } else { 1 };
-    let res = solutions_judger::test(format!("problems/{problem_id}"), &env_path).unwrap();
+
+    let submission = Submission {
+        problem_path: format!("problems/{problem_id}").into(),
+        run_path: env_path.clone().into(),
+    };
+    let res = solutions_judger::test(Json(submission)).unwrap();
 
     fs::remove_dir_all(&env_path).unwrap();
     fs::create_dir(&env_path).unwrap();
@@ -49,7 +58,13 @@ fn test_usual(solution_name: &str, with_deps: bool, verdict: AdaJudgeVerdict) {
 fn test_incorrect_deps(solution_name: &str) {
     let env_path = format!("env_{solution_name}_incorrect_deps");
     compile(solution_name, env_path.clone());
-    solutions_judger::test("problems/3", env_path.clone()).unwrap_err();
+    let submission = Submission {
+        problem_path: "problems/3".into(),
+        run_path: env_path.clone().into(),
+    };
+    let res = solutions_judger::test(Json(submission)).unwrap_err().0;
+
+    assert_eq!(res, AdaJudgeError::InvalidProblem);
 
     fs::remove_dir_all(&env_path).unwrap();
     fs::create_dir(&env_path).unwrap();

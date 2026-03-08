@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::enums::AdaJudgeVerdict;
 
 /// Submission data
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Submission {
     pub problem_path: PathBuf,
     pub run_path: PathBuf,
@@ -29,14 +29,14 @@ pub struct GroupResult {
 
 /// Checker result, including checker's verdict and message
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub(crate) struct CheckerResult {
+pub struct CheckerResult {
     pub verdict: AdaJudgeVerdict,
     pub checker_msg: String,
 }
 
 /// Useful paths for testing
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub(crate) struct TestsPaths {
+pub struct TestsPaths {
     pub output: PathBuf,
     pub error: PathBuf,
     pub solution: PathBuf,

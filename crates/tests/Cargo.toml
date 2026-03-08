@@ -6,6 +6,8 @@ publish = false
 
 [dev-dependencies]
 solutions-judger.workspace = true
+models.workspace = true
+axum.workspace = true
 
 [[test]]
 name = "tests"

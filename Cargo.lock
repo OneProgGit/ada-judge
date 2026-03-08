@@ -6,9 +6,14 @@ version = 4
 name = "ada-judge"
 version = "0.2.0"
 dependencies = [
+ "apalis",
+ "apalis-postgres",
  "axum",
  "contests-manager",
+ "dotenvy",
+ "models",
  "solutions-judger",
+ "sqlx",
  "tokio",
 ]
 
@@ -995,6 +1000,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "models"
+version = "0.0.0"
+dependencies = [
+ "apalis-postgres",
+ "serde",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "num-bigint-dig"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1503,10 +1518,11 @@ name = "solutions-judger"
 version = "0.0.0"
 dependencies = [
  "apalis",
- "apalis-postgres",
  "axum",
  "fs_extra",
+ "models",
  "serde",
+ "sqlx",
  "tokio",
  "toml",
  "wait-timeout",
@@ -1780,6 +1796,8 @@ dependencies = [
 name = "tests"
 version = "0.0.0"
 dependencies = [
+ "axum",
+ "models",
  "solutions-judger",
 ]
 

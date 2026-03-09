@@ -9,5 +9,8 @@ RUN cargo build --release
 
 FROM debian:trixie-slim
 WORKDIR /usr/local/bin
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends docker.io \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/src/app/target/release/ada-judge ./ada-judge
 CMD ["./ada-judge"]

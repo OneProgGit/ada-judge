@@ -269,7 +269,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         AdaJudgeError::InvalidProblem
     })?;
 
-    eprintln!("Canonicalize problem path");
+    eprintln!("Canonicalize run path");
     let run_path = submission.run_path.canonicalize().map_err(|e| {
         eprintln!("{e}");
         AdaJudgeError::InvalidProblem

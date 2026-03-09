@@ -309,13 +309,13 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     let mut total_score = 0;
     let mut groups_result: Vec<GroupResult> = Vec::with_capacity(config.test_groups.len());
 
-    dbg!("Test solution on subgroups");
+    eprintln!("Test solution on subgroups");
     for test_group in config.test_groups.clone() {
         eprintln!("Test on next subgroup");
         eprintln!("Insert a subgroup's testing result");
 
         let result_id: i64 = sqlx::query_scalar(
-            "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, score, checker_msg) values ($1, $2, $3, $4, $5)",
+            "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, score, checker_msg) values ($1, $2, $3, $4, $5) returning id",
         )
         .bind(groups_result.len() as i64)
         .bind(id)

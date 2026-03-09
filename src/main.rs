@@ -21,11 +21,9 @@ async fn main() {
         .expect("Failed to setup a queue");
 
     let lazy_strategy = StrategyBuilder::new()
-        .apply(IntervalStrategy::new(Duration::from_millis(100)))
+        .apply(IntervalStrategy::new(Duration::from_secs(1)))
         .build();
-    let config = Config::new("submission")
-        .with_poll_interval(lazy_strategy)
-        .set_buffer_size(20);
+    let config = Config::new("submission").with_poll_interval(lazy_strategy);
 
     let backend = PostgresStorage::new_with_config(&pool, &config);
 

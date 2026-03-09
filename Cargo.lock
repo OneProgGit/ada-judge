@@ -10,7 +10,6 @@ dependencies = [
  "apalis-postgres",
  "axum",
  "contests-manager",
- "dotenvy",
  "models",
  "solutions-judger",
  "sqlx",

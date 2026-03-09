@@ -7,20 +7,22 @@ services:
       POSTGRES_PASSWORD: ada-judge
       POSTGRES_DB: ada-judge
     ports:
-      - "5432:5432"
+      - "3333:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
   sandbox-runner:
-    build: ./sandbox-runner
+    build: ./containers/sandbox-runner
   ada-judge:
-    build: ./ada-judge
+    build: 
+      dockerfile: ./containers/ada-judge/Dockerfile
+      context: .
     depends_on:
       - postgres
       - sandbox-runner
     environment:
-      DATABASE_URL: postgres://ada-judge:ada-judge@postgres:5432/ada-judge
+      DATABASE_URL: postgres://ada-judge:ada-judge@postgres:3333/ada-judge
     ports:
-      - "8080:8080"
+      - "4444:4444"
 volumes:
   pgdata:

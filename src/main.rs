@@ -1,7 +1,6 @@
 use apalis::prelude::{Monitor, WorkerBuilder};
 use apalis_postgres::PostgresStorage;
 use axum::{Router, routing::post};
-use dotenvy::dotenv;
 use models::AppState;
 use solutions_judger::{push_submission_into_queue, test};
 use sqlx::postgres::PgPoolOptions;
@@ -10,8 +9,6 @@ use tokio::{net::TcpListener, sync::Mutex};
 
 #[tokio::main]
 async fn main() {
-    dotenv().expect("Invalid env");
-
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
         .max_connections(10)

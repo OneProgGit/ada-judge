@@ -6,3 +6,4 @@
 /.helix
 .editorconfig
 .env
+.sqlx

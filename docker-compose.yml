@@ -13,9 +13,9 @@ services:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
   sandbox-runner:
     build: ./containers/sandbox-runner
-  ada-judge:
+  main:
     build: 
-      dockerfile: ./containers/ada-judge/Dockerfile
+      dockerfile: ./containers/main/Dockerfile
       context: .
     depends_on:
       - postgres

@@ -60,6 +60,7 @@ fn run_solution(
     let stderr_file =
         File::create(tests_paths.error.clone()).map_err(|_| AdaJudgeError::InvalidProblem)?;
 
+    println!("Reach 6.1");
     let mut solution_cmd = Command::new("docker")
         .args([
             "run",
@@ -89,12 +90,17 @@ fn run_solution(
         .stdout(Stdio::from(stdout_file))
         .stderr(Stdio::from(stderr_file))
         .spawn()
-        .map_err(|_| AdaJudgeError::Bug)?;
+        .map_err(|e| {
+            println!("{e}");
+            AdaJudgeError::Bug
+        })?;
 
+    println!("Reach 6.2");
     let timeout = Duration::from_millis(config.limits.time_limit_ms);
     let solution_status = solution_cmd
         .wait_timeout(timeout)
         .map_err(|_| AdaJudgeError::Bug)?;
+    println!("Reach 6.3");
 
     _ = solution_cmd.kill();
     match solution_status {
@@ -195,7 +201,9 @@ fn run_single_test(
     let input_path = test_path.join("in");
     let answer_path = test_path.join("out");
 
+    println!("Reach 6");
     let solution_verdict = run_solution(config, &input_path, tests_paths)?;
+    println!("Reach 6.9");
 
     if solution_verdict != AdaJudgeVerdict::Ok {
         return Ok(CheckerResult {
@@ -221,16 +229,18 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         .problem_path
         .canonicalize()
         .map_err(|_| AdaJudgeError::InvalidProblem)?;
+    println!("Reach 1");
     let run_path = submission
         .run_path
         .canonicalize()
         .map_err(|_| AdaJudgeError::InvalidProblem)?;
-
+    println!("Reach 2");
     let config: ProblemConfig = toml::from_str(
         &read_to_string(problem_path.join("config.toml"))
             .map_err(|_| AdaJudgeError::InvalidProblem)?,
     )
     .map_err(|_| AdaJudgeError::InvalidProblem)?;
+    println!("Reach 3");
 
     for (i, group) in config.test_groups.iter().enumerate() {
         if let Some(depends_on) = group.depends_on.clone() {
@@ -241,15 +251,31 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
             }
         }
     }
+    println!("Reach 4");
 
     let tests_paths = TestsPaths::new(&run_path);
 
     prepare_test_env(problem_path, &config, &tests_paths)?;
+    println!("Reach 5");
 
     let mut total_score = 0;
     let mut groups_result: Vec<GroupResult> = Vec::with_capacity(config.test_groups.len());
 
     for test_group in config.test_groups.clone() {
+        let s_id: i64 = sqlx::query_scalar(
+            "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, score, checker_msg) values ($1, $2, $3, $4, $5)",
+        )
+        .bind(groups_result.len() as i64)
+        .bind(id)
+        .bind(AdaJudgeVerdict::Testing)
+        .bind(0)
+        .bind("")
+        .fetch_one(&*pool)
+        .await
+        .map_err(|_| AdaJudgeError::Bug)?;
+
+        println!("Reach 5.1");
+
         let mut test_result = GroupResult {
             verdict: AdaJudgeVerdict::Ok,
             test: 0,
@@ -267,9 +293,12 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
             }
         }
 
+        println!("Reach 5.2");
+
         if test_result.verdict != AdaJudgeVerdict::Skipped {
             for test_id in test_group.tests {
                 let run_result = run_single_test(&config, &tests_paths, test_id)?;
+                println!("Reach 7");
 
                 test_result.verdict = run_result.verdict.clone();
                 test_result.test = test_id;
@@ -285,18 +314,23 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         total_score += test_result.score;
         groups_result.push(test_result.clone());
 
+        println!("Reach 8");
+
         sqlx::query(
-            "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, score, checker_msg)",
+            "update submissions_subgroups_results set verdict = $1, score = $2, checker_msg = $3 where id = $4",
         )
-        .bind((groups_result.len() - 1) as i64)
-        .bind(id)
         .bind(test_result.verdict)
         .bind(test_result.score as i64)
         .bind(test_result.checker_msg)
+        .bind(s_id)
         .execute(&*pool)
         .await
         .map_err(|_| AdaJudgeError::Bug)?;
+
+        println!("Reach 9");
     }
+
+    println!("Reach 10");
 
     sqlx::query("update submissions set total_verdict = $1, total_score = $2 WHERE id = $3")
         .bind(match total_score {
@@ -309,6 +343,8 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         .await
         .map_err(|_| AdaJudgeError::Bug)?;
 
+    println!("Reach 11");
+
     Ok(())
 }
 
@@ -318,7 +354,7 @@ pub async fn push_submission_into_queue(
 ) -> Result<Json<i64>, Json<AdaJudgeError>> {
     // TODO: replace id with real user id and problem path to problem id
     let id: i64 = sqlx::query_scalar(
-        "insert into submissions (problem_id, user_id, verdict, total_score) values ($1, $2, $3) returning id",
+        "insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id",
     )
     .bind(
         submission
@@ -326,12 +362,12 @@ pub async fn push_submission_into_queue(
             .to_str()
             .ok_or(AdaJudgeError::InvalidProblem)?,
     )
-    .bind("WILL_BE_REPLACED_IN_FUTURE")
+    .bind(100)
     .bind(AdaJudgeTotalVerdict::Pending)
     .bind(0)
     .fetch_one(&state.db)
     .await
-    .map_err(|_| AdaJudgeError::Bug)?;
+    .map_err(|e| { println!("{e}"); AdaJudgeError::Bug })?;
 
     let submission_task = SubmissionTask {
         problem_path: submission.problem_path,

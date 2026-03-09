@@ -3,7 +3,7 @@ use std::fmt;
 
 /// Verdicts
 #[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
-#[sqlx(type_name = "verdict", rename_all = "lowercase")]
+#[sqlx(type_name = "text", rename_all = "lowercase")]
 pub enum AdaJudgeVerdict {
     Ok,
     CompilationError,
@@ -14,16 +14,18 @@ pub enum AdaJudgeVerdict {
     WrongAnswer,
     PresentationError,
     Skipped,
+    Testing,
 }
 
 /// Statuses
 #[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
-#[sqlx(type_name = "total_verdict", rename_all = "lowercase")]
+#[sqlx(type_name = "text", rename_all = "lowercase")]
 pub enum AdaJudgeTotalVerdict {
     Pending,
     Testing,
     Ok,
     PartialSolution,
+    InvalidProblem,
 }
 
 /// Errors

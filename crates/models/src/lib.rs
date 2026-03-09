@@ -1,8 +1,7 @@
+use crate::testing::SubmissionTask;
 use apalis_postgres::PostgresStorage;
 use sqlx::PgPool;
 use tokio::sync::Mutex;
-
-use crate::testing::SubmissionTask;
 
 pub mod enums;
 pub mod testing;

@@ -1,6 +1,7 @@
 create table submissions (
     id bigserial primary key,
-    problem_id bigint not null,
+    -- TODO: replace with BIGINT
+    problem_id text not null,
     user_id bigint not null,
     total_verdict text not null,
     total_score text not null,

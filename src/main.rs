@@ -1,10 +1,10 @@
-use apalis::prelude::{Monitor, WorkerBuilder};
-use apalis_postgres::PostgresStorage;
+use apalis::prelude::{IntervalStrategy, StrategyBuilder, WorkerBuilder};
+use apalis_postgres::{Config, PostgresStorage};
 use axum::{Router, routing::post};
 use models::AppState;
 use solutions_judger::{push_submission_into_queue, test};
 use sqlx::postgres::PgPoolOptions;
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, time::Duration};
 use tokio::{net::TcpListener, sync::Mutex};
 
 #[tokio::main]
@@ -20,8 +20,14 @@ async fn main() {
         .await
         .expect("Failed to setup a queue");
 
-    let backend = PostgresStorage::new(&pool);
-    let backend_clone = backend.clone();
+    let lazy_strategy = StrategyBuilder::new()
+        .apply(IntervalStrategy::new(Duration::from_millis(100)))
+        .build();
+    let config = Config::new("submission")
+        .with_poll_interval(lazy_strategy)
+        .set_buffer_size(20);
+
+    let backend = PostgresStorage::new_with_config(&pool, &config);
 
     let app = Router::new()
         .route(
@@ -29,26 +35,19 @@ async fn main() {
             post(push_submission_into_queue),
         )
         .with_state(Arc::new(AppState {
-            db: pool,
-            apalis_backend: Mutex::new(backend),
+            db: pool.clone(),
+            apalis_backend: Mutex::new(backend.clone()),
         }));
 
-    let listener = TcpListener::bind("127.0.0.1:8080")
+    let listener = TcpListener::bind("0.0.0.0:4444")
         .await
         .expect("Failed to start server");
 
-    tokio::spawn(async move {
-        let backend_clone = backend_clone.clone();
-        Monitor::new()
-            .register(move |_| {
-                let backend_clone = backend_clone.clone();
-                WorkerBuilder::new("worker")
-                    .backend(backend_clone)
-                    .build(test)
-            })
-            .run()
-            .await
-    });
+    let worker = WorkerBuilder::new("worker")
+        .backend(backend)
+        .data(pool)
+        .build(test);
 
+    tokio::spawn(async move { worker.run().await });
     axum::serve(listener, app).await.expect("Failed to serve");
 }

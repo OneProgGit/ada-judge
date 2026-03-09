@@ -12,4 +12,5 @@ tokio.workspace = true
 sqlx.workspace = true
 models.workspace = true
 apalis.workspace = true
+apalis-postgres.workspace = true
 serde.workspace = true

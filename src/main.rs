@@ -1,8 +1,9 @@
+use apalis::prelude::{Monitor, WorkerBuilder};
 use apalis_postgres::PostgresStorage;
 use axum::{Router, routing::post};
 use dotenvy::dotenv;
 use models::AppState;
-use solutions_judger::push_submission_to_queue;
+use solutions_judger::{push_submission_into_queue, test};
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
@@ -23,9 +24,13 @@ async fn main() {
         .expect("Failed to setup a queue");
 
     let backend = PostgresStorage::new(&pool);
+    let backend_clone = backend.clone();
 
     let app = Router::new()
-        .route("/push-submission-to-queue", post(push_submission_to_queue))
+        .route(
+            "/push-submission-into-queue",
+            post(push_submission_into_queue),
+        )
         .with_state(Arc::new(AppState {
             db: pool,
             apalis_backend: Mutex::new(backend),
@@ -34,6 +39,19 @@ async fn main() {
     let listener = TcpListener::bind("127.0.0.1:8080")
         .await
         .expect("Failed to start server");
+
+    tokio::spawn(async move {
+        let backend_clone = backend_clone.clone();
+        Monitor::new()
+            .register(move |_| {
+                let backend_clone = backend_clone.clone();
+                WorkerBuilder::new("worker")
+                    .backend(backend_clone)
+                    .build(test)
+            })
+            .run()
+            .await
+    });
 
     axum::serve(listener, app).await.expect("Failed to serve");
 }

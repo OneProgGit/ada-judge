@@ -1,12 +1,14 @@
 use crate::{constants::*, problem_config::ProblemConfig};
-use apalis::prelude::TaskSink;
+use apalis::prelude::{BoxDynError, Data, TaskSink};
 use axum::{Json, extract::State};
 use fs_extra::dir::CopyOptions;
 use models::AppState;
+use models::enums::AdaJudgeTotalVerdict;
 use models::{
     enums::{AdaJudgeError, AdaJudgeVerdict},
     testing::*,
 };
+use sqlx::PgPool;
 use std::{
     fs::{self, File, read_to_string},
     path::{Path, PathBuf},
@@ -205,9 +207,16 @@ fn run_single_test(
     run_checker(config, &input_path, answer_path, tests_paths)
 }
 
-pub fn test(
-    Json(submission): Json<Submission>,
-) -> Result<Json<TestingResult>, Json<AdaJudgeError>> {
+pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), BoxDynError> {
+    let id = submission.id;
+
+    sqlx::query("update submissions set total_verdict = $1 where id = $2")
+        .bind(AdaJudgeTotalVerdict::Testing)
+        .bind(id)
+        .execute(&*pool)
+        .await
+        .map_err(|_| AdaJudgeError::Bug)?;
+
     let problem_path = submission
         .problem_path
         .canonicalize()
@@ -237,8 +246,8 @@ pub fn test(
 
     prepare_test_env(problem_path, &config, &tests_paths)?;
 
-    let mut groups_result: Vec<GroupResult> = Vec::with_capacity(config.test_groups.len());
     let mut total_score = 0;
+    let mut groups_result: Vec<GroupResult> = Vec::with_capacity(config.test_groups.len());
 
     for test_group in config.test_groups.clone() {
         let mut test_result = GroupResult {
@@ -274,26 +283,69 @@ pub fn test(
         }
 
         total_score += test_result.score;
-        groups_result.push(test_result);
+        groups_result.push(test_result.clone());
+
+        sqlx::query(
+            "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, score, checker_msg)",
+        )
+        .bind((groups_result.len() - 1) as i64)
+        .bind(id)
+        .bind(test_result.verdict)
+        .bind(test_result.score as i64)
+        .bind(test_result.checker_msg)
+        .execute(&*pool)
+        .await
+        .map_err(|_| AdaJudgeError::Bug)?;
     }
 
-    Ok(TestingResult {
-        groups_result,
-        total_score,
-    }
-    .into())
+    sqlx::query("update submissions set total_verdict = $1, total_score = $2 WHERE id = $3")
+        .bind(match total_score {
+            100 => AdaJudgeTotalVerdict::Ok,
+            _ => AdaJudgeTotalVerdict::PartialSolution,
+        })
+        .bind(total_score as i64)
+        .bind(id)
+        .execute(&*pool)
+        .await
+        .map_err(|_| AdaJudgeError::Bug)?;
+
+    Ok(())
 }
 
-pub async fn push_submission_to_queue(
+pub async fn push_submission_into_queue(
     State(state): State<Arc<AppState>>,
     Json(submission): Json<Submission>,
-) -> Result<(), Json<AdaJudgeError>> {
+) -> Result<Json<i64>, Json<AdaJudgeError>> {
+    // TODO: replace id with real user id and problem path to problem id
+    let id: i64 = sqlx::query_scalar(
+        "insert into submissions (problem_id, user_id, verdict, total_score) values ($1, $2, $3) returning id",
+    )
+    .bind(
+        submission
+            .problem_path
+            .to_str()
+            .ok_or(AdaJudgeError::InvalidProblem)?,
+    )
+    .bind("WILL_BE_REPLACED_IN_FUTURE")
+    .bind(AdaJudgeTotalVerdict::Pending)
+    .bind(0)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| AdaJudgeError::Bug)?;
+
+    let submission_task = SubmissionTask {
+        problem_path: submission.problem_path,
+        run_path: submission.run_path,
+        id,
+    };
+
     state
         .apalis_backend
         .lock()
         .await
-        .push(submission)
+        .push(submission_task)
         .await
         .map_err(|_| AdaJudgeError::Bug)?;
-    Ok(())
+
+    Ok(Json(id))
 }

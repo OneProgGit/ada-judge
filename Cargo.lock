@@ -1518,6 +1518,7 @@ name = "solutions-judger"
 version = "0.0.0"
 dependencies = [
  "apalis",
+ "apalis-postgres",
  "axum",
  "fs_extra",
  "models",

@@ -1,13 +1,13 @@
 use apalis_postgres::PostgresStorage;
-use sqlx::{Pool, Postgres};
+use sqlx::PgPool;
 use tokio::sync::Mutex;
 
-use crate::testing::Submission;
+use crate::testing::SubmissionTask;
 
 pub mod enums;
 pub mod testing;
 
 pub struct AppState {
-    pub db: Pool<Postgres>,
-    pub apalis_backend: Mutex<PostgresStorage<Submission>>,
+    pub db: PgPool,
+    pub apalis_backend: Mutex<PostgresStorage<SubmissionTask>>,
 }

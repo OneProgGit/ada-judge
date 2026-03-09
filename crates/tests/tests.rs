@@ -62,7 +62,7 @@ fn test_incorrect_deps(solution_name: &str) {
         problem_path: "problems/3".into(),
         run_path: env_path.clone().into(),
     };
-    let res = solutions_judger::test(Json(submission)).unwrap_err().0;
+    let res = solutions_judger::test(submission).unwrap_err().0;
 
     assert_eq!(res, AdaJudgeError::InvalidProblem);
 

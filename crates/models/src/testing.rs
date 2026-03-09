@@ -11,6 +11,14 @@ pub struct Submission {
     pub run_path: PathBuf,
 }
 
+/// Submission task data
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SubmissionTask {
+    pub problem_path: PathBuf,
+    pub run_path: PathBuf,
+    pub id: i64,
+}
+
 /// Result of testing, including result for each subgroup and total score
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TestingResult {

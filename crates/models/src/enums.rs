@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Verdicts
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
+#[sqlx(type_name = "verdict", rename_all = "lowercase")]
 pub enum AdaJudgeVerdict {
     Ok,
     CompilationError,
@@ -12,8 +14,16 @@ pub enum AdaJudgeVerdict {
     WrongAnswer,
     PresentationError,
     Skipped,
+}
+
+/// Statuses
+#[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
+#[sqlx(type_name = "total_verdict", rename_all = "lowercase")]
+pub enum AdaJudgeTotalVerdict {
     Pending,
-    TestingOnSubgroup(usize),
+    Testing,
+    Ok,
+    PartialSolution,
 }
 
 /// Errors
@@ -23,3 +33,16 @@ pub enum AdaJudgeError {
     CheckerFailed,
     Bug,
 }
+
+impl fmt::Display for AdaJudgeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let converted = match self {
+            AdaJudgeError::InvalidProblem => "Invalid problem",
+            AdaJudgeError::CheckerFailed => "Checker failed",
+            AdaJudgeError::Bug => "Bug",
+        };
+        write!(f, "{}", converted)
+    }
+}
+
+impl std::error::Error for AdaJudgeError {}

@@ -26,6 +26,7 @@ fn prepare_test_env(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
 ) -> Result<(), AdaJudgeError> {
+    eprintln!("Copy checker");
     fs::copy(
         problem_path.join(config.checker.path.clone()),
         tests_paths.checker.clone(),
@@ -40,6 +41,7 @@ fn prepare_test_env(
     opt.copy_inside = true;
     opt.content_only = false;
 
+    eprintln!("Copy tests");
     fs_extra::dir::copy(
         problem_path.join(config.tests.path.clone()),
         tests_paths.tests.clone(),
@@ -50,6 +52,7 @@ fn prepare_test_env(
         AdaJudgeError::InvalidProblem
     })?;
 
+    eprintln!("Create stderr file");
     fs::write(tests_paths.error.clone(), "").map_err(|_| AdaJudgeError::InvalidProblem)?;
 
     Ok(())
@@ -60,20 +63,23 @@ fn run_solution(
     input_path: &Path,
     tests_paths: &TestsPaths,
 ) -> Result<AdaJudgeVerdict, AdaJudgeError> {
+    eprintln!("Open stdin file");
     let stdin_file = File::open(input_path).map_err(|e| {
         eprintln!("{e}");
         AdaJudgeError::InvalidProblem
     })?;
+    eprintln!("Open stdout file");
     let stdout_file = File::create(tests_paths.output.clone()).map_err(|e| {
         eprintln!("{e}");
         AdaJudgeError::InvalidProblem
     })?;
+    eprintln!("Open stderr file");
     let stderr_file = File::create(tests_paths.error.clone()).map_err(|e| {
         eprintln!("{e}");
         AdaJudgeError::InvalidProblem
     })?;
 
-    println!("Reach 6.1");
+    eprintln!("Run solution cmd");
     let mut solution_cmd = Command::new("docker")
         .args([
             "run",
@@ -108,15 +114,14 @@ fn run_solution(
             AdaJudgeError::Bug
         })?;
 
-    println!("Reach 6.2");
     let timeout = Duration::from_millis(config.limits.time_limit_ms);
     let solution_status = solution_cmd.wait_timeout(timeout).map_err(|e| {
         eprintln!("{e}");
         AdaJudgeError::Bug
     })?;
-    println!("Reach 6.3");
 
     _ = solution_cmd.kill();
+    eprintln!("Check solution status");
     match solution_status {
         None => Ok(AdaJudgeVerdict::TimeLimitExceeded),
         Some(status) => match status.code() {
@@ -133,11 +138,14 @@ fn run_checker(
     answer_path: PathBuf,
     tests_paths: &TestsPaths,
 ) -> Result<CheckerResult, AdaJudgeError> {
+    eprintln!("Open stderr file");
+
     let stderr_file = File::create(tests_paths.error.clone()).map_err(|e| {
         eprintln!("{e}");
         AdaJudgeError::InvalidProblem
     })?;
 
+    eprintln!("Run checker cmd");
     let mut checker_cmd = Command::new("docker")
         .args([
             "run",
@@ -186,11 +194,12 @@ fn run_checker(
     })?;
 
     _ = checker_cmd.kill();
+    eprintln!("Check checker status");
     match checker_status {
         None => Err(AdaJudgeError::CheckerFailed),
         Some(status) => {
             let checker_msg = fs::read_to_string(tests_paths.error.clone()).map_err(|e| {
-                println!("{e}");
+                eprintln!("{e}");
                 AdaJudgeError::InvalidProblem
             })?;
 
@@ -223,26 +232,27 @@ fn run_single_test(
     let input_path = test_path.join("in");
     let answer_path = test_path.join("out");
 
-    println!("Reach 6");
+    eprintln!("Run solution");
     let solution_verdict = run_solution(config, &input_path, tests_paths)?;
-    println!("Reach 6.9");
 
     if solution_verdict != AdaJudgeVerdict::Ok {
+        eprintln!("Run result isn't OK");
         return Ok(CheckerResult {
             verdict: solution_verdict,
             checker_msg: String::default(),
         });
     }
 
+    eprintln!("Run checker");
     run_checker(config, &input_path, answer_path, tests_paths)
 }
 
 pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), BoxDynError> {
     let id = submission.id;
 
-    dbg!("Test submission #{id}");
+    eprintln!("Test submission #{id}");
 
-    dbg!("Update total verdict");
+    eprintln!("Update total verdict");
     sqlx::query("update submissions set total_verdict = $1 where id = $2")
         .bind(AdaJudgeTotalVerdict::Testing)
         .bind(id)
@@ -253,40 +263,33 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
             AdaJudgeError::Bug
         })?;
 
-    dbg!("Canonicalize problem path");
-    let problem_path = submission
-        .problem_path
-        .canonicalize()
-        .map_err(|e| {
-            eprintln!("{e}");
-            AdaJudgeError::InvalidProblem
-        })?;
+    eprintln!("Canonicalize problem path");
+    let problem_path = submission.problem_path.canonicalize().map_err(|e| {
+        eprintln!("{e}");
+        AdaJudgeError::InvalidProblem
+    })?;
 
-    dbg!("Canonicalize problem path");
-    let run_path = submission
-        .run_path
-        .canonicalize()
-        .map_err(|e| {
-            eprintln!("{e}");
-            AdaJudgeError::InvalidProblem
-        })?;
+    eprintln!("Canonicalize problem path");
+    let run_path = submission.run_path.canonicalize().map_err(|e| {
+        eprintln!("{e}");
+        AdaJudgeError::InvalidProblem
+    })?;
 
-    dbg!("Load problem's config");
+    eprintln!("Load problem's config");
     let config: ProblemConfig = toml::from_str(
-        &read_to_string(problem_path.join("config.toml"))
-            .map_err(|e| {
-                eprintln!("{e}");
-                AdaJudgeError::InvalidProblem
-            })?,
+        &read_to_string(problem_path.join("config.toml")).map_err(|e| {
+            eprintln!("{e}");
+            AdaJudgeError::InvalidProblem
+        })?,
     )
     .map_err(|e| {
         eprintln!("{e}");
         AdaJudgeError::InvalidProblem
     })?;
-    
-    dbg!("Check subgroups' for correctness");
+
+    eprintln!("Check subgroups' for correctness");
     for (i, group) in config.test_groups.iter().enumerate() {
-        dbg!("Check subroup #{i} for correctness");
+        eprintln!("Check subroup #{i} for correctness");
         if let Some(depends_on) = group.depends_on.clone() {
             for x in depends_on {
                 if x >= i {
@@ -297,10 +300,10 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         }
     }
 
-    dbg!("Create tests paths");
+    eprintln!("Create tests paths");
     let tests_paths = TestsPaths::new(&run_path);
 
-    dbg!("Prepare test env");
+    eprintln!("Prepare test env");
     prepare_test_env(problem_path, &config, &tests_paths)?;
 
     let mut total_score = 0;
@@ -308,9 +311,9 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
 
     dbg!("Test solution on subgroups");
     for test_group in config.test_groups.clone() {
-        dbg!("Test on next subgroup");
-        
-        dbg!("Insert a subgroup's t esting result");
+        eprintln!("Test on next subgroup");
+        eprintln!("Insert a subgroup's testing result");
+
         let result_id: i64 = sqlx::query_scalar(
             "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, score, checker_msg) values ($1, $2, $3, $4, $5)",
         )
@@ -333,11 +336,11 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
             checker_msg: String::new(),
         };
 
-        dbg!("Check subgroup's dependencies");
+        eprintln!("Check subgroup's dependencies");
         if let Some(depends_on) = test_group.depends_on {
             for i in depends_on {
                 if groups_result[i].verdict != AdaJudgeVerdict::Ok {
-                    dbg!("Subgroup's dependency isn't OK, skip testing");
+                    eprintln!("Subgroup's dependency isn't OK, skip testing");
                     test_result.verdict = AdaJudgeVerdict::Skipped;
                     test_result.score = 0;
                     break;
@@ -346,9 +349,9 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         }
 
         if test_result.verdict != AdaJudgeVerdict::Skipped {
-            dbg!("Test solution on tests");
+            eprintln!("Test solution on tests");
             for test_id in test_group.tests {
-                dbg!("Run test #{test_id}");
+                eprintln!("Run test #{test_id}");
 
                 let run_result = run_single_test(&config, &tests_paths, test_id)?;
 
@@ -357,7 +360,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
                 test_result.checker_msg = run_result.checker_msg;
 
                 if run_result.verdict != AdaJudgeVerdict::Ok {
-                    dbg!("Verdict isn't OK, skip testing");
+                    eprintln!("Verdict isn't OK, skip testing");
                     test_result.score = 0;
                     break;
                 }
@@ -367,7 +370,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         total_score += test_result.score;
         groups_result.push(test_result.clone());
 
-        dbg!("Update subgroup's test result record");
+        eprintln!("Update subgroup's test result record");
         sqlx::query(
             "update submissions_subgroups_results set verdict = $1, score = $2, checker_msg = $3 where id = $4",
         )
@@ -383,8 +386,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         })?;
     }
 
-
-    dbg!("Update total test result");
+    eprintln!("Update total test result");
     sqlx::query("update submissions set total_verdict = $1, total_score = $2 WHERE id = $3")
         .bind(match total_score {
             100 => AdaJudgeTotalVerdict::Ok,
@@ -408,7 +410,7 @@ pub async fn push_submission_into_queue(
 ) -> Result<Json<i64>, Json<AdaJudgeError>> {
     // TODO: replace id with real user id and problem path to problem id
 
-    dbg!("Push to queue: {submission}");
+    eprintln!("Push to queue: {submission:?}");
 
     let id: i64 = sqlx::query_scalar(
         "insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id",
@@ -424,9 +426,9 @@ pub async fn push_submission_into_queue(
     .bind(0)
     .fetch_one(&state.db)
     .await
-    .map_err(|e| { 
+    .map_err(|e| {
         eprintln!("{e}");
-        AdaJudgeError::Bug 
+        AdaJudgeError::Bug
     })?;
 
     let submission_task = SubmissionTask {

@@ -1,10 +1,10 @@
-use apalis::prelude::{IntervalStrategy, StrategyBuilder, WorkerBuilder};
-use apalis_postgres::{Config, PostgresStorage};
+use apalis::prelude::WorkerBuilder;
+use apalis_postgres::PostgresStorage;
 use axum::{Router, routing::post};
 use models::AppState;
 use solutions_judger::{push_submission_into_queue, test};
 use sqlx::postgres::PgPoolOptions;
-use std::{env, sync::Arc, time::Duration};
+use std::{env, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
 
 #[tokio::main]
@@ -20,12 +20,7 @@ async fn main() {
         .await
         .expect("Failed to setup a queue");
 
-    let lazy_strategy = StrategyBuilder::new()
-        .apply(IntervalStrategy::new(Duration::from_secs(1)))
-        .build();
-    let config = Config::new("submission").with_poll_interval(lazy_strategy);
-
-    let backend = PostgresStorage::new_with_config(&pool, &config);
+    let backend = PostgresStorage::new(&pool);
 
     let app = Router::new()
         .route(

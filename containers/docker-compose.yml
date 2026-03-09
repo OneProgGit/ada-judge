@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:18-alpine
     restart: always
-    enviroment:
+    environment:
       POSTGRES_USER: ada-judge
       POSTGRES_PASSWORD: ada-judge
       POSTGRES_DB: ada-judge
@@ -10,6 +10,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
   sandbox-runner:
     build: ./sandbox-runner
   ada-judge:

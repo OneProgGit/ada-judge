@@ -26,5 +26,6 @@ services:
       - "4444:4444"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./runs:/runs
 volumes:
   pgdata:

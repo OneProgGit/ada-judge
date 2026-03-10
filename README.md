@@ -14,10 +14,15 @@ Then, clone this repo:
 ```
 git clone https://codeberg.org/oneprog/ada-judge
 ```
-Cd to the project's directory and start ada-judge with docker compose:
+Cd to the project's directory, build and run ada-judge with docker compose:
 ```bash
+docker compose build
 docker compose up -d
 ```
+
+> Note: remove the /target directory to
+> make the build command run faster
+
 Then, you can run test suite with `cargo test` to make sure everything was installed properly. 
 
 Now, you can start using ada-judge!

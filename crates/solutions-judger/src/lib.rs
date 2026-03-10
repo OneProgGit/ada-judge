@@ -58,6 +58,10 @@ fn prepare_test_env(
     Ok(())
 }
 
+fn convert_path_in_container_to_path_in_host(path: &Path) -> PathBuf {
+    PathBuf::from(".").join(path)
+}
+
 fn run_solution(
     config: &ProblemConfig,
     input_path: &Path,
@@ -99,7 +103,10 @@ fn run_solution(
             "--security-opt",
             "no-new-privileges",
             "-v",
-            &format!("{}:/sandbox/bin:ro", tests_paths.solution.display()),
+            &format!(
+                "{}:/sandbox/bin:ro",
+                convert_path_in_container_to_path_in_host(&tests_paths.solution).display()
+            ),
             "-w",
             "/sandbox",
             "sandbox-runner",
@@ -165,13 +172,25 @@ fn run_checker(
             "--security-opt",
             "no-new-privileges",
             "-v",
-            &format!("{}:/sandbox/bin:ro", tests_paths.checker.display()),
+            &format!(
+                "{}:/sandbox/bin:ro",
+                convert_path_in_container_to_path_in_host(&tests_paths.checker).display()
+            ),
             "-v",
-            &format!("{}:/sandbox/input:ro", input_path.display()),
+            &format!(
+                "{}:/sandbox/input:ro",
+                convert_path_in_container_to_path_in_host(input_path).display()
+            ),
             "-v",
-            &format!("{}:/sandbox/output:ro", tests_paths.output.display()),
+            &format!(
+                "{}:/sandbox/output:ro",
+                convert_path_in_container_to_path_in_host(&tests_paths.output).display()
+            ),
             "-v",
-            &format!("{}:/sandbox/answer:ro", answer_path.display()),
+            &format!(
+                "{}:/sandbox/answer:ro",
+                convert_path_in_container_to_path_in_host(&answer_path).display()
+            ),
             "-w",
             "/sandbox",
             "sandbox-runner",
@@ -400,6 +419,12 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
             eprintln!("{e}");
             AdaJudgeError::Bug
         })?;
+
+    // eprintln!("Remove run directory");
+    // fs::remove_dir_all(run_path).map_err(|e| {
+    // eprintln!("{e}");
+    // AdaJudgeError::Bug
+    // })?;
 
     Ok(())
 }

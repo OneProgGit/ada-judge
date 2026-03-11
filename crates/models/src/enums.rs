@@ -15,6 +15,7 @@ pub enum AdaJudgeVerdict {
     PresentationError,
     Skipped,
     Testing,
+    Bug,
 }
 
 /// Statuses
@@ -26,6 +27,7 @@ pub enum AdaJudgeTotalVerdict {
     Ok,
     PartialSolution,
     InvalidProblem,
+    Bug,
 }
 
 /// Errors

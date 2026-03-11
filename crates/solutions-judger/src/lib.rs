@@ -483,7 +483,7 @@ pub async fn push_submission_into_queue(
     State(state): State<Arc<AppState>>,
     Json(submission): Json<Submission>,
 ) -> Result<Json<i64>, Json<AdaJudgeError>> {
-    // TODO: replace id with real user id and problem path to problem id
+    // TODO: replace id with real user id and problem path with problem id
 
     eprintln!("Push to queue: {submission:?}");
 

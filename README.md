@@ -3,7 +3,7 @@
 > Note: all AI-made PR's are banned from
 > this project.
 
-ada-judge is a competitive programming contest manager and judger.
+ada-judge is a competitive programming contests manager and solutions judger.
 
 ### Getting started
 At first, make sure docker is installed in your system:

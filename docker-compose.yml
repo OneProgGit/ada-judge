@@ -22,6 +22,7 @@ services:
       - sandbox-runner
     environment:
       DATABASE_URL: postgres://ada-judge:ada-judge@postgres:5432/ada-judge
+      HOST_RUNS_DIR: ${PWD}
     ports:
       - "4444:4444"
     volumes:

@@ -9,6 +9,7 @@ use models::{
     testing::*,
 };
 use sqlx::PgPool;
+use std::env;
 use std::{
     fs::{self, File, read_to_string},
     path::{Path, PathBuf},
@@ -58,8 +59,15 @@ fn prepare_test_env(
     Ok(())
 }
 
-fn convert_path_in_container_to_path_in_host(path: &Path) -> PathBuf {
-    PathBuf::from(".").join(path)
+fn convert_path_in_container_to_path_in_host(path: &Path) -> Result<PathBuf, AdaJudgeError> {
+    let host_runs_dir = PathBuf::from(env::var("HOST_RUNS_DIR").map_err(|e| {
+        eprintln!("{e}");
+        AdaJudgeError::Bug
+    })?);
+    Ok(host_runs_dir.join(path.strip_prefix("/").map_err(|e| {
+        eprintln!("{e}");
+        AdaJudgeError::InvalidProblem
+    })?))
 }
 
 fn run_solution(
@@ -105,7 +113,7 @@ fn run_solution(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.solution).display()
+                convert_path_in_container_to_path_in_host(&tests_paths.solution)?.display()
             ),
             "-w",
             "/sandbox",
@@ -174,22 +182,22 @@ fn run_checker(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.checker).display()
+                convert_path_in_container_to_path_in_host(&tests_paths.checker)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/input:ro",
-                convert_path_in_container_to_path_in_host(input_path).display()
+                convert_path_in_container_to_path_in_host(input_path)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/output:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.output).display()
+                convert_path_in_container_to_path_in_host(&tests_paths.output)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/answer:ro",
-                convert_path_in_container_to_path_in_host(&answer_path).display()
+                convert_path_in_container_to_path_in_host(&answer_path)?.display()
             ),
             "-w",
             "/sandbox",

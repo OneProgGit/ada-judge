@@ -1796,9 +1796,11 @@ dependencies = [
 name = "tests"
 version = "0.0.0"
 dependencies = [
+ "apalis",
  "axum",
  "models",
  "solutions-judger",
+ "sqlx",
 ]
 
 [[package]]

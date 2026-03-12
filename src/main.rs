@@ -16,6 +16,11 @@ async fn main() {
         .await
         .expect("Failed to setup a database");
 
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .expect("Failed to run sqlx migrations");
+
     PostgresStorage::setup(&pool)
         .await
         .expect("Failed to setup a queue");

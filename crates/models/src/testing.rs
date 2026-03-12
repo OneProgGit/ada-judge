@@ -1,8 +1,7 @@
-use std::path::{Path, PathBuf};
-
+use crate::enums::{AdaJudgeTotalVerdict, AdaJudgeVerdict};
 use serde::{Deserialize, Serialize};
-
-use crate::enums::AdaJudgeVerdict;
+use sqlx::prelude::FromRow;
+use std::path::{Path, PathBuf};
 
 /// Submission data
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -19,19 +18,19 @@ pub struct SubmissionTask {
     pub id: i64,
 }
 
-/// Result of testing, including result for each subgroup and total score
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TestingResult {
-    pub groups_result: Vec<GroupResult>,
-    pub total_score: u8,
+/// Total testing result
+#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
+pub struct TotalResult {
+    pub total_verdict: AdaJudgeTotalVerdict,
+    pub total_score: i32,
 }
 
 /// Subgroup result, including verdict, test of that verdict, score and checker's message
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
 pub struct GroupResult {
     pub verdict: AdaJudgeVerdict,
-    pub test: u8,
-    pub score: u8,
+    pub test: i32,
+    pub score: i32,
     pub checker_msg: String,
 }
 

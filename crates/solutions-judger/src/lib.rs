@@ -60,14 +60,15 @@ fn prepare_test_env(
 }
 
 fn convert_path_in_container_to_path_in_host(path: &Path) -> Result<PathBuf, AdaJudgeError> {
-    let host_runs_dir = PathBuf::from(env::var("HOST_RUNS_DIR").map_err(|e| {
-        eprintln!("{e}");
-        AdaJudgeError::Bug
-    })?);
-    Ok(host_runs_dir.join(path.strip_prefix("/").map_err(|e| {
-        eprintln!("{e}");
-        AdaJudgeError::InvalidProblem
-    })?))
+    if let Ok(host_run_dir) = env::var("HOST_RUNS_DIR") {
+        let host_runs_dir = PathBuf::from(host_run_dir);
+        Ok(host_runs_dir.join(path.strip_prefix("/").map_err(|e| {
+            eprintln!("{e}");
+            AdaJudgeError::InvalidProblem
+        })?))
+    } else {
+        Ok(path.into())
+    }
 }
 
 fn run_solution(
@@ -252,7 +253,7 @@ fn run_checker(
 fn run_single_test(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
-    test_id: u8,
+    test_id: i32,
 ) -> Result<CheckerResult, AdaJudgeError> {
     let test_path = tests_paths.tests.join(test_id.to_string());
 
@@ -372,11 +373,12 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         eprintln!("Insert a subgroup's testing result");
 
         let result_id: Result<i64, sqlx::Error> = sqlx::query_scalar(
-            "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, score, checker_msg) values ($1, $2, $3, $4, $5) returning id",
+            "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, test, score, checker_msg) values ($1, $2, $3, $4, $5, $6) returning id",
         )
         .bind(groups_result.len() as i64)
         .bind(id)
         .bind(AdaJudgeVerdict::Testing)
+        .bind(0)
         .bind(0)
         .bind("")
         .fetch_one(&*pool)
@@ -422,6 +424,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
                         test_result.verdict = AdaJudgeVerdict::Bug;
                     }
                     Ok(val) => {
+                        test_result.verdict = val.verdict;
                         test_result.test = test_id;
                         test_result.checker_msg = val.checker_msg;
                     }
@@ -441,10 +444,11 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         eprintln!("Update subgroup's test result record");
 
         if let Err(e) = sqlx::query(
-            "update submissions_subgroups_results set verdict = $1, score = $2, checker_msg = $3 where id = $4",
+            "update submissions_subgroups_results set verdict = $1, test = $2, score = $3, checker_msg = $4 where id = $5",
         )
         .bind(test_result.verdict)
-        .bind(test_result.score as i64)
+        .bind(test_result.test)
+        .bind(test_result.score)
         .bind(test_result.checker_msg)
         .bind(result_id)
         .execute(&*pool)
@@ -461,7 +465,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
             100 => AdaJudgeTotalVerdict::Ok,
             _ => AdaJudgeTotalVerdict::PartialSolution,
         })
-        .bind(total_score as i64)
+        .bind(total_score)
         .bind(id)
         .execute(&*pool)
         .await
@@ -469,12 +473,6 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
             eprintln!("{e}");
             AdaJudgeError::Bug
         })?;
-
-    eprintln!("Remove run directory");
-    fs::remove_dir_all(run_path).map_err(|e| {
-        eprintln!("{e}");
-        AdaJudgeError::Bug
-    })?;
 
     Ok(())
 }

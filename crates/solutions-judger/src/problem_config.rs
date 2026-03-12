@@ -42,8 +42,8 @@ pub(crate) struct Tests {
 #[derive(Deserialize, Clone)]
 pub(crate) struct TestGroup {
     pub r#type: TestGroupType,
-    pub tests: Vec<u8>,
-    pub score: u8,
+    pub tests: Vec<i32>,
+    pub score: i32,
     pub depends_on: Option<Vec<usize>>,
 }
 

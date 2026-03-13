@@ -1,7 +1,7 @@
 use apalis::prelude::Data;
 use models::{
-    enums::{AdaJudgeTotalVerdict, AdaJudgeVerdict},
     testing::{GroupResult, SubmissionTask, TotalResult},
+    verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use sqlx::{FromRow, PgPool, postgres::PgRow};
 use std::{fs, process::Command};
@@ -23,8 +23,8 @@ async fn test_usual(
     pool: &PgPool,
     solution_name: &str,
     with_deps: bool,
-    total_verdict: AdaJudgeTotalVerdict,
-    verdict: AdaJudgeVerdict,
+    total_verdict: TotalVerdict,
+    verdict: SubgroupVerdict,
 ) {
     let env_path = if with_deps {
         format!("env_{}_with_deps", solution_name)
@@ -44,7 +44,7 @@ async fn test_usual(
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
         .bind(submission.problem_path.to_str().unwrap())
         .bind(123)
-        .bind(AdaJudgeTotalVerdict::Pending)
+        .bind(TotalVerdict::Pending)
         .bind(0).fetch_one(pool).await.unwrap();
 
     submission.id = id;
@@ -82,11 +82,11 @@ async fn test_usual(
     assert_eq!(subgroups_results[0].score, 0);
     assert_eq!(subgroups_results[0].verdict, verdict);
 
-    if verdict != AdaJudgeVerdict::Ok {
+    if verdict != SubgroupVerdict::Ok {
         assert_eq!(total_result.total_score, 0);
         assert_eq!(subgroups_results[1].score, 0);
         if with_deps {
-            assert_eq!(subgroups_results[1].verdict, AdaJudgeVerdict::Skipped);
+            assert_eq!(subgroups_results[1].verdict, SubgroupVerdict::Skipped);
         } else {
             assert_eq!(subgroups_results[1].verdict, verdict);
         }
@@ -108,7 +108,7 @@ async fn test_incorrect_deps(pool: &PgPool, solution_name: &str) {
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
         .bind(submission.problem_path.to_str().unwrap())
         .bind(123)
-        .bind(AdaJudgeTotalVerdict::Pending)
+        .bind(TotalVerdict::Pending)
         .bind(0).fetch_one(pool).await.unwrap();
 
     submission.id = id;
@@ -128,10 +128,7 @@ async fn test_incorrect_deps(pool: &PgPool, solution_name: &str) {
     .unwrap();
 
     assert_eq!(total_result.total_score, 0);
-    assert_eq!(
-        total_result.total_verdict,
-        AdaJudgeTotalVerdict::InvalidProblem
-    );
+    assert_eq!(total_result.total_verdict, TotalVerdict::InvalidProblem);
 
     fs::remove_dir_all(&env_path).unwrap();
     fs::create_dir(&env_path).unwrap();
@@ -139,14 +136,7 @@ async fn test_incorrect_deps(pool: &PgPool, solution_name: &str) {
 
 #[sqlx::test(migrations = "../../migrations")]
 async fn test_ok_no_deps(pool: PgPool) {
-    test_usual(
-        &pool,
-        "ok",
-        false,
-        AdaJudgeTotalVerdict::Ok,
-        AdaJudgeVerdict::Ok,
-    )
-    .await;
+    test_usual(&pool, "ok", false, TotalVerdict::Ok, SubgroupVerdict::Ok).await;
 }
 
 #[sqlx::test(migrations = "../../migrations")]
@@ -155,8 +145,8 @@ async fn test_wa_no_deps(pool: PgPool) {
         &pool,
         "wa",
         false,
-        AdaJudgeTotalVerdict::PartialSolution,
-        AdaJudgeVerdict::WrongAnswer,
+        TotalVerdict::PartialSolution,
+        SubgroupVerdict::WrongAnswer,
     )
     .await;
 }
@@ -167,8 +157,8 @@ async fn test_tle_no_deps(pool: PgPool) {
         &pool,
         "tle",
         false,
-        AdaJudgeTotalVerdict::PartialSolution,
-        AdaJudgeVerdict::TimeLimitExceeded,
+        TotalVerdict::PartialSolution,
+        SubgroupVerdict::TimeLimitExceeded,
     )
     .await;
 }
@@ -179,8 +169,8 @@ async fn test_mle_no_deps(pool: PgPool) {
         &pool,
         "mle",
         false,
-        AdaJudgeTotalVerdict::PartialSolution,
-        AdaJudgeVerdict::MemoryLimitExceeded,
+        TotalVerdict::PartialSolution,
+        SubgroupVerdict::MemoryLimitExceeded,
     )
     .await;
 }
@@ -191,22 +181,15 @@ async fn test_re_no_deps(pool: PgPool) {
         &pool,
         "re",
         false,
-        AdaJudgeTotalVerdict::PartialSolution,
-        AdaJudgeVerdict::RuntimeError,
+        TotalVerdict::PartialSolution,
+        SubgroupVerdict::RuntimeError,
     )
     .await;
 }
 
 #[sqlx::test(migrations = "../../migrations")]
 async fn test_ok_with_deps(pool: PgPool) {
-    test_usual(
-        &pool,
-        "ok",
-        true,
-        AdaJudgeTotalVerdict::Ok,
-        AdaJudgeVerdict::Ok,
-    )
-    .await;
+    test_usual(&pool, "ok", true, TotalVerdict::Ok, SubgroupVerdict::Ok).await;
 }
 
 #[sqlx::test(migrations = "../../migrations")]
@@ -215,8 +198,8 @@ async fn test_wa_with_deps(pool: PgPool) {
         &pool,
         "wa",
         true,
-        AdaJudgeTotalVerdict::PartialSolution,
-        AdaJudgeVerdict::WrongAnswer,
+        TotalVerdict::PartialSolution,
+        SubgroupVerdict::WrongAnswer,
     )
     .await;
 }
@@ -227,8 +210,8 @@ async fn test_tle_with_deps(pool: PgPool) {
         &pool,
         "tle",
         true,
-        AdaJudgeTotalVerdict::PartialSolution,
-        AdaJudgeVerdict::TimeLimitExceeded,
+        TotalVerdict::PartialSolution,
+        SubgroupVerdict::TimeLimitExceeded,
     )
     .await;
 }
@@ -239,8 +222,8 @@ async fn test_mle_with_deps(pool: PgPool) {
         &pool,
         "mle",
         true,
-        AdaJudgeTotalVerdict::PartialSolution,
-        AdaJudgeVerdict::MemoryLimitExceeded,
+        TotalVerdict::PartialSolution,
+        SubgroupVerdict::MemoryLimitExceeded,
     )
     .await;
 }
@@ -251,8 +234,8 @@ async fn test_re_with_deps(pool: PgPool) {
         &pool,
         "re",
         true,
-        AdaJudgeTotalVerdict::PartialSolution,
-        AdaJudgeVerdict::RuntimeError,
+        TotalVerdict::PartialSolution,
+        SubgroupVerdict::RuntimeError,
     )
     .await;
 }

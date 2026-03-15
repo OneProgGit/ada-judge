@@ -3,13 +3,33 @@ services:
     image: postgres:18.3-alpine
     restart: always
     environment:
-      POSTGRES_USER: ada-judge
-      POSTGRES_PASSWORD: ada-judge
-      POSTGRES_DB: ada-judge
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "3333:5432"
+      - "1111:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+  redis:
+    image: redis:8-alpine
+    restart: always
+    environment:
+      REDIS_USER: ${REDIS_USER}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_USER_PASSWORD: ${REDIS_USER_PASSWORD}
+    ports:
+      - "2222:6379"
+    command: >
+      sh -c '
+        mkdir -p /usr/local/etc/redis &&
+        echo "bind 0.0.0.0" > /usr/local/etc/redis/redis.conf &&
+        echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
+        echo "user default on nopass ~* +@all" > /usr/local/etc/redis/users.acl &&
+        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
+        redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
+      '
   sandbox-runner:
     build: ./containers/sandbox-runner
   main:
@@ -18,12 +38,14 @@ services:
       context: .
     depends_on:
       - postgres
+      - redis
       - sandbox-runner
     environment:
-      DATABASE_URL: postgres://ada-judge:ada-judge@postgres:5432/ada-judge
+      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
       HOST_RUNS_DIR: ${PWD}
     ports:
-      - "4444:4444"
+      - "3333:1234"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./runs:/runs

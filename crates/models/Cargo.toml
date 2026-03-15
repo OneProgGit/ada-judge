@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 sqlx.workspace = true
-apalis-postgres.workspace = true
+apalis-redis.workspace = true
 serde.workspace = true
 tokio.workspace = true

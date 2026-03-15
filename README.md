@@ -14,14 +14,21 @@ Then, clone this repo:
 ```
 git clone https://codeberg.org/oneprog/ada-judge
 ```
-Cd to the project's directory, build and run ada-judge with docker compose:
+Cd to the project's directory and create .env file with following fields:
+```env
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
+REDIS_PASSWORD=
+REDIS_USER=
+REDIS_USER_PASSWORD=
+DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB} # For tests
+```
+Build and run ada-judge with docker compose:
 ```bash
 docker compose build
 docker compose up -d
 ```
-
-> Note: remove the /target directory to
-> make the build command run faster
 
 Then, you can run test suite with `cargo test` to make sure everything was installed properly. 
 

@@ -24,13 +24,13 @@ fn prepare_test_env(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
 ) -> Result<(), Error> {
-    eprintln!("Copy checker");
+    log::info!("Copy checker");
     fs::copy(
         problem_path.join(config.checker.path.clone()),
         tests_paths.checker.clone(),
     )
     .map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::InvalidProblem
     })?;
 
@@ -39,18 +39,18 @@ fn prepare_test_env(
     opt.copy_inside = true;
     opt.content_only = false;
 
-    eprintln!("Copy tests");
+    log::info!("Copy tests");
     fs_extra::dir::copy(
         problem_path.join(config.tests.path.clone()),
         tests_paths.tests.clone(),
         &opt,
     )
     .map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::InvalidProblem
     })?;
 
-    eprintln!("Create stderr file");
+    log::info!("Create stderr file");
     fs::write(tests_paths.error.clone(), "").map_err(|_| Error::InvalidProblem)?;
 
     Ok(())
@@ -60,7 +60,7 @@ fn convert_path_in_container_to_path_in_host(path: &Path) -> Result<PathBuf, Err
     if let Ok(host_run_dir) = env::var("HOST_RUNS_DIR") {
         let host_runs_dir = PathBuf::from(host_run_dir);
         Ok(host_runs_dir.join(path.strip_prefix("/").map_err(|e| {
-            eprintln!("{e}");
+            log::error!("{e}");
             Error::InvalidProblem
         })?))
     } else {
@@ -73,23 +73,23 @@ fn run_solution(
     input_path: &Path,
     tests_paths: &TestsPaths,
 ) -> Result<SubgroupVerdict, Error> {
-    eprintln!("Open stdin file");
+    log::info!("Open stdin file");
     let stdin_file = File::open(input_path).map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::InvalidProblem
     })?;
-    eprintln!("Open stdout file");
+    log::info!("Open stdout file");
     let stdout_file = File::create(tests_paths.output.clone()).map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::InvalidProblem
     })?;
-    eprintln!("Open stderr file");
+    log::info!("Open stderr file");
     let stderr_file = File::create(tests_paths.error.clone()).map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::InvalidProblem
     })?;
 
-    eprintln!("Run solution cmd");
+    log::info!("Run solution cmd");
     let mut solution_cmd = Command::new("docker")
         .args([
             "run",
@@ -123,18 +123,18 @@ fn run_solution(
         .stderr(Stdio::from(stderr_file))
         .spawn()
         .map_err(|e| {
-            eprintln!("{e}");
+            log::error!("{e}");
             Error::Bug
         })?;
 
     let timeout = Duration::from_millis(config.limits.time_limit_ms);
     let solution_status = solution_cmd.wait_timeout(timeout).map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::Bug
     })?;
 
     _ = solution_cmd.kill();
-    eprintln!("Check solution status");
+    log::info!("Check solution status");
     match solution_status {
         None => Ok(SubgroupVerdict::TimeLimitExceeded),
         Some(status) => match status.code() {
@@ -151,14 +151,14 @@ fn run_checker(
     answer_path: PathBuf,
     tests_paths: &TestsPaths,
 ) -> Result<CheckerResult, Error> {
-    eprintln!("Open stderr file");
+    log::info!("Open stderr file");
 
     let stderr_file = File::create(tests_paths.error.clone()).map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::InvalidProblem
     })?;
 
-    eprintln!("Run checker cmd");
+    log::info!("Run checker cmd");
     let mut checker_cmd = Command::new("docker")
         .args([
             "run",
@@ -208,23 +208,23 @@ fn run_checker(
         .stderr(Stdio::from(stderr_file))
         .spawn()
         .map_err(|e| {
-            eprintln!("{e}");
+            log::error!("{e}");
             Error::Bug
         })?;
 
     let timeout = Duration::from_millis(config.limits.time_limit_ms);
     let checker_status = checker_cmd.wait_timeout(timeout).map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::Bug
     })?;
 
     _ = checker_cmd.kill();
-    eprintln!("Check checker status");
+    log::info!("Check checker status");
     match checker_status {
         None => Err(Error::CheckerFailed),
         Some(status) => {
             let checker_msg = fs::read_to_string(tests_paths.error.clone()).map_err(|e| {
-                eprintln!("{e}");
+                log::error!("{e}");
                 Error::InvalidProblem
             })?;
 
@@ -257,18 +257,18 @@ fn run_single_test(
     let input_path = test_path.join("in");
     let answer_path = test_path.join("out");
 
-    eprintln!("Run solution");
+    log::info!("Run solution");
     let solution_verdict = run_solution(config, &input_path, tests_paths)?;
 
     if solution_verdict != SubgroupVerdict::Ok {
-        eprintln!("Run result isn't OK");
+        log::error!("Run result isn't OK");
         return Ok(CheckerResult {
             verdict: solution_verdict,
             checker_msg: String::default(),
         });
     }
 
-    eprintln!("Run checker");
+    log::info!("Run checker");
     run_checker(config, &input_path, answer_path, tests_paths)
 }
 
@@ -283,7 +283,7 @@ async fn update_total_testing_verdict(
         .execute(pool)
         .await
         .map_err(|e| {
-            eprintln!("{e}");
+            log::error!("{e}");
             Error::Bug
         })?;
     Ok(())
@@ -292,38 +292,38 @@ async fn update_total_testing_verdict(
 pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), BoxDynError> {
     let id = submission.id;
 
-    eprintln!("Test submission #{id}");
+    log::info!("Test submission #{id}");
 
-    eprintln!("Update total verdict");
+    log::info!("Update total verdict");
     update_total_testing_verdict(&pool, id, TotalVerdict::Testing).await?;
 
-    eprintln!("Canonicalize problem path");
+    log::info!("Canonicalize problem path");
     let problem_path = submission.problem_path.canonicalize();
     let problem_path = match problem_path {
         Err(e) => {
-            eprintln!("{e}");
+            log::error!("{e}");
             update_total_testing_verdict(&pool, id, TotalVerdict::InvalidProblem).await?;
             return Err(Error::InvalidProblem.into());
         }
         Ok(val) => val,
     };
 
-    eprintln!("Canonicalize run path");
+    log::info!("Canonicalize run path");
     let run_path = submission.run_path.canonicalize();
     let run_path = match run_path {
         Err(e) => {
-            eprintln!("{e}");
+            log::error!("{e}");
             update_total_testing_verdict(&pool, id, TotalVerdict::InvalidProblem).await?;
             return Err(Error::InvalidProblem.into());
         }
         Ok(val) => val,
     };
 
-    eprintln!("Load problem's config");
+    log::info!("Load problem's config");
     let config_text = read_to_string(problem_path.join("config.toml"));
     let config_text = match config_text {
         Err(e) => {
-            eprintln!("{e}");
+            log::error!("{e}");
             update_total_testing_verdict(&pool, id, TotalVerdict::InvalidProblem).await?;
             return Err(Error::InvalidProblem.into());
         }
@@ -333,20 +333,20 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     let config = toml::from_str::<ProblemConfig>(&config_text);
     let config = match config {
         Err(e) => {
-            eprintln!("{e}");
+            log::error!("{e}");
             update_total_testing_verdict(&pool, id, TotalVerdict::InvalidProblem).await?;
             return Err(Error::InvalidProblem.into());
         }
         Ok(val) => val,
     };
 
-    eprintln!("Check subgroups' for correctness");
+    log::info!("Check subgroups' for correctness");
     for (i, group) in config.test_groups.iter().enumerate() {
-        eprintln!("Check subroup #{i} for correctness");
+        log::info!("Check subroup #{i} for correctness");
         if let Some(depends_on) = group.depends_on.clone() {
             for x in depends_on {
                 if x >= i {
-                    eprintln!("Subgroup depends on a subgroup, which has index less than its");
+                    log::error!("Subgroup depends on a subgroup, which has index less than its");
                     update_total_testing_verdict(&pool, id, TotalVerdict::InvalidProblem).await?;
                     return Err(Error::InvalidProblem.into());
                 }
@@ -354,19 +354,19 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         }
     }
 
-    eprintln!("Create tests paths");
+    log::info!("Create tests paths");
     let tests_paths = TestsPaths::new(&run_path);
 
-    eprintln!("Prepare test env");
+    log::info!("Prepare test env");
     prepare_test_env(problem_path, &config, &tests_paths)?;
 
     let mut total_score = 0;
     let mut groups_result: Vec<GroupResult> = Vec::with_capacity(config.test_groups.len());
 
-    eprintln!("Test solution on subgroups");
-    for test_group in config.test_groups.clone() {
-        eprintln!("Test on next subgroup");
-        eprintln!("Insert a subgroup's testing result");
+    log::info!("Test solution on subgroups");
+    for (group_ind, test_group) in config.test_groups.clone().iter().enumerate() {
+        log::info!("Test on subgroup #{group_ind}");
+        log::info!("Insert a subgroup's testing result");
 
         let result_id: Result<i64, sqlx::Error> = sqlx::query_scalar(
             "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, test, score, checker_msg) values ($1, $2, $3, $4, $5, $6) returning id",
@@ -381,7 +381,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         .await;
         let result_id = match result_id {
             Err(e) => {
-                eprintln!("{e}");
+                log::error!("{e}");
                 update_total_testing_verdict(&pool, id, TotalVerdict::Bug).await?;
                 return Err(Error::Bug.into());
             }
@@ -395,11 +395,11 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
             checker_msg: String::new(),
         };
 
-        eprintln!("Check subgroup's dependencies");
-        if let Some(depends_on) = test_group.depends_on {
+        log::info!("Check subgroup's dependencies");
+        if let Some(depends_on) = &test_group.depends_on {
             for i in depends_on {
-                if groups_result[i].verdict != SubgroupVerdict::Ok {
-                    eprintln!("Subgroup's dependency isn't OK, skip testing");
+                if groups_result[*i].verdict != SubgroupVerdict::Ok {
+                    log::error!("Subgroup's dependency isn't OK, skip testing");
                     test_result.verdict = SubgroupVerdict::Skipped;
                     test_result.score = 0;
                     break;
@@ -408,9 +408,10 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         }
 
         if test_result.verdict != SubgroupVerdict::Skipped {
-            eprintln!("Test solution on tests");
-            for test_id in test_group.tests {
-                eprintln!("Run test #{test_id}");
+            log::info!("Test solution on tests");
+            for test_id in &test_group.tests {
+                let test_id = *test_id;
+                log::info!("Run test #{test_id}");
 
                 test_result.test = test_id;
                 let run_result = run_single_test(&config, &tests_paths, test_id);
@@ -427,7 +428,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
                 }
 
                 if test_result.verdict != SubgroupVerdict::Ok {
-                    eprintln!("Verdict isn't OK, skip testing");
+                    log::error!("Verdict isn't OK, skip testing");
                     test_result.score = 0;
                     break;
                 }
@@ -437,7 +438,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         total_score += test_result.score;
         groups_result.push(test_result.clone());
 
-        eprintln!("Update subgroup's test result record");
+        log::info!("Update subgroup's test result record");
 
         if let Err(e) = sqlx::query(
             "update submissions_subgroups_results set verdict = $1, test = $2, score = $3, checker_msg = $4 where id = $5",
@@ -449,13 +450,13 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         .bind(result_id)
         .execute(&*pool)
         .await {
-            eprintln!("{e}");
+            log::error!("{e}");
             update_total_testing_verdict(&pool, id, TotalVerdict::Bug).await?;
             return Err(Error::Bug.into());
         }
     }
 
-    eprintln!("Update total test result");
+    log::info!("Update total test result");
     sqlx::query("update submissions set total_verdict = $1, total_score = $2 WHERE id = $3")
         .bind(match total_score {
             100 => TotalVerdict::Ok,
@@ -466,20 +467,20 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         .execute(&*pool)
         .await
         .map_err(|e| {
-            eprintln!("{e}");
+            log::error!("{e}");
             Error::Bug
         })?;
 
     Ok(())
 }
 
-pub async fn push_submission_into_queue(
+pub async fn push_submission_to_queue(
     State(state): State<Arc<AppState>>,
     Json(submission): Json<Submission>,
 ) -> Result<Json<i64>, Json<Error>> {
     // TODO: replace id with real user id and problem path with problem id
 
-    eprintln!("Push to queue: {submission:?}");
+    log::info!("Push to queue: {submission:?}");
 
     let id: i64 = sqlx::query_scalar(
         "insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id",
@@ -496,7 +497,7 @@ pub async fn push_submission_into_queue(
     .fetch_one(&state.db)
     .await
     .map_err(|e| {
-        eprintln!("{e}");
+        log::error!("{e}");
         Error::Bug
     })?;
 
@@ -513,7 +514,7 @@ pub async fn push_submission_into_queue(
         .push(submission_task)
         .await
         .map_err(|e| {
-            eprintln!("{e}");
+            log::error!("{e}");
             Error::Bug
         })?;
 

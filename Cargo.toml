@@ -12,7 +12,9 @@ tokio.workspace = true
 sqlx.workspace = true
 models.workspace = true
 apalis.workspace = true
-apalis-postgres.workspace = true
+apalis-redis.workspace = true
+log.workspace = true
+pretty-logging = "0.2.0"
 
 [workspace]
 members = ["crates/solutions-judger", "crates/contests-manager", "crates/models", "crates/tests"]
@@ -24,7 +26,8 @@ contests-manager = { path = "crates/contests-manager" }
 models = { path = "crates/models"}
 axum = "0.8.8"
 tokio = { version = "1.50.0", features = ["rt-multi-thread"] }
-sqlx = { version = "0.8.6", features = ["postgres"] }
-apalis-postgres = "1.0.0-rc.6"
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
+apalis-redis = "1.0.0-rc.4"
 apalis = "1.0.0-rc.6"
 serde = { version = "1.0.228", features = ["derive"] }
+log = "0.4.29"

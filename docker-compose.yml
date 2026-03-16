@@ -45,7 +45,7 @@ services:
       REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
       HOST_RUNS_DIR: ${PWD}
     ports:
-      - "3333:1234"
+      - "3333:3333"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./runs:/runs

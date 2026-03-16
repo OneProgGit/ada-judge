@@ -39,7 +39,7 @@ async fn main() {
             apalis_backend: Mutex::new(backend.clone()),
         }));
 
-    let listener = TcpListener::bind("0.0.0.0:4444")
+    let listener = TcpListener::bind("0.0.0.0:3333")
         .await
         .expect("Failed to start server");
 

@@ -10,6 +10,7 @@ models.workspace = true
 axum.workspace = true
 sqlx.workspace = true
 apalis.workspace = true
+tokio.workspace = true
 
 [[test]]
 name = "tests"

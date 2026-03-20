@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.94.0"
 
 [dependencies]
-axum = { workspace = true, features = ["json"] }
+axum.workspace = true
 solutions-judger.workspace = true
 contests-manager.workspace = true
 tokio.workspace = true
@@ -13,8 +13,8 @@ sqlx.workspace = true
 models.workspace = true
 apalis.workspace = true
 apalis-redis.workspace = true
+pretty-logging.workspace = true
 log.workspace = true
-pretty-logging = "0.2.0"
 
 [workspace]
 members = ["crates/solutions-judger", "crates/contests-manager", "crates/models", "crates/tests"]
@@ -24,10 +24,11 @@ resolver = "3"
 solutions-judger = { path = "crates/solutions-judger" }
 contests-manager = { path = "crates/contests-manager" }
 models = { path = "crates/models"}
-axum = "0.8.8"
-tokio = { version = "1.50.0", features = ["rt-multi-thread"] }
+axum = { version = "0.8.8", features = ["json", "multipart"] }
+tokio = { version = "1.50.0", features = ["rt-multi-thread", "process"] }
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
 apalis-redis = "1.0.0-rc.4"
 apalis = "1.0.0-rc.6"
 serde = { version = "1.0.228", features = ["derive"] }
 log = "0.4.29"
+pretty-logging = "0.2.0"

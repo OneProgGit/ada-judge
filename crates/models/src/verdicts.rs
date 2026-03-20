@@ -22,6 +22,8 @@ pub enum SubgroupVerdict {
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 pub enum TotalVerdict {
     Pending,
+    Compiling,
+    CompilationError,
     Testing,
     Ok,
     PartialSolution,

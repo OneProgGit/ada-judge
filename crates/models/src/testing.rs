@@ -7,14 +7,13 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Submission {
     pub problem_path: PathBuf,
-    pub run_path: PathBuf,
 }
 
 /// Submission task data
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SubmissionTask {
     pub problem_path: PathBuf,
-    pub run_path: PathBuf,
+    pub run_dir: PathBuf,
     pub id: i64,
 }
 
@@ -47,6 +46,7 @@ pub struct TestsPaths {
     pub output: PathBuf,
     pub error: PathBuf,
     pub solution: PathBuf,
+    pub solution_source: PathBuf,
     pub checker: PathBuf,
     pub tests: PathBuf,
 }
@@ -57,6 +57,7 @@ impl TestsPaths {
             output: run_path.join("stdout"),
             error: run_path.join("stderr"),
             solution: run_path.join("run"),
+            solution_source: run_path.join("run.rs"),
             checker: run_path.join("checker"),
             tests: run_path.join("tests"),
         }

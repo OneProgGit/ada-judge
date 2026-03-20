@@ -4,20 +4,7 @@ use models::{
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use sqlx::{FromRow, PgPool, postgres::PgRow};
-use std::{fs, process::Command};
-
-fn compile(solution_name: &str, env_path: String) {
-    Command::new("rustc")
-        .args([
-            &format!("solutions/{}.rs", solution_name),
-            "-o",
-            &(env_path.clone() + "/run"),
-        ])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
-}
+use tokio::fs;
 
 async fn test_usual(
     pool: &PgPool,
@@ -26,19 +13,26 @@ async fn test_usual(
     total_verdict: TotalVerdict,
     verdict: SubgroupVerdict,
 ) {
-    let env_path = if with_deps {
+    let env_path = fs::canonicalize(if with_deps {
         format!("env_{}_with_deps", solution_name)
     } else {
         format!("env_{}_no_deps", solution_name)
-    };
+    })
+    .await
+    .unwrap();
 
-    compile(solution_name, env_path.clone());
+    fs::copy(
+        &format!("solutions/{}.rs", solution_name),
+        env_path.join("run.rs"),
+    )
+    .await
+    .unwrap();
 
     let problem_id = if with_deps { 2 } else { 1 };
 
     let mut submission = SubmissionTask {
         problem_path: format!("problems/{problem_id}").into(),
-        run_path: env_path.clone().into(),
+        run_dir: env_path.clone(),
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
@@ -53,8 +47,8 @@ async fn test_usual(
         .await
         .unwrap();
 
-    fs::remove_dir_all(&env_path).unwrap();
-    fs::create_dir(&env_path).unwrap();
+    fs::remove_dir_all(&env_path).await.unwrap();
+    fs::create_dir(&env_path).await.unwrap();
 
     let total_result: TotalResult = sqlx::query(
         "select total_verdict, total_score 
@@ -95,43 +89,6 @@ async fn test_usual(
         assert_eq!(subgroups_results[1].score, 100);
         assert_eq!(subgroups_results[1].verdict, verdict);
     }
-}
-
-async fn test_incorrect_deps(pool: &PgPool, solution_name: &str) {
-    let env_path = format!("env_{solution_name}_incorrect_deps");
-    compile(solution_name, env_path.clone());
-    let mut submission = SubmissionTask {
-        problem_path: "problems/3".into(),
-        run_path: env_path.clone().into(),
-        id: 0,
-    };
-    let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
-        .bind(submission.problem_path.to_str().unwrap())
-        .bind(123)
-        .bind(TotalVerdict::Pending)
-        .bind(0).fetch_one(pool).await.unwrap();
-
-    submission.id = id;
-
-    solutions_judger::test(submission, Data::new(pool.clone()))
-        .await
-        .unwrap_err();
-
-    let total_result: TotalResult = sqlx::query(
-        "select total_verdict, total_score 
-             from submissions where id = $1",
-    )
-    .bind(id)
-    .map(|row: PgRow| TotalResult::from_row(&row).unwrap())
-    .fetch_one(pool)
-    .await
-    .unwrap();
-
-    assert_eq!(total_result.total_score, 0);
-    assert_eq!(total_result.total_verdict, TotalVerdict::InvalidProblem);
-
-    fs::remove_dir_all(&env_path).unwrap();
-    fs::create_dir(&env_path).unwrap();
 }
 
 #[sqlx::test(migrations = "../../migrations")]
@@ -241,26 +198,91 @@ async fn test_re_with_deps(pool: PgPool) {
 }
 
 #[sqlx::test(migrations = "../../migrations")]
-async fn test_ok_incorrect_deps(pool: PgPool) {
-    test_incorrect_deps(&pool, "ok").await;
+async fn test_incorrect_deps(pool: PgPool) {
+    let env_path = fs::canonicalize("env_incorrect_deps").await.unwrap();
+
+    fs::copy("solutions/ok.rs", env_path.join("run.rs"))
+        .await
+        .unwrap();
+
+    let mut submission = SubmissionTask {
+        problem_path: "problems/3".into(),
+        run_dir: env_path.clone(),
+        id: 0,
+    };
+    let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
+        .bind(submission.problem_path.to_str().unwrap())
+        .bind(123)
+        .bind(TotalVerdict::Pending)
+        .bind(0)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+    submission.id = id;
+
+    solutions_judger::test(submission, Data::new(pool.clone()))
+        .await
+        .unwrap_err();
+
+    let total_result: TotalResult = sqlx::query(
+        "select total_verdict, total_score 
+         from submissions where id = $1",
+    )
+    .bind(id)
+    .map(|row: PgRow| TotalResult::from_row(&row).unwrap())
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    assert_eq!(total_result.total_score, 0);
+    assert_eq!(total_result.total_verdict, TotalVerdict::InvalidProblem);
+
+    fs::remove_dir_all(&env_path).await.unwrap();
+    fs::create_dir(&env_path).await.unwrap();
 }
 
 #[sqlx::test(migrations = "../../migrations")]
-async fn test_wa_incorrect_deps(pool: PgPool) {
-    test_incorrect_deps(&pool, "wa").await;
-}
+async fn test_ce(pool: PgPool) {
+    let env_path = fs::canonicalize("env_ce").await.unwrap();
 
-#[sqlx::test(migrations = "../../migrations")]
-async fn test_tle_incorrect_deps(pool: PgPool) {
-    test_incorrect_deps(&pool, "tle").await;
-}
+    fs::copy("solutions/ce.rs", env_path.join("run.rs"))
+        .await
+        .unwrap();
 
-#[sqlx::test(migrations = "../../migrations")]
-async fn test_mle_incorrect_deps(pool: PgPool) {
-    test_incorrect_deps(&pool, "mle").await;
-}
+    let mut submission = SubmissionTask {
+        problem_path: "problems/1".into(),
+        run_dir: env_path.clone(),
+        id: 0,
+    };
+    let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
+        .bind(submission.problem_path.to_str().unwrap())
+        .bind(123)
+        .bind(TotalVerdict::Pending)
+        .bind(0)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
 
-#[sqlx::test(migrations = "../../migrations")]
-async fn test_re_incorrect_deps(pool: PgPool) {
-    test_incorrect_deps(&pool, "re").await;
+    submission.id = id;
+
+    solutions_judger::test(submission, Data::new(pool.clone()))
+        .await
+        .unwrap_err();
+
+    let total_result: TotalResult = sqlx::query(
+        "select total_verdict, total_score 
+         from submissions where id = $1",
+    )
+    .bind(id)
+    .map(|row: PgRow| TotalResult::from_row(&row).unwrap())
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    assert_eq!(total_result.total_score, 0);
+    assert_eq!(total_result.total_verdict, TotalVerdict::CompilationError);
+
+    fs::remove_dir_all(&env_path).await.unwrap();
+    fs::create_dir(&env_path).await.unwrap();
 }

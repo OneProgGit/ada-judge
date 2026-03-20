@@ -1,6 +1,9 @@
-use apalis::prelude::WorkerBuilder;
+use apalis::{
+    layers::{WorkerBuilderExt, retry::RetryPolicy},
+    prelude::WorkerBuilder,
+};
 use apalis_redis::RedisStorage;
-use axum::{Router, routing::post};
+use axum::{Router, extract::DefaultBodyLimit, routing::post};
 use log::LevelFilter;
 use models::AppState;
 use solutions_judger::{push_submission_to_queue, test};
@@ -34,6 +37,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/push-submission-to-queue", post(push_submission_to_queue))
+        .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .with_state(Arc::new(AppState {
             db: pg_pool.clone(),
             apalis_backend: Mutex::new(backend.clone()),
@@ -46,6 +50,7 @@ async fn main() {
     let worker = WorkerBuilder::new("worker")
         .backend(backend)
         .data(pg_pool)
+        .retry(RetryPolicy::retries(1))
         .build(test);
 
     tokio::spawn(async move { worker.run().await });

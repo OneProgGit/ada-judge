@@ -1,5 +1,7 @@
 use crate::{constants::*, problem_config::ProblemConfig};
 use apalis::prelude::{BoxDynError, Data, TaskSink};
+use axum::body::Bytes;
+use axum::extract::Multipart;
 use axum::{Json, extract::State};
 use fs_extra::dir::CopyOptions;
 use models::AppState;
@@ -7,19 +9,21 @@ use models::verdicts::TotalVerdict;
 use models::{error::Error, testing::*, verdicts::SubgroupVerdict};
 use sqlx::PgPool;
 use std::env;
+use std::process::Stdio;
 use std::{
-    fs::{self, File, read_to_string},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
     sync::Arc,
     time::Duration,
 };
-use wait_timeout::ChildExt;
+use tokio::fs::{self, File, read_to_string};
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
+use tokio::time::timeout;
 
 pub mod constants;
 pub mod problem_config;
 
-fn prepare_test_env(
+async fn prepare_test_env(
     problem_path: PathBuf,
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
@@ -29,6 +33,7 @@ fn prepare_test_env(
         problem_path.join(config.checker.path.clone()),
         tests_paths.checker.clone(),
     )
+    .await
     .map_err(|e| {
         log::error!("{e}");
         Error::InvalidProblem
@@ -38,20 +43,27 @@ fn prepare_test_env(
     opt.overwrite = true;
     opt.copy_inside = true;
     opt.content_only = false;
+    opt.skip_exist = false;
 
     log::info!("Copy tests");
-    fs_extra::dir::copy(
-        problem_path.join(config.tests.path.clone()),
-        tests_paths.tests.clone(),
-        &opt,
-    )
-    .map_err(|e| {
-        log::error!("{e}");
-        Error::InvalidProblem
-    })?;
+
+    let from_tests_dir = problem_path.join(config.tests.path.clone());
+    let to_tests_dir = tests_paths.tests.clone();
+    tokio::task::spawn_blocking(move || fs_extra::dir::copy(from_tests_dir, to_tests_dir, &opt))
+        .await
+        .map_err(|e| {
+            log::error!("{e}");
+            Error::Bug
+        })?
+        .map_err(|e| {
+            log::error!("{e}");
+            Error::InvalidProblem
+        })?;
 
     log::info!("Create stderr file");
-    fs::write(tests_paths.error.clone(), "").map_err(|_| Error::InvalidProblem)?;
+    fs::write(tests_paths.error.clone(), "")
+        .await
+        .map_err(|_| Error::InvalidProblem)?;
 
     Ok(())
 }
@@ -68,23 +80,25 @@ fn convert_path_in_container_to_path_in_host(path: &Path) -> Result<PathBuf, Err
     }
 }
 
-fn run_solution(
+async fn run_solution(
     config: &ProblemConfig,
     input_path: &Path,
     tests_paths: &TestsPaths,
 ) -> Result<SubgroupVerdict, Error> {
     log::info!("Open stdin file");
-    let stdin_file = File::open(input_path).map_err(|e| {
+    let stdin_file = File::open(input_path).await.map_err(|e| {
         log::error!("{e}");
         Error::InvalidProblem
     })?;
     log::info!("Open stdout file");
-    let stdout_file = File::create(tests_paths.output.clone()).map_err(|e| {
-        log::error!("{e}");
-        Error::InvalidProblem
-    })?;
+    let stdout_file = File::create(tests_paths.output.clone())
+        .await
+        .map_err(|e| {
+            log::error!("{e}");
+            Error::InvalidProblem
+        })?;
     log::info!("Open stderr file");
-    let stderr_file = File::create(tests_paths.error.clone()).map_err(|e| {
+    let stderr_file = File::create(tests_paths.error.clone()).await.map_err(|e| {
         log::error!("{e}");
         Error::InvalidProblem
     })?;
@@ -118,26 +132,28 @@ fn run_solution(
             "sandbox-runner",
             "/sandbox/bin",
         ])
-        .stdin(Stdio::from(stdin_file))
-        .stdout(Stdio::from(stdout_file))
-        .stderr(Stdio::from(stderr_file))
+        .stdin(Stdio::from(stdin_file.into_std().await))
+        .stdout(Stdio::from(stdout_file.into_std().await))
+        .stderr(Stdio::from(stderr_file.into_std().await))
         .spawn()
         .map_err(|e| {
             log::error!("{e}");
             Error::Bug
         })?;
 
-    let timeout = Duration::from_millis(config.limits.time_limit_ms);
-    let solution_status = solution_cmd.wait_timeout(timeout).map_err(|e| {
-        log::error!("{e}");
-        Error::Bug
-    })?;
-
+    let timeout_duration = Duration::from_millis(config.limits.time_limit_ms);
+    let solution_status = match timeout(timeout_duration, solution_cmd.wait()).await {
+        Ok(solution_status) => solution_status,
+        Err(e) => {
+            log::error!("{e}");
+            return Ok(SubgroupVerdict::TimeLimitExceeded);
+        }
+    };
     _ = solution_cmd.kill();
     log::info!("Check solution status");
     match solution_status {
-        None => Ok(SubgroupVerdict::TimeLimitExceeded),
-        Some(status) => match status.code() {
+        Err(_) => Ok(SubgroupVerdict::TimeLimitExceeded),
+        Ok(status) => match status.code() {
             Some(VERDICT_OK) => Ok(SubgroupVerdict::Ok),
             Some(VERDICT_MLE) => Ok(SubgroupVerdict::MemoryLimitExceeded),
             _ => Ok(SubgroupVerdict::RuntimeError),
@@ -145,7 +161,7 @@ fn run_solution(
     }
 }
 
-fn run_checker(
+async fn run_checker(
     config: &ProblemConfig,
     input_path: &Path,
     answer_path: PathBuf,
@@ -153,7 +169,7 @@ fn run_checker(
 ) -> Result<CheckerResult, Error> {
     log::info!("Open stderr file");
 
-    let stderr_file = File::create(tests_paths.error.clone()).map_err(|e| {
+    let stderr_file = File::create(tests_paths.error.clone()).await.map_err(|e| {
         log::error!("{e}");
         Error::InvalidProblem
     })?;
@@ -205,28 +221,32 @@ fn run_checker(
             "/sandbox/output",
             "/sandbox/answer",
         ])
-        .stderr(Stdio::from(stderr_file))
+        .stderr(Stdio::from(stderr_file.into_std().await))
         .spawn()
         .map_err(|e| {
             log::error!("{e}");
             Error::Bug
         })?;
 
-    let timeout = Duration::from_millis(config.limits.time_limit_ms);
-    let checker_status = checker_cmd.wait_timeout(timeout).map_err(|e| {
-        log::error!("{e}");
-        Error::Bug
-    })?;
+    let timeout_duration = Duration::from_millis(config.limits.time_limit_ms);
+    let checker_status = timeout(timeout_duration, checker_cmd.wait())
+        .await
+        .map_err(|e| {
+            log::error!("{e}");
+            Error::CheckerFailed
+        })?;
 
     _ = checker_cmd.kill();
     log::info!("Check checker status");
     match checker_status {
-        None => Err(Error::CheckerFailed),
-        Some(status) => {
-            let checker_msg = fs::read_to_string(tests_paths.error.clone()).map_err(|e| {
-                log::error!("{e}");
-                Error::InvalidProblem
-            })?;
+        Err(_) => Err(Error::CheckerFailed),
+        Ok(status) => {
+            let checker_msg = fs::read_to_string(tests_paths.error.clone())
+                .await
+                .map_err(|e| {
+                    log::error!("{e}");
+                    Error::InvalidProblem
+                })?;
 
             match status.code() {
                 Some(CHECKER_OK) => Ok(CheckerResult {
@@ -247,7 +267,7 @@ fn run_checker(
     }
 }
 
-fn run_single_test(
+async fn run_single_test(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
     test_id: i32,
@@ -258,7 +278,7 @@ fn run_single_test(
     let answer_path = test_path.join("out");
 
     log::info!("Run solution");
-    let solution_verdict = run_solution(config, &input_path, tests_paths)?;
+    let solution_verdict = run_solution(config, &input_path, tests_paths).await?;
 
     if solution_verdict != SubgroupVerdict::Ok {
         log::error!("Run result isn't OK");
@@ -269,7 +289,7 @@ fn run_single_test(
     }
 
     log::info!("Run checker");
-    run_checker(config, &input_path, answer_path, tests_paths)
+    run_checker(config, &input_path, answer_path, tests_paths).await
 }
 
 async fn update_total_testing_verdict(
@@ -295,32 +315,13 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     log::info!("Test submission #{id}");
 
     log::info!("Update total verdict");
-    update_total_testing_verdict(&pool, id, TotalVerdict::Testing).await?;
+    update_total_testing_verdict(&pool, id, TotalVerdict::Compiling).await?;
 
-    log::info!("Canonicalize problem path");
-    let problem_path = submission.problem_path.canonicalize();
-    let problem_path = match problem_path {
-        Err(e) => {
-            log::error!("{e}");
-            update_total_testing_verdict(&pool, id, TotalVerdict::InvalidProblem).await?;
-            return Err(Error::InvalidProblem.into());
-        }
-        Ok(val) => val,
-    };
-
-    log::info!("Canonicalize run path");
-    let run_path = submission.run_path.canonicalize();
-    let run_path = match run_path {
-        Err(e) => {
-            log::error!("{e}");
-            update_total_testing_verdict(&pool, id, TotalVerdict::InvalidProblem).await?;
-            return Err(Error::InvalidProblem.into());
-        }
-        Ok(val) => val,
-    };
+    let problem_path = submission.problem_path;
+    let run_path = submission.run_dir;
 
     log::info!("Load problem's config");
-    let config_text = read_to_string(problem_path.join("config.toml"));
+    let config_text = read_to_string(problem_path.join("config.toml")).await;
     let config_text = match config_text {
         Err(e) => {
             log::error!("{e}");
@@ -357,13 +358,52 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     log::info!("Create tests paths");
     let tests_paths = TestsPaths::new(&run_path);
 
+    log::info!("Compile solution");
+    let mut compile_cmd = match Command::new("rustc")
+        .args([
+            tests_paths.solution_source.display().to_string(),
+            "-o".into(),
+            tests_paths.solution.display().to_string(),
+        ])
+        .spawn()
+    {
+        Ok(compile_cmd) => compile_cmd,
+        Err(e) => {
+            log::error!("{e}");
+            update_total_testing_verdict(&pool, id, TotalVerdict::Bug).await?;
+            return Err(Error::Bug.into());
+        }
+    };
+    let compilation_result = match compile_cmd.wait().await {
+        Ok(compilation_result) => compilation_result,
+        Err(e) => {
+            log::error!("{e}");
+            update_total_testing_verdict(&pool, id, TotalVerdict::CompilationError).await?;
+            return Err(Error::CompilationError.into());
+        }
+    };
+
+    _ = compile_cmd.kill();
+    match compilation_result.code() {
+        Some(0) => {
+            log::info!("Solution compiled successfully");
+        }
+        Some(_) => {
+            log::error!("Compilation status is not zero");
+            update_total_testing_verdict(&pool, id, TotalVerdict::CompilationError).await?;
+            return Err(Error::CompilationError.into());
+        }
+        None => {}
+    }
+
     log::info!("Prepare test env");
-    prepare_test_env(problem_path, &config, &tests_paths)?;
+    prepare_test_env(problem_path, &config, &tests_paths).await?;
 
     let mut total_score = 0;
     let mut groups_result: Vec<GroupResult> = Vec::with_capacity(config.test_groups.len());
 
     log::info!("Test solution on subgroups");
+    update_total_testing_verdict(&pool, id, TotalVerdict::Testing).await?;
     for (group_ind, test_group) in config.test_groups.clone().iter().enumerate() {
         log::info!("Test on subgroup #{group_ind}");
         log::info!("Insert a subgroup's testing result");
@@ -414,7 +454,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
                 log::info!("Run test #{test_id}");
 
                 test_result.test = test_id;
-                let run_result = run_single_test(&config, &tests_paths, test_id);
+                let run_result = run_single_test(&config, &tests_paths, test_id).await;
 
                 match run_result {
                     Err(_) => {
@@ -476,8 +516,53 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
 
 pub async fn push_submission_to_queue(
     State(state): State<Arc<AppState>>,
-    Json(submission): Json<Submission>,
+    mut multipart: Multipart,
 ) -> Result<Json<i64>, Json<Error>> {
+    let mut submission: Option<Submission> = None;
+    let mut file_stream: Option<Bytes> = None;
+
+    log::info!("Extracting submission data and file");
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        log::error!("{e}");
+        Error::InvalidRequest
+    })? {
+        match field.name() {
+            Some("submission_data") => {
+                let text = field.text().await.map_err(|e| {
+                    log::error!("{e}");
+                    Error::InvalidRequest
+                })?;
+                submission = Some(serde_json::from_str(&text).map_err(|e| {
+                    log::error!("{e}");
+                    Error::InvalidRequest
+                })?);
+            }
+            Some("submission_file") => {
+                file_stream = Some(field.bytes().await.map_err(|e| {
+                    log::error!("{e}");
+                    Error::Bug
+                })?);
+            }
+            _ => {}
+        }
+    }
+
+    let submission = match submission {
+        Some(submission) => submission,
+        None => {
+            log::error!("No submission data was found");
+            return Err(Json(Error::InvalidRequest));
+        }
+    };
+
+    let file_stream = match file_stream {
+        Some(file_stream) => file_stream,
+        None => {
+            log::error!("No submission files was found");
+            return Err(Json(Error::InvalidRequest));
+        }
+    };
+
     // TODO: replace id with real user id and problem path with problem id
 
     log::info!("Push to queue: {submission:?}");
@@ -488,8 +573,8 @@ pub async fn push_submission_to_queue(
     .bind(
         submission
             .problem_path
-            .to_str()
-            .ok_or(Error::InvalidProblem)?,
+            .display()
+            .to_string(),
     )
     .bind(100)
     .bind(TotalVerdict::Pending)
@@ -501,9 +586,26 @@ pub async fn push_submission_to_queue(
         Error::Bug
     })?;
 
+    let run_dir = PathBuf::from("/submissions_envs").join(id.to_string());
+    fs::create_dir(run_dir.clone()).await.map_err(|e| {
+        log::error!("{e}");
+        Error::Bug
+    })?;
+
+    // TODO: Add support for other languages
+    let run_path = run_dir.join("run.rs");
+    let mut run_file = File::create(run_path).await.map_err(|e| {
+        log::error!("{e}");
+        Error::Bug
+    })?;
+    run_file.write_all(&file_stream).await.map_err(|e| {
+        log::error!("{e}");
+        Error::Bug
+    })?;
+
     let submission_task = SubmissionTask {
         problem_path: submission.problem_path,
-        run_path: submission.run_path,
+        run_dir,
         id,
     };
 

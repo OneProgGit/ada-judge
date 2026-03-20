@@ -4,6 +4,7 @@
 /.gram
 /.idea
 /.helix
+submissions_envs
 .editorconfig
 .env
 .sqlx

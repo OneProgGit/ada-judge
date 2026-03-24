@@ -309,6 +309,77 @@ async fn update_total_testing_verdict(
     Ok(())
 }
 
+async fn compile_solution(
+    pool: &PgPool,
+    id: i64,
+    tests_paths: &TestsPaths,
+    submission: &SubmissionTask,
+) -> Result<(), Error> {
+    let mut compile_cmd = Command::new(match submission.lang {
+        Language::Clang => "clang++",
+        Language::Go => "go",
+        Language::Rust => "rustc",
+        Language::Zig => "zig",
+    });
+    let compile_cmd = match submission.lang {
+        Language::Clang => compile_cmd
+            .args(["-O2", "-pipe", "-march=native", "-flto", "-s"])
+            .arg(&tests_paths.solution_source)
+            .arg("-o")
+            .arg(&tests_paths.solution),
+        Language::Go => compile_cmd
+            .args(["build", "-o"])
+            .args([&tests_paths.solution, &tests_paths.solution_source]),
+        Language::Rust => compile_cmd
+            .arg(&tests_paths.solution_source)
+            .args(["-O", "-C", "target-cpu=native", "-C", "lto", "-o"])
+            .arg(&tests_paths.solution),
+        Language::Zig => compile_cmd
+            .arg("build-exe")
+            .arg(&tests_paths.solution_source)
+            .args([
+                "-O",
+                "ReleaseFast",
+                "-mcpu=native",
+                "-fstrip",
+                &format!("-femit-bin={}", &tests_paths.solution.display()),
+            ]),
+    };
+    let mut compile_cmd = match compile_cmd.spawn() {
+        Ok(compile_cmd) => compile_cmd,
+        Err(e) => {
+            log::error!("{e}");
+            update_total_testing_verdict(pool, id, TotalVerdict::Bug).await?;
+            return Err(Error::Bug);
+        }
+    };
+    let compilation_result = match compile_cmd.wait().await {
+        Ok(compilation_result) => compilation_result,
+        Err(e) => {
+            log::error!("{e}");
+            update_total_testing_verdict(pool, id, TotalVerdict::CompilationError).await?;
+            return Err(Error::CompilationError);
+        }
+    };
+
+    _ = compile_cmd.kill();
+    match compilation_result.code() {
+        Some(0) => {
+            log::info!("Solution compiled successfully");
+            Ok(())
+        }
+        Some(_) => {
+            log::error!("Compilation statwus is nwot zero");
+            update_total_testing_verdict(pool, id, TotalVerdict::CompilationError).await?;
+            Err(Error::CompilationError)
+        }
+        None => {
+            log::error!("No compilation status");
+            Err(Error::CompilationError)
+        }
+    }
+}
+
 pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), BoxDynError> {
     let id = submission.id;
 
@@ -317,8 +388,8 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     log::info!("Update total verdict");
     update_total_testing_verdict(&pool, id, TotalVerdict::Compiling).await?;
 
-    let problem_path = submission.problem_path;
-    let run_path = submission.run_dir;
+    let problem_path = submission.problem_path.clone();
+    let run_path = submission.run_dir.clone();
 
     log::info!("Load problem's config");
     let config_text = read_to_string(problem_path.join("config.toml")).await;
@@ -359,42 +430,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     let tests_paths = TestsPaths::new(&run_path);
 
     log::info!("Compile solution");
-    let mut compile_cmd = match Command::new("rustc")
-        .args([
-            tests_paths.solution_source.display().to_string(),
-            "-o".into(),
-            tests_paths.solution.display().to_string(),
-        ])
-        .spawn()
-    {
-        Ok(compile_cmd) => compile_cmd,
-        Err(e) => {
-            log::error!("{e}");
-            update_total_testing_verdict(&pool, id, TotalVerdict::Bug).await?;
-            return Err(Error::Bug.into());
-        }
-    };
-    let compilation_result = match compile_cmd.wait().await {
-        Ok(compilation_result) => compilation_result,
-        Err(e) => {
-            log::error!("{e}");
-            update_total_testing_verdict(&pool, id, TotalVerdict::CompilationError).await?;
-            return Err(Error::CompilationError.into());
-        }
-    };
-
-    _ = compile_cmd.kill();
-    match compilation_result.code() {
-        Some(0) => {
-            log::info!("Solution compiled successfully");
-        }
-        Some(_) => {
-            log::error!("Compilation status is not zero");
-            update_total_testing_verdict(&pool, id, TotalVerdict::CompilationError).await?;
-            return Err(Error::CompilationError.into());
-        }
-        None => {}
-    }
+    compile_solution(&pool, id, &tests_paths, &submission).await?;
 
     log::info!("Prepare test env");
     prepare_test_env(problem_path, &config, &tests_paths).await?;
@@ -606,6 +642,7 @@ pub async fn push_submission_to_queue(
     let submission_task = SubmissionTask {
         problem_path: submission.problem_path,
         run_dir,
+        lang: submission.lang,
         id,
     };
 

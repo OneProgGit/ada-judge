@@ -3,10 +3,20 @@ use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use std::path::{Path, PathBuf};
 
+/// Submission language variants
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Language {
+    Clang,
+    Go,
+    Rust,
+    Zig,
+}
+
 /// Submission data
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Submission {
     pub problem_path: PathBuf,
+    pub lang: Language,
 }
 
 /// Submission task data
@@ -14,6 +24,7 @@ pub struct Submission {
 pub struct SubmissionTask {
     pub problem_path: PathBuf,
     pub run_dir: PathBuf,
+    pub lang: Language,
     pub id: i64,
 }
 

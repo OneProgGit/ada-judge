@@ -1,6 +1,6 @@
 use apalis::prelude::Data;
 use models::{
-    testing::{GroupResult, SubmissionTask, TotalResult},
+    testing::{GroupResult, Language, SubmissionTask, TotalResult},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use sqlx::{FromRow, PgPool, postgres::PgRow};
@@ -33,6 +33,7 @@ async fn test_usual(
     let mut submission = SubmissionTask {
         problem_path: format!("problems/{problem_id}").into(),
         run_dir: env_path.clone(),
+        lang: Language::Rust,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
@@ -208,6 +209,7 @@ async fn test_incorrect_deps(pool: PgPool) {
     let mut submission = SubmissionTask {
         problem_path: "problems/3".into(),
         run_dir: env_path.clone(),
+        lang: Language::Rust,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
@@ -253,6 +255,7 @@ async fn test_ce(pool: PgPool) {
     let mut submission = SubmissionTask {
         problem_path: "problems/1".into(),
         run_dir: env_path.clone(),
+        lang: Language::Rust,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")

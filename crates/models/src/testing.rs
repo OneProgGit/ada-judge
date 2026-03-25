@@ -9,7 +9,15 @@ pub enum Language {
     Clang,
     Go,
     Rust,
-    Zig,
+}
+
+/// Returns a file extension for a language
+pub const fn get_lang_str(lang: &Language) -> &'static str {
+    match lang {
+        Language::Clang => "cpp",
+        Language::Go => "go",
+        Language::Rust => "rs",
+    }
 }
 
 /// Submission data
@@ -63,12 +71,12 @@ pub struct TestsPaths {
 }
 
 impl TestsPaths {
-    pub fn new(run_path: &Path) -> Self {
+    pub fn new(run_path: &Path, lang: &Language) -> Self {
         Self {
             output: run_path.join("stdout"),
             error: run_path.join("stderr"),
             solution: run_path.join("run"),
-            solution_source: run_path.join("run.rs"),
+            solution_source: run_path.join(format!("run.{}", get_lang_str(lang))),
             checker: run_path.join("checker"),
             tests: run_path.join("tests"),
         }

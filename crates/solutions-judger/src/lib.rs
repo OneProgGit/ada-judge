@@ -319,7 +319,6 @@ async fn compile_solution(
         Language::Clang => "clang++",
         Language::Go => "go",
         Language::Rust => "rustc",
-        Language::Zig => "zig",
     });
     let compile_cmd = match submission.lang {
         Language::Clang => compile_cmd
@@ -334,16 +333,6 @@ async fn compile_solution(
             .arg(&tests_paths.solution_source)
             .args(["-O", "-C", "target-cpu=native", "-C", "lto", "-o"])
             .arg(&tests_paths.solution),
-        Language::Zig => compile_cmd
-            .arg("build-exe")
-            .arg(&tests_paths.solution_source)
-            .args([
-                "-O",
-                "ReleaseFast",
-                "-mcpu=native",
-                "-fstrip",
-                &format!("-femit-bin={}", &tests_paths.solution.display()),
-            ]),
     };
     let mut compile_cmd = match compile_cmd.spawn() {
         Ok(compile_cmd) => compile_cmd,
@@ -427,7 +416,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     }
 
     log::info!("Create tests paths");
-    let tests_paths = TestsPaths::new(&run_path);
+    let tests_paths = TestsPaths::new(&run_path, &submission.lang);
 
     log::info!("Compile solution");
     compile_solution(&pool, id, &tests_paths, &submission).await?;
@@ -629,7 +618,7 @@ pub async fn push_submission_to_queue(
     })?;
 
     // TODO: Add support for other languages
-    let run_path = run_dir.join("run.rs");
+    let run_path = run_dir.join(format!("run.{}", get_lang_str(&submission.lang)));
     let mut run_file = File::create(run_path).await.map_err(|e| {
         log::error!("{e}");
         Error::Bug

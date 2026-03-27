@@ -2,7 +2,7 @@
 name = "ada-judge"
 version = "0.3.0"
 edition = "2024"
-rust-version = "1.94.0"
+rust-version = "1.94.1"
 
 [dependencies]
 axum.workspace = true
@@ -27,8 +27,8 @@ models = { path = "crates/models"}
 axum = { version = "0.8.8", features = ["json", "multipart"] }
 tokio = { version = "1.50.0", features = ["rt-multi-thread", "process"] }
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
-apalis-redis = "1.0.0-rc.4"
-apalis = "1.0.0-rc.6"
+apalis-redis = "1.0.0-rc.6"
+apalis = "1.0.0-rc.7"
 serde = { version = "1.0.228", features = ["derive"] }
 log = "0.4.29"
 pretty-logging = "0.2.0"

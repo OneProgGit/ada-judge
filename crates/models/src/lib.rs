@@ -3,7 +3,6 @@ use apalis_redis::RedisStorage;
 use sqlx::PgPool;
 use tokio::sync::Mutex;
 
-pub mod error;
 pub mod testing;
 pub mod verdicts;
 

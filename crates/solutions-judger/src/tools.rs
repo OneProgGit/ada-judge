@@ -6,7 +6,7 @@ use std::{
 use models::verdicts::TotalVerdict;
 use sqlx::PgPool;
 
-use crate::db::update_total_testing_result;
+use crate::database::update_total_testing_result;
 
 pub(crate) fn convert_path_in_container_to_path_in_host(
     path: &Path,
@@ -29,6 +29,7 @@ pub(crate) trait MapDbExt<T> {
 impl<T: Send> MapDbExt<T> for Result<T, TotalVerdict> {
     async fn map_db(self, pool: &PgPool, submission_id: i64) -> Result<T, TotalVerdict> {
         if let Err(verdict) = &self {
+            log::error!("Error verdict: {verdict}");
             update_total_testing_result(pool, submission_id, verdict, 0).await?;
         }
         self

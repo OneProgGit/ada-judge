@@ -51,6 +51,7 @@ async fn main() {
         .backend(backend)
         .data(pg_pool)
         .retry(RetryPolicy::retries(1))
+        .concurrency(20)
         .build(test);
 
     tokio::spawn(async move { worker.run().await });

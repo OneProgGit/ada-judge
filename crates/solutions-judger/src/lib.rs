@@ -1,5 +1,5 @@
 use crate::checker_runner::run_checker;
-use crate::db::{
+use crate::database::{
     insert_subgroup_testing_result, insert_submission, update_subgroup_testing_result,
     update_total_testing_result,
 };
@@ -22,7 +22,7 @@ use tokio::io::AsyncWriteExt;
 
 mod checker_runner;
 mod constants;
-pub mod db;
+pub mod database;
 mod problem_config;
 mod solution_compiler;
 mod solution_runner;
@@ -184,7 +184,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         total_score += test_result.score;
         groups_result.push(test_result.clone());
 
-        log::info!("Update subgroup's test result record");
+        log::info!("Update subgroup's testing result record");
         update_subgroup_testing_result(
             &pool,
             subgroup_testing_result_id,
@@ -198,7 +198,7 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
         .await?;
     }
 
-    log::info!("Update total test result");
+    log::info!("Update total testing result");
     update_total_testing_result(
         &pool,
         submission_id,

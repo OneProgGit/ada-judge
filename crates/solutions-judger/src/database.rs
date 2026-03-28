@@ -26,7 +26,7 @@ pub async fn update_total_testing_result(
     verdict: &TotalVerdict,
     score: i32,
 ) -> Result<(), TotalVerdict> {
-    sqlx::query("update submissions set total_verdict = $1, total_score = $2 where id = $2")
+    sqlx::query("update submissions set total_verdict = $1, total_score = $2 where id = $3")
         .bind(verdict)
         .bind(score)
         .bind(submission_id)
@@ -46,6 +46,7 @@ pub async fn insert_subgroup_testing_result(
     )
         .bind(subgroup_id)
         .bind(submission_id)
+        .bind(SubgroupVerdict::Testing)
         .bind(0)
         .bind(0)
         .bind("")

@@ -16,6 +16,7 @@ use models::AppState;
 use models::verdicts::TotalVerdict;
 use models::{testing::*, verdicts::SubgroupVerdict};
 use sqlx::PgPool;
+use std::path::Path;
 use std::{path::PathBuf, sync::Arc};
 use tokio::fs::{self, File, read_to_string};
 use tokio::io::AsyncWriteExt;
@@ -54,6 +55,14 @@ async fn run_single_test(
     run_checker(config, &input_path, answer_path, tests_paths).await
 }
 
+async fn load_config(problem_path: &Path) -> Result<ProblemConfig, TotalVerdict> {
+    let config_text = read_to_string(problem_path.join("config.toml"))
+        .await
+        .map_log(TotalVerdict::InvalidProblem)?;
+
+    toml::from_str(&config_text).map_log(TotalVerdict::InvalidProblem)?
+}
+
 pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), BoxDynError> {
     let submission_id = submission.id;
 
@@ -69,14 +78,8 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     let run_path = submission.run_dir.clone();
 
     log::info!("Load problem's config");
-    let config_text = read_to_string(problem_path.join("config.toml"))
+    let config = load_config(&problem_path)
         .await
-        .map_log(TotalVerdict::InvalidProblem)
-        .map_db(&pool, submission_id)
-        .await?;
-
-    let config = toml::from_str::<ProblemConfig>(&config_text)
-        .map_log(TotalVerdict::InvalidProblem)
         .map_db(&pool, submission_id)
         .await?;
 

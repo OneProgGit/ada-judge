@@ -9,6 +9,11 @@
 
 `ada-judge` is a competitive programming contests manager and solutions judger.
 
+Key features:
+- Built with 🦀 Rust: blazingly fast and safe programming language
+- Easy: simple TOML-based configuration and supports docker compose -- no need for installing dependencies manually
+- Permissive license: licensed under the MIT license
+
 ### Getting started
 At first, make sure that `docker` is installed in your system:
 ```bash

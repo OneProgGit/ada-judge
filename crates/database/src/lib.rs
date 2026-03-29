@@ -45,7 +45,7 @@ pub async fn insert_submission(pool: &PgPool, problem_id: i64) -> Result<i64, To
         r#"insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id"#,
     )
         .bind(problem_id)
-        .bind(100)
+        .bind(None::<i64>)
         .bind(TotalVerdict::Pending)
         .bind(0)
         .fetch_one(pool)

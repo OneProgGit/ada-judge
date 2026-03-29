@@ -11,7 +11,7 @@
 
 Key features:
 - Built with 🦀 Rust: blazingly fast and safe programming language
-- Easy: simple TOML-based configuration and supports docker compose -- no need for installing dependencies manually
+- Easy: configured with TOML and supports docker compose -- no need for installing dependencies manually
 - Permissive license: licensed under the MIT license
 
 ### Getting started

@@ -1,0 +1,9 @@
+[package]
+name = "database"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+sqlx.workspace = true
+models.workspace = true
+tools.workspace = true

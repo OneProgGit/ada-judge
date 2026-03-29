@@ -3,8 +3,7 @@ use models::{
     verdicts::TotalVerdict,
 };
 use tokio::process::Command;
-
-use crate::tools::MapLogExt;
+use tools::map::MapLogExt;
 
 pub async fn compile_solution(
     tests_paths: &TestsPaths,

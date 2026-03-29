@@ -30,16 +30,17 @@ services:
         echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
         redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
       '
-  sandbox-runner:
-    build: ./containers/sandbox-runner
-  main:
-    build: 
-      dockerfile: ./containers/main/Dockerfile
+  sandbox:
+    build: ./containers/sandbox
+  submissions-judger:
+    build:
+      dockerfile: ./containers/app/Dockerfile
       context: .
+      target: submissions-judger
     depends_on:
       - postgres
       - redis
-      - sandbox-runner
+      - sandbox
     environment:
       POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
@@ -49,5 +50,25 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./submissions_envs:/submissions_envs
+      - ./problems:/problems
+  main:
+    build:
+      dockerfile: ./containers/app/Dockerfile
+      context: .
+      target: main
+    depends_on:
+      - postgres
+      - redis
+      - sandbox
+    environment:
+      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
+      HOST_RUNS_DIR: ${PWD}
+    ports:
+      - "4444:4444"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./submissions_envs:/submissions_envs
+      - ./problems:/problems
 volumes:
   pgdata:

@@ -42,7 +42,7 @@ async fn test_usual(
 
     submission.id = id;
 
-    solutions_judger::test(submission, Data::new(pool.clone()))
+    submissions_judger::test_submission(submission, Data::new(pool.clone()))
         .await
         .unwrap();
 
@@ -115,7 +115,7 @@ async fn test_incorrect_deps_common(pool: &PgPool, lang: Language) {
 
     submission.id = id;
 
-    solutions_judger::test(submission, Data::new(pool.clone()))
+    submissions_judger::test_submission(submission, Data::new(pool.clone()))
         .await
         .unwrap_err();
 
@@ -161,7 +161,7 @@ async fn test_ce_common(pool: &PgPool, lang: Language) {
 
     submission.id = id;
 
-    solutions_judger::test(submission, Data::new(pool.clone()))
+    submissions_judger::test_submission(submission, Data::new(pool.clone()))
         .await
         .unwrap_err();
 

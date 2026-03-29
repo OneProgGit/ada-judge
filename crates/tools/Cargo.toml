@@ -1,0 +1,9 @@
+[package]
+name = "tools"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+models.workspace = true
+log.workspace = true

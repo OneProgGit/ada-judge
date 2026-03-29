@@ -1,29 +1,22 @@
-use crate::checker_runner::run_checker;
-use crate::database::{
-    insert_subgroup_testing_result, insert_submission, update_subgroup_testing_result,
-    update_total_testing_result,
+use ::tools::map::MapLogExt;
+use apalis::prelude::{BoxDynError, Data};
+use checker_runner::run_checker;
+use database::{
+    insert_subgroup_testing_result, update_subgroup_testing_result, update_total_testing_result,
 };
-use crate::problem_config::ProblemConfig;
-use crate::solution_compiler::compile_solution;
-use crate::solution_runner::run_solution;
-use crate::test_env_preparer::prepare_test_env;
-use crate::tools::{MapDbExt, MapLogExt};
-use apalis::prelude::{BoxDynError, Data, TaskSink};
-use axum::body::Bytes;
-use axum::extract::Multipart;
-use axum::{Json, extract::State};
-use models::AppState;
 use models::verdicts::TotalVerdict;
 use models::{testing::*, verdicts::SubgroupVerdict};
+use problem_config::ProblemConfig;
+use solution_compiler::compile_solution;
+use solution_runner::run_solution;
 use sqlx::PgPool;
 use std::path::Path;
-use std::{path::PathBuf, sync::Arc};
-use tokio::fs::{self, File, read_to_string};
-use tokio::io::AsyncWriteExt;
+use test_env_preparer::prepare_test_env;
+use tokio::fs::read_to_string;
+use tools::MapDbExt;
 
 mod checker_runner;
 mod constants;
-pub mod database;
 mod problem_config;
 mod solution_compiler;
 mod solution_runner;
@@ -60,10 +53,13 @@ async fn load_config(problem_path: &Path) -> Result<ProblemConfig, TotalVerdict>
         .await
         .map_log(TotalVerdict::InvalidProblem)?;
 
-    toml::from_str(&config_text).map_log(TotalVerdict::InvalidProblem)?
+    toml::from_str::<ProblemConfig>(&config_text).map_log(TotalVerdict::InvalidProblem)
 }
 
-pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), BoxDynError> {
+pub async fn test_submission(
+    submission: SubmissionTask,
+    pool: Data<PgPool>,
+) -> Result<(), BoxDynError> {
     let submission_id = submission.id;
 
     log::info!("Test submission #{submission_id}");
@@ -214,82 +210,4 @@ pub async fn test(submission: SubmissionTask, pool: Data<PgPool>) -> Result<(), 
     .await?;
 
     Ok(())
-}
-
-pub async fn push_submission_to_queue(
-    State(state): State<Arc<AppState>>,
-    mut multipart: Multipart,
-) -> Result<Json<i64>, Json<TotalVerdict>> {
-    let mut submission: Option<Submission> = None;
-    let mut file_stream: Option<Bytes> = None;
-
-    log::info!("Extracting submission data and file");
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_log(TotalVerdict::InvalidRequest)?
-    {
-        match field.name() {
-            Some("submission_data") => {
-                let text = field.text().await.map_log(TotalVerdict::InvalidRequest)?;
-                submission =
-                    Some(serde_json::from_str(&text).map_log(TotalVerdict::InvalidRequest)?);
-            }
-            Some("submission_file") => {
-                file_stream = Some(field.bytes().await.map_log(TotalVerdict::Bug)?);
-            }
-            _ => {}
-        }
-    }
-
-    let submission = match submission {
-        Some(submission) => submission,
-        None => {
-            log::error!("No submission data was provided");
-            return Err(Json(TotalVerdict::InvalidRequest));
-        }
-    };
-
-    let file_stream = match file_stream {
-        Some(file_stream) => file_stream,
-        None => {
-            log::error!("No submission files were provided");
-            return Err(Json(TotalVerdict::InvalidRequest));
-        }
-    };
-
-    // TODO: replace id with real user id and problem path with problem id
-
-    log::info!("Push to queue: {submission:?}");
-
-    let submission_id = insert_submission(&state.db, &submission.problem_path).await?;
-
-    let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());
-    fs::create_dir(run_dir.clone())
-        .await
-        .map_log(TotalVerdict::Bug)?;
-    // TODO: Add support for other languages
-    let run_path = run_dir.join(format!("run.{}", get_lang_str(&submission.lang)));
-    let mut run_file = File::create(run_path).await.map_log(TotalVerdict::Bug)?;
-    run_file
-        .write_all(&file_stream)
-        .await
-        .map_log(TotalVerdict::Bug)?;
-
-    let submission_task = SubmissionTask {
-        problem_path: submission.problem_path,
-        run_dir,
-        lang: submission.lang,
-        id: submission_id,
-    };
-
-    state
-        .apalis_backend
-        .lock()
-        .await
-        .push(submission_task)
-        .await
-        .map_log(TotalVerdict::Bug)?;
-
-    Ok(Json(submission_id))
 }

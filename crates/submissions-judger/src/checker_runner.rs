@@ -1,7 +1,7 @@
 use crate::{
     constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA},
     problem_config::ProblemConfig,
-    tools::{MapLogExt, convert_path_in_container_to_path_in_host},
+    tools::convert_path_in_container_to_path_in_host,
 };
 use models::{
     testing::{CheckerResult, TestsPaths},
@@ -17,6 +17,7 @@ use tokio::{
     process::Command,
     time::timeout,
 };
+use tools::map::MapLogExt;
 
 pub async fn run_checker(
     config: &ProblemConfig,

@@ -1,10 +1,9 @@
-use std::path::PathBuf;
-
+use crate::problem_config::ProblemConfig;
 use fs_extra::dir::CopyOptions;
 use models::{testing::TestsPaths, verdicts::TotalVerdict};
+use std::path::PathBuf;
 use tokio::fs;
-
-use crate::{problem_config::ProblemConfig, tools::MapLogExt};
+use tools::map::MapLogExt;
 
 pub async fn prepare_test_env(
     problem_path: PathBuf,

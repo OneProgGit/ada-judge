@@ -1,12 +1,12 @@
+use models::verdicts::TotalVerdict;
+use sqlx::PgPool;
 use std::{
     env,
     path::{Path, PathBuf},
 };
+use tools::map::MapLogExt;
 
-use models::verdicts::TotalVerdict;
-use sqlx::PgPool;
-
-use crate::database::update_total_testing_result;
+use database::update_total_testing_result;
 
 pub(crate) fn convert_path_in_container_to_path_in_host(
     path: &Path,
@@ -33,21 +33,5 @@ impl<T: Send> MapDbExt<T> for Result<T, TotalVerdict> {
             update_total_testing_result(pool, submission_id, verdict, 0).await?;
         }
         self
-    }
-}
-
-pub(crate) trait MapLogExt<T, E: std::error::Error> {
-    fn map_log(self, verdict: TotalVerdict) -> Result<T, TotalVerdict>;
-}
-
-impl<T, E: std::error::Error> MapLogExt<T, E> for Result<T, E> {
-    fn map_log(self, verdict: TotalVerdict) -> Result<T, TotalVerdict> {
-        match self {
-            Ok(value) => Ok(value),
-            Err(e) => {
-                log::error!("{e}");
-                Err(verdict)
-            }
-        }
     }
 }

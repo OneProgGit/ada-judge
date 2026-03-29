@@ -1,8 +1,7 @@
 use models::verdicts::{SubgroupVerdict, TotalVerdict};
 use sqlx::PgPool;
 use std::path::Path;
-
-use crate::tools::MapLogExt;
+use tools::map::MapLogExt;
 
 pub async fn insert_submission(pool: &PgPool, problem_id: &Path) -> Result<i64, TotalVerdict> {
     let submission_id = sqlx::query_scalar(

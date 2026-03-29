@@ -1,15 +1,14 @@
-use apalis::{
-    layers::{WorkerBuilderExt, retry::RetryPolicy},
-    prelude::WorkerBuilder,
-};
 use apalis_redis::RedisStorage;
+use api::push_submission_to_queue;
+use app_state::AppState;
 use axum::{Router, extract::DefaultBodyLimit, routing::post};
 use log::LevelFilter;
-use models::AppState;
-use solutions_judger::{push_submission_to_queue, test};
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
+
+mod api;
+mod app_state;
 
 #[tokio::main]
 async fn main() {
@@ -43,17 +42,9 @@ async fn main() {
             apalis_backend: Mutex::new(backend.clone()),
         }));
 
-    let listener = TcpListener::bind("0.0.0.0:3333")
+    let listener = TcpListener::bind("0.0.0.0:4444")
         .await
         .expect("Failed to start server");
 
-    let worker = WorkerBuilder::new("worker")
-        .backend(backend)
-        .data(pg_pool)
-        .retry(RetryPolicy::retries(1))
-        .concurrency(20)
-        .build(test);
-
-    tokio::spawn(async move { worker.run().await });
     axum::serve(listener, app).await.expect("Failed to serve");
 }

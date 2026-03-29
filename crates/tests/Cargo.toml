@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [dev-dependencies]
-solutions-judger.workspace = true
+submissions-judger.workspace = true
 models.workspace = true
 axum.workspace = true
 sqlx.workspace = true

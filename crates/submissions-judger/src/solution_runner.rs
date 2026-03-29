@@ -1,7 +1,7 @@
 use crate::{
     constants::{VERDICT_MLE, VERDICT_OK},
     problem_config::ProblemConfig,
-    tools::{MapLogExt, convert_path_in_container_to_path_in_host},
+    tools::convert_path_in_container_to_path_in_host,
 };
 use models::{
     testing::TestsPaths,
@@ -9,6 +9,7 @@ use models::{
 };
 use std::{path::Path, process::Stdio, time::Duration};
 use tokio::{fs::File, process::Command, time::timeout};
+use tools::map::MapLogExt;
 
 pub async fn run_solution(
     config: &ProblemConfig,

@@ -69,7 +69,7 @@ pub async fn test_submission(
         .map_db(&pool, submission_id)
         .await?;
 
-    let problem_path = submission.problem_path.clone();
+    let problem_id = submission.problem_id.clone();
     let run_path = submission.run_dir.clone();
 
     log::info!("Load problem's config");

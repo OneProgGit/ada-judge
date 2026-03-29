@@ -23,17 +23,17 @@ pub const fn get_lang_str(lang: &Language) -> &'static str {
 /// Submission data
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Submission {
-    pub problem_path: PathBuf,
+    pub problem_id: i64,
     pub lang: Language,
 }
 
 /// Submission task data
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SubmissionTask {
-    pub problem_path: PathBuf,
+    pub problem_id: i64,
+    pub id: i64,
     pub run_dir: PathBuf,
     pub lang: Language,
-    pub id: i64,
 }
 
 /// Total testing result

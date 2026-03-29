@@ -1,21 +1,18 @@
 use models::verdicts::{SubgroupVerdict, TotalVerdict};
 use sqlx::PgPool;
-use std::path::Path;
 use tools::map::MapLogExt;
 
-pub async fn insert_submission(pool: &PgPool, problem_id: &Path) -> Result<i64, TotalVerdict> {
+pub async fn insert_submission(pool: &PgPool, problem_id: i64) -> Result<i64, TotalVerdict> {
     let submission_id = sqlx::query_scalar(
         "insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id",
     )
-        .bind(
-            problem_id.display().to_string(),
-        )
+        .bind(problem_id)
         .bind(100)
         .bind(TotalVerdict::Pending)
         .bind(0)
         .fetch_one(pool)
         .await
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TotalVerdict::InvalidRequest)?;
     Ok(submission_id)
 }
 
@@ -31,7 +28,7 @@ pub async fn update_total_testing_result(
         .bind(submission_id)
         .execute(pool)
         .await
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TotalVerdict::InvalidRequest)?;
     Ok(())
 }
 
@@ -51,7 +48,7 @@ pub async fn insert_subgroup_testing_result(
         .bind("")
         .fetch_one(pool)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TotalVerdict::InvalidRequest)
 }
 
 pub async fn update_subgroup_testing_result(
@@ -72,6 +69,6 @@ pub async fn update_subgroup_testing_result(
         .bind(subgroup_testing_result_id)
         .execute(pool)
         .await
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TotalVerdict::InvalidRequest)?;
     Ok(())
 }

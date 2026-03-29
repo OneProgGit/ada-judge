@@ -59,11 +59,11 @@ pub async fn push_submission_to_queue(
         }
     };
 
-    // TODO: replace id with real user id and problem path with problem id
+    // TODO: replace id with real user id
 
     log::info!("Push to queue: {submission:?}");
 
-    let submission_id = insert_submission(&state.db, &submission.problem_path).await?;
+    let submission_id = insert_submission(&state.db, submission.problem_id).await?;
 
     log::info!("Create env dir");
     let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());
@@ -80,10 +80,10 @@ pub async fn push_submission_to_queue(
         .map_log(TotalVerdict::Bug)?;
 
     let submission_task = SubmissionTask {
-        problem_path: submission.problem_path,
+        problem_id: submission.problem_id,
+        id: submission_id,
         run_dir,
         lang: submission.lang,
-        id: submission_id,
     };
 
     state

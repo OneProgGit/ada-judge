@@ -1,9 +1,9 @@
 use crate::{
     constants::{VERDICT_MLE, VERDICT_OK},
-    problem_config::ProblemConfig,
     tools::convert_path_in_container_to_path_in_host,
 };
 use models::{
+    problem_config::ProblemConfig,
     testing::TestsPaths,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -37,7 +37,7 @@ pub async fn run_solution(
             "--network",
             "none",
             "--memory",
-            &format!("{}m", config.limits.memory_limit_mb),
+            &format!("{}m", config.memory_limit_mb),
             "--cpus",
             "0.3",
             "--pids-limit",
@@ -64,7 +64,7 @@ pub async fn run_solution(
         .spawn()
         .map_log(TotalVerdict::Bug)?;
 
-    let timeout_duration = Duration::from_millis(config.limits.time_limit_ms);
+    let timeout_duration = Duration::from_millis(config.time_limit_ms);
     let solution_status = match timeout(timeout_duration, solution_cmd.wait()).await {
         Ok(solution_status) => solution_status,
         Err(e) => {

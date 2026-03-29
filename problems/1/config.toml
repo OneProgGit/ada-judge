@@ -1,22 +1,17 @@
-[general]
 name = "Сумма чисел"
-
-[limits]
 time_limit_ms = 1000
 memory_limit_mb = 10
+checker_path = "checker"
+tests_path = "tests"
 
-[checker]
-path = "checker"
-
-[tests]
-path = "tests"
-
-[[test_groups]]
+[[subgroups]]
 type = "sample"
 tests = [0]
 score = 0
+depends_on = []
 
-[[test_groups]]
+[[subgroups]]
 type = "main"
 tests = [1, 2]
 score = 100
+depends_on = []

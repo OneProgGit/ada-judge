@@ -4,9 +4,9 @@ use checker_runner::run_checker;
 use database::{
     insert_subgroup_testing_result, update_subgroup_testing_result, update_total_testing_result,
 };
+use models::problem_config::ProblemConfig;
 use models::verdicts::TotalVerdict;
 use models::{testing::*, verdicts::SubgroupVerdict};
-use problem_config::ProblemConfig;
 use solution_compiler::compile_solution;
 use solution_runner::run_solution;
 use sqlx::PgPool;
@@ -17,7 +17,6 @@ use tools::MapDbExt;
 
 mod checker_runner;
 mod constants;
-mod problem_config;
 mod solution_compiler;
 mod solution_runner;
 mod test_env_preparer;
@@ -80,21 +79,14 @@ pub async fn test_submission(
         .await?;
 
     log::info!("Check subgroups' for correctness");
-    for (i, group) in config.test_groups.iter().enumerate() {
+    for (i, subgroup) in config.subgroups.iter().enumerate() {
         log::info!("Check subgroup #{i} for correctness");
-        if let Some(depends_on) = group.depends_on.clone() {
-            for x in depends_on {
-                if x >= i {
-                    log::error!("Subgroup depends on a subgroup that has index less than it's");
-                    update_total_testing_result(
-                        &pool,
-                        submission_id,
-                        &TotalVerdict::InvalidProblem,
-                        0,
-                    )
+        for x in &subgroup.depends_on {
+            if *x >= i {
+                log::error!("Subgroup depends on a subgroup that has index less than it's");
+                update_total_testing_result(&pool, submission_id, &TotalVerdict::InvalidProblem, 0)
                     .await?;
-                    return Err(TotalVerdict::InvalidProblem.into());
-                }
+                return Err(TotalVerdict::InvalidProblem.into());
             }
         }
     }
@@ -115,11 +107,11 @@ pub async fn test_submission(
         .await?;
 
     let mut total_score = 0;
-    let mut groups_result: Vec<GroupResult> = Vec::with_capacity(config.test_groups.len());
+    let mut subgroups_result: Vec<GroupResult> = Vec::with_capacity(config.subgroups.len());
 
     log::info!("Test solution on subgroups");
     update_total_testing_result(&pool, submission_id, &TotalVerdict::Testing, 0).await?;
-    for (i, test_group) in config.test_groups.clone().iter().enumerate() {
+    for (i, subgroup) in config.subgroups.clone().iter().enumerate() {
         log::info!("Test on subgroup #{i}");
         log::info!("Insert a subgroup's testing result");
 
@@ -132,25 +124,23 @@ pub async fn test_submission(
         let mut test_result = GroupResult {
             verdict: SubgroupVerdict::Ok,
             test: 0,
-            score: test_group.score,
+            score: subgroup.score,
             checker_msg: String::new(),
         };
 
         log::info!("Check subgroup's dependencies");
-        if let Some(depends_on) = &test_group.depends_on {
-            for i in depends_on {
-                if groups_result[*i].verdict != SubgroupVerdict::Ok {
-                    log::error!("Subgroup's dependency isn't OK, skip testing");
-                    test_result.verdict = SubgroupVerdict::Skipped;
-                    test_result.score = 0;
-                    break;
-                }
+        for i in &subgroup.depends_on {
+            if subgroups_result[*i].verdict != SubgroupVerdict::Ok {
+                log::error!("Subgroup's dependency isn't OK, skip testing");
+                test_result.verdict = SubgroupVerdict::Skipped;
+                test_result.score = 0;
+                break;
             }
         }
 
         if test_result.verdict != SubgroupVerdict::Skipped {
             log::info!("Test solution on tests");
-            for test_id in &test_group.tests {
+            for test_id in &subgroup.tests {
                 let test_id = *test_id;
                 log::info!("Run test #{test_id}");
 
@@ -181,7 +171,7 @@ pub async fn test_submission(
         }
 
         total_score += test_result.score;
-        groups_result.push(test_result.clone());
+        subgroups_result.push(test_result.clone());
 
         log::info!("Update subgroup's testing result record");
         update_subgroup_testing_result(

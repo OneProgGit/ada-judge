@@ -1,6 +1,5 @@
-use crate::problem_config::ProblemConfig;
 use fs_extra::dir::CopyOptions;
-use models::{testing::TestsPaths, verdicts::TotalVerdict};
+use models::{problem_config::ProblemConfig, testing::TestsPaths, verdicts::TotalVerdict};
 use std::path::PathBuf;
 use tokio::fs;
 use tools::map::MapLogExt;
@@ -12,7 +11,7 @@ pub async fn prepare_test_env(
 ) -> Result<(), TotalVerdict> {
     log::info!("Copy checker");
     fs::copy(
-        problem_path.join(config.checker.path.clone()),
+        problem_path.join(config.checker_path.clone()),
         tests_paths.checker.clone(),
     )
     .await
@@ -26,7 +25,7 @@ pub async fn prepare_test_env(
 
     log::info!("Copy tests");
 
-    let from_tests_dir = problem_path.join(config.tests.path.clone());
+    let from_tests_dir = problem_path.join(config.tests_path.clone());
     let to_tests_dir = tests_paths.tests.clone();
     tokio::task::spawn_blocking(move || fs_extra::dir::copy(from_tests_dir, to_tests_dir, &opt))
         .await

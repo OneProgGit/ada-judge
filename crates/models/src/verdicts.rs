@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Subgroup's verdict
 #[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
-#[sqlx(type_name = "text", rename_all = "snake_case")]
+#[sqlx(type_name = "subgroup_verdict", rename_all = "snake_case")]
 pub enum SubgroupVerdict {
     Ok,
     RuntimeError,
@@ -20,15 +20,15 @@ pub enum SubgroupVerdict {
 impl fmt::Display for SubgroupVerdict {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let converted = match self {
-            SubgroupVerdict::Ok => "OK",
-            SubgroupVerdict::RuntimeError => "RE",
-            SubgroupVerdict::TimeLimitExceeded => "TLE",
-            SubgroupVerdict::MemoryLimitExceeded => "MLE",
-            SubgroupVerdict::SecurityError => "SE",
-            SubgroupVerdict::WrongAnswer => "WA",
-            SubgroupVerdict::PresentationError => "PE",
-            SubgroupVerdict::Skipped => "SK",
-            SubgroupVerdict::Testing => "TEST",
+            SubgroupVerdict::Ok => "Ok",
+            SubgroupVerdict::RuntimeError => "RuntimeError",
+            SubgroupVerdict::TimeLimitExceeded => "TimeLimitExceeded",
+            SubgroupVerdict::MemoryLimitExceeded => "MemoryLimitExceeded",
+            SubgroupVerdict::SecurityError => "SecurityError",
+            SubgroupVerdict::WrongAnswer => "WrongAnswer",
+            SubgroupVerdict::PresentationError => "PresentationError",
+            SubgroupVerdict::Skipped => "Skipped",
+            SubgroupVerdict::Testing => "Testing",
         };
         write!(f, "{}", converted)
     }
@@ -38,7 +38,7 @@ impl std::error::Error for SubgroupVerdict {}
 
 /// Total testing verdict
 #[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
-#[sqlx(type_name = "text", rename_all = "snake_case")]
+#[sqlx(type_name = "total_verdict", rename_all = "snake_case")]
 pub enum TotalVerdict {
     Ok,
     PartialSolution,
@@ -54,15 +54,15 @@ pub enum TotalVerdict {
 impl fmt::Display for TotalVerdict {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let converted = match self {
-            TotalVerdict::Ok => "OK",
-            TotalVerdict::PartialSolution => "PS",
-            TotalVerdict::Pending => "PENDING",
-            TotalVerdict::Compiling => "COMPILING",
-            TotalVerdict::CompilationError => "CE",
-            TotalVerdict::Testing => "TEST",
-            TotalVerdict::InvalidProblem => "INP",
-            TotalVerdict::InvalidRequest => "INR",
-            TotalVerdict::Bug => "BUG",
+            TotalVerdict::Ok => "Ok",
+            TotalVerdict::PartialSolution => "PartialSolution",
+            TotalVerdict::Pending => "Pending",
+            TotalVerdict::Compiling => "Compiling",
+            TotalVerdict::CompilationError => "CompilationError",
+            TotalVerdict::Testing => "Testing",
+            TotalVerdict::InvalidProblem => "InvalidProblem",
+            TotalVerdict::InvalidRequest => "InvalidRequest",
+            TotalVerdict::Bug => "Bug",
         };
         write!(f, "{}", converted)
     }

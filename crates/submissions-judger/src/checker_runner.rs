@@ -1,9 +1,9 @@
 use crate::{
     constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA},
-    problem_config::ProblemConfig,
     tools::convert_path_in_container_to_path_in_host,
 };
 use models::{
+    problem_config::ProblemConfig,
     testing::{CheckerResult, TestsPaths},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -39,7 +39,7 @@ pub async fn run_checker(
             "--network",
             "none",
             "--memory",
-            &format!("{}m", config.limits.memory_limit_mb),
+            &format!("{}m", config.memory_limit_mb),
             "--cpus",
             "0.3",
             "--pids-limit",
@@ -82,7 +82,7 @@ pub async fn run_checker(
         .spawn()
         .map_log(TotalVerdict::Bug)?;
 
-    let timeout_duration = Duration::from_millis(config.limits.time_limit_ms);
+    let timeout_duration = Duration::from_millis(config.time_limit_ms);
     let checker_status = timeout(timeout_duration, checker_cmd.wait())
         .await
         .map_log(TotalVerdict::InvalidProblem)?;

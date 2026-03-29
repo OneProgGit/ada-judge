@@ -40,7 +40,7 @@ pub async fn insert_subgroup_testing_result(
     subgroup_id: i64,
     submission_id: i64,
 ) -> Result<i64, TotalVerdict> {
-    let subgroup_testing_result_id = sqlx::query_scalar(
+    sqlx::query_scalar(
         "insert into submissions_subgroups_results (subgroup_id, submission_id, verdict, test, score, checker_msg) values ($1, $2, $3, $4, $5, $6) returning id"
     )
         .bind(subgroup_id)
@@ -51,8 +51,7 @@ pub async fn insert_subgroup_testing_result(
         .bind("")
         .fetch_one(pool)
         .await
-        .map_log(TotalVerdict::Bug)?;
-    Ok(subgroup_testing_result_id)
+        .map_log(TotalVerdict::Bug)
 }
 
 pub async fn update_subgroup_testing_result(

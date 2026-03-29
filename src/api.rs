@@ -80,6 +80,7 @@ pub async fn push_submission_to_queue(
         .map_log(TotalVerdict::Bug)?;
 
     let submission_task = SubmissionTask {
+        problem_path: PathBuf::from("/problems").join(submission.problem_id.to_string()),
         problem_id: submission.problem_id,
         id: submission_id,
         run_dir,

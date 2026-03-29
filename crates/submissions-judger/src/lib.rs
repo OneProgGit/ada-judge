@@ -2,7 +2,8 @@ use ::tools::map::MapLogExt;
 use apalis::prelude::{BoxDynError, Data};
 use checker_runner::run_checker;
 use database::{
-    insert_subgroup_testing_result, update_subgroup_testing_result, update_total_testing_result,
+    get_problem_config, insert_subgroup_testing_result, update_subgroup_testing_result,
+    update_total_testing_result,
 };
 use models::problem_config::ProblemConfig;
 use models::verdicts::TotalVerdict;
@@ -44,9 +45,11 @@ async fn run_single_test(
     }
 
     log::info!("Run checker");
-    run_checker(config, &input_path, answer_path, tests_paths).await
+    run_checker(&config.into(), &input_path, answer_path, tests_paths).await
 }
 
+/// TODO: move it to api
+#[allow(dead_code)]
 async fn load_config(problem_path: &Path) -> Result<ProblemConfig, TotalVerdict> {
     let config_text = read_to_string(problem_path.join("config.toml"))
         .await
@@ -69,14 +72,17 @@ pub async fn test_submission(
         .map_db(&pool, submission_id)
         .await?;
 
-    let problem_id = submission.problem_id.clone();
+    let problem_id = submission.problem_id;
+    let problem_path = submission.problem_path.clone();
     let run_path = submission.run_dir.clone();
 
     log::info!("Load problem's config");
-    let config = load_config(&problem_path)
+    let config: ProblemConfig = get_problem_config(&pool, problem_id)
         .await
         .map_db(&pool, submission_id)
-        .await?;
+        .await?
+        .into();
+    log::info!("Loaded config: {config:?}");
 
     log::info!("Check subgroups' for correctness");
     for (i, subgroup) in config.subgroups.iter().enumerate() {
@@ -115,14 +121,15 @@ pub async fn test_submission(
         log::info!("Test on subgroup #{i}");
         log::info!("Insert a subgroup's testing result");
 
-        let subgroup_testing_result_id =
-            insert_subgroup_testing_result(&pool, i as i64, submission_id)
-                .await
-                .map_db(&pool, submission_id)
-                .await?;
+        let subgroup_id = i as i64;
+
+        insert_subgroup_testing_result(&pool, submission_id, subgroup_id)
+            .await
+            .map_db(&pool, submission_id)
+            .await?;
 
         let mut test_result = GroupResult {
-            verdict: SubgroupVerdict::Ok,
+            subgroup_verdict: SubgroupVerdict::Ok,
             test: 0,
             score: subgroup.score,
             checker_msg: String::new(),
@@ -130,15 +137,15 @@ pub async fn test_submission(
 
         log::info!("Check subgroup's dependencies");
         for i in &subgroup.depends_on {
-            if subgroups_result[*i].verdict != SubgroupVerdict::Ok {
+            if subgroups_result[*i].subgroup_verdict != SubgroupVerdict::Ok {
                 log::error!("Subgroup's dependency isn't OK, skip testing");
-                test_result.verdict = SubgroupVerdict::Skipped;
+                test_result.subgroup_verdict = SubgroupVerdict::Skipped;
                 test_result.score = 0;
                 break;
             }
         }
 
-        if test_result.verdict != SubgroupVerdict::Skipped {
+        if test_result.subgroup_verdict != SubgroupVerdict::Skipped {
             log::info!("Test solution on tests");
             for test_id in &subgroup.tests {
                 let test_id = *test_id;
@@ -156,14 +163,17 @@ pub async fn test_submission(
                             .await?;
                     }
                     Ok(value) => {
-                        test_result.verdict = value.verdict;
+                        test_result.subgroup_verdict = value.verdict;
                         test_result.test = test_id;
                         test_result.checker_msg = value.checker_msg;
                     }
                 }
 
-                if test_result.verdict != SubgroupVerdict::Ok {
-                    log::error!("Verdict isn't OK, skip testing");
+                if test_result.subgroup_verdict != SubgroupVerdict::Ok {
+                    log::error!(
+                        "Verdict {} isn't OK, skip testing",
+                        test_result.subgroup_verdict
+                    );
                     test_result.score = 0;
                     break;
                 }
@@ -176,8 +186,9 @@ pub async fn test_submission(
         log::info!("Update subgroup's testing result record");
         update_subgroup_testing_result(
             &pool,
-            subgroup_testing_result_id,
-            &test_result.verdict,
+            submission_id,
+            subgroup_id,
+            &test_result.subgroup_verdict,
             test_result.test,
             test_result.score,
             test_result.checker_msg,

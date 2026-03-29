@@ -3,7 +3,7 @@ use crate::{
     tools::convert_path_in_container_to_path_in_host,
 };
 use models::{
-    problem_config::ProblemConfig,
+    problem_config::DatabaseProblemConfig,
     testing::{CheckerResult, TestsPaths},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -20,7 +20,7 @@ use tokio::{
 use tools::map::MapLogExt;
 
 pub async fn run_checker(
-    config: &ProblemConfig,
+    config: &DatabaseProblemConfig,
     input_path: &Path,
     answer_path: PathBuf,
     tests_paths: &TestsPaths,
@@ -82,7 +82,7 @@ pub async fn run_checker(
         .spawn()
         .map_log(TotalVerdict::Bug)?;
 
-    let timeout_duration = Duration::from_millis(config.time_limit_ms);
+    let timeout_duration = Duration::from_millis(config.time_limit_ms as u64);
     let checker_status = timeout(timeout_duration, checker_cmd.wait())
         .await
         .map_log(TotalVerdict::InvalidProblem)?;

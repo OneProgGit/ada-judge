@@ -29,14 +29,15 @@ async fn test_usual(
     let problem_id = if with_deps { 2 } else { 1 };
 
     let mut submission = SubmissionTask {
-        problem_path: format!("problems/{problem_id}").into(),
+        problem_path: format!("../../problems/{problem_id}").into(),
+        problem_id,
         run_dir: env_path.path().to_path_buf(),
         lang,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
-        .bind(submission.problem_path.to_str().unwrap())
-        .bind(123)
+        .bind(submission.problem_id)
+        .bind(None::<i64>)
         .bind(TotalVerdict::Pending)
         .bind(0).fetch_one(pool).await.unwrap();
 
@@ -57,7 +58,7 @@ async fn test_usual(
     .unwrap();
 
     let subgroups_results: Vec<GroupResult> = sqlx::query(
-        "select verdict, score, test, score, checker_msg
+        "select subgroup_verdict, score, test, score, checker_msg
              from submissions_subgroups_results
              where submission_id = $1
              order by subgroup_id",
@@ -70,20 +71,23 @@ async fn test_usual(
 
     assert_eq!(total_result.total_verdict, total_verdict);
     assert_eq!(subgroups_results[0].score, 0);
-    assert_eq!(subgroups_results[0].verdict, verdict);
+    assert_eq!(subgroups_results[0].subgroup_verdict, verdict);
 
     if verdict != SubgroupVerdict::Ok {
         assert_eq!(total_result.total_score, 0);
         assert_eq!(subgroups_results[1].score, 0);
         if with_deps {
-            assert_eq!(subgroups_results[1].verdict, SubgroupVerdict::Skipped);
+            assert_eq!(
+                subgroups_results[1].subgroup_verdict,
+                SubgroupVerdict::Skipped
+            );
         } else {
-            assert_eq!(subgroups_results[1].verdict, verdict);
+            assert_eq!(subgroups_results[1].subgroup_verdict, verdict);
         }
     } else {
         assert_eq!(total_result.total_score, 100);
         assert_eq!(subgroups_results[1].score, 100);
-        assert_eq!(subgroups_results[1].verdict, verdict);
+        assert_eq!(subgroups_results[1].subgroup_verdict, verdict);
     }
 }
 
@@ -99,14 +103,15 @@ async fn test_incorrect_deps_common(pool: &PgPool, lang: Language) {
     .unwrap();
 
     let mut submission = SubmissionTask {
-        problem_path: "problems/3".into(),
+        problem_path: "../../problems/3".into(),
+        problem_id: 3,
         run_dir: env_path.path().to_path_buf(),
         lang,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
-        .bind(submission.problem_path.to_str().unwrap())
-        .bind(123)
+        .bind(submission.problem_id)
+        .bind(None::<i64>)
         .bind(TotalVerdict::Pending)
         .bind(0)
         .fetch_one(pool)
@@ -145,14 +150,15 @@ async fn test_ce_common(pool: &PgPool, lang: Language) {
     .unwrap();
 
     let mut submission = SubmissionTask {
-        problem_path: "problems/1".into(),
+        problem_path: "../../problems/1".into(),
+        problem_id: 1,
         run_dir: env_path.path().to_path_buf(),
         lang,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
-        .bind(submission.problem_path.to_str().unwrap())
-        .bind(123)
+        .bind(submission.problem_id)
+        .bind(None::<i64>)
         .bind(TotalVerdict::Pending)
         .bind(0)
         .fetch_one(pool)

@@ -11,6 +11,8 @@ axum.workspace = true
 sqlx.workspace = true
 apalis.workspace = true
 tokio.workspace = true
+log.workspace = true
+pretty-logging.workspace = true
 
 [[test]]
 name = "tests"

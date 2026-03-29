@@ -1974,7 +1974,9 @@ version = "0.0.0"
 dependencies = [
  "apalis",
  "axum",
+ "log",
  "models",
+ "pretty-logging",
  "sqlx",
  "submissions-judger",
  "tempfile",

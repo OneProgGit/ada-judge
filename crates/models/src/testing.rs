@@ -31,6 +31,7 @@ pub struct Submission {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SubmissionTask {
     pub problem_id: i64,
+    pub problem_path: PathBuf,
     pub id: i64,
     pub run_dir: PathBuf,
     pub lang: Language,
@@ -46,7 +47,7 @@ pub struct TotalResult {
 /// Subgroup result, including verdict, test of that verdict, score and checker's message
 #[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
 pub struct GroupResult {
-    pub verdict: SubgroupVerdict,
+    pub subgroup_verdict: SubgroupVerdict,
     pub test: i32,
     pub score: i32,
     pub checker_msg: String,

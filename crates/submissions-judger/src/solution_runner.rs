@@ -64,7 +64,7 @@ pub async fn run_solution(
         .spawn()
         .map_log(TotalVerdict::Bug)?;
 
-    let timeout_duration = Duration::from_millis(config.time_limit_ms);
+    let timeout_duration = Duration::from_millis(config.time_limit_ms as u64);
     let solution_status = match timeout(timeout_duration, solution_cmd.wait()).await {
         Ok(solution_status) => solution_status,
         Err(e) => {

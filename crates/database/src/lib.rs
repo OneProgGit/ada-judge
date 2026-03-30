@@ -16,16 +16,25 @@ use models::{
 use sqlx::{PgPool, types::Json};
 use tools::map::MapLogExt;
 
-// /// Creates a user with login and password hash
-// /// # Errors
-// /// Returns an error if the user with this login exists
-// pub async fn create_user(
-//     pool: &PgPool,
-//     login: &str,
-//     password_hash: &str,
-// ) -> Result<i64, TotalVerdict> {
-//     Ok(0)
-// }
+/// Creates a user with login and password hash and returns it's id
+/// # Errors
+/// Returns an error if the user with this login exists
+pub async fn create_user(
+    pool: &PgPool,
+    login: &str,
+    password_hash: &str,
+) -> Result<i64, TotalVerdict> {
+    let user_id = sqlx::query_scalar!(
+        r"insert into users (login, password_hash) values ($1, $2) returning id",
+        login,
+        password_hash
+    )
+    .fetch_one(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(user_id)
+}
 
 /// Get's problem's config from `problems` table
 /// # Errors
@@ -66,11 +75,11 @@ pub async fn get_problem_config(
     Ok(config)
 }
 
-/// Inserts a submission to `submissions` table
+/// Inserts a submission to `submissions` table and returns it's id
 /// # Errors
 /// Returns an error if `problem_id` is invalid
 pub async fn insert_submission(pool: &PgPool, problem_id: i64) -> Result<i64, TotalVerdict> {
-    let submission_id: i64 = sqlx::query_scalar!(
+    let submission_id = sqlx::query_scalar!(
         r"insert into submissions (problem_id, user_id, total_verdict, total_score) 
           values ($1, $2, $3::total_verdict, $4) returning id",
         problem_id,
@@ -81,6 +90,7 @@ pub async fn insert_submission(pool: &PgPool, problem_id: i64) -> Result<i64, To
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
+
     Ok(submission_id)
 }
 

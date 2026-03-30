@@ -10,7 +10,7 @@ create table users (
     id bigserial primary key,
     login text unique not null,
     password_hash text not null,
-    admin_level admin_level not null,
+    admin_level admin_level default 'not_admin' not null,
     created_at timestamp not null default now() 
 );
 

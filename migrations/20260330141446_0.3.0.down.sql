@@ -7,3 +7,4 @@ drop table users;
 drop type subgroup_type;
 drop type total_verdict;
 drop type subgroup_verdict;
+drop type admin_level;

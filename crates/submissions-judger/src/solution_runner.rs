@@ -11,7 +11,8 @@ use std::{path::Path, process::Stdio, time::Duration};
 use tokio::{fs::File, process::Command, time::timeout};
 use tools::map::MapLogExt;
 
-pub async fn run_solution(
+#[allow(clippy::cast_sign_loss)]
+pub async fn get_run_solution_verdict(
     config: &ProblemConfig,
     input_path: &Path,
     tests_paths: &TestsPaths,
@@ -74,12 +75,12 @@ pub async fn run_solution(
     };
     _ = solution_cmd.kill();
     log::info!("Check solution status");
-    match solution_status {
-        Err(_) => Ok(SubgroupVerdict::TimeLimitExceeded),
-        Ok(status) => match status.code() {
+    solution_status.map_or(
+        Ok(SubgroupVerdict::TimeLimitExceeded),
+        |status| match status.code() {
             Some(VERDICT_OK) => Ok(SubgroupVerdict::Ok),
             Some(VERDICT_MLE) => Ok(SubgroupVerdict::MemoryLimitExceeded),
             _ => Ok(SubgroupVerdict::RuntimeError),
         },
-    }
+    )
 }

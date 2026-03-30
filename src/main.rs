@@ -1,5 +1,16 @@
+//! Main `ada-judge` backend
+
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::nursery)]
+#![deny(warnings)]
+#![deny(missing_docs)]
+#![deny(rustdoc::all)]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![forbid(unsafe_code)]
+
 use apalis_redis::RedisStorage;
-use api::push_submission_to_queue;
+use api::push_submission_to_queue::push_submission_to_queue;
 use app_state::AppState;
 use axum::{Router, extract::DefaultBodyLimit, routing::post};
 use log::LevelFilter;

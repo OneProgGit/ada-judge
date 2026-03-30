@@ -1,7 +1,13 @@
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::nursery)]
+#![deny(warnings)]
+#![forbid(unsafe_code)]
+
 use apalis::prelude::Data;
 use models::testing::get_lang_str;
 use models::{
-    testing::{GroupResult, Language, SubmissionTask, TotalResult},
+    testing::{Language, SubgroupResult, SubmissionTask, TotalResult},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use sqlx::{FromRow, PgPool, postgres::PgRow};
@@ -57,14 +63,14 @@ async fn test_usual(
     .await
     .unwrap();
 
-    let subgroups_results: Vec<GroupResult> = sqlx::query(
+    let subgroups_results: Vec<SubgroupResult> = sqlx::query(
         "select subgroup_verdict, score, test, score, checker_msg
              from submissions_subgroups_results
              where submission_id = $1
              order by subgroup_id",
     )
     .bind(id)
-    .map(|row: PgRow| GroupResult::from_row(&row).unwrap())
+    .map(|row: PgRow| SubgroupResult::from_row(&row).unwrap())
     .fetch_all(pool)
     .await
     .unwrap();
@@ -73,7 +79,11 @@ async fn test_usual(
     assert_eq!(subgroups_results[0].score, 0);
     assert_eq!(subgroups_results[0].subgroup_verdict, verdict);
 
-    if verdict != SubgroupVerdict::Ok {
+    if verdict == SubgroupVerdict::Ok {
+        assert_eq!(total_result.total_score, 100);
+        assert_eq!(subgroups_results[1].score, 100);
+        assert_eq!(subgroups_results[1].subgroup_verdict, verdict);
+    } else {
         assert_eq!(total_result.total_score, 0);
         assert_eq!(subgroups_results[1].score, 0);
         if with_deps {
@@ -84,10 +94,6 @@ async fn test_usual(
         } else {
             assert_eq!(subgroups_results[1].subgroup_verdict, verdict);
         }
-    } else {
-        assert_eq!(total_result.total_score, 100);
-        assert_eq!(subgroups_results[1].score, 100);
-        assert_eq!(subgroups_results[1].subgroup_verdict, verdict);
     }
 }
 

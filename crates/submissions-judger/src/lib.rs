@@ -1,15 +1,29 @@
+//! Submissions judger worker for `ada-judge`
+
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::nursery)]
+#![deny(warnings)]
+#![deny(missing_docs)]
+#![deny(rustdoc::all)]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![forbid(unsafe_code)]
+
 use ::tools::map::MapLogExt;
 use apalis::prelude::{BoxDynError, Data};
-use checker_runner::run_checker;
+use checker_runner::get_checker_result;
 use database::{
     get_problem_config, insert_subgroup_testing_result, update_subgroup_testing_result,
     update_total_testing_result,
 };
-use models::problem_config::ProblemConfig;
+use models::problem_config::{ProblemConfig, Subgroup};
 use models::verdicts::TotalVerdict;
-use models::{testing::*, verdicts::SubgroupVerdict};
+use models::{
+    testing::{CheckerResult, SubgroupResult, SubmissionTask, TestsPaths},
+    verdicts::SubgroupVerdict,
+};
 use solution_compiler::compile_solution;
-use solution_runner::run_solution;
+use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;
 use std::path::Path;
 use test_env_preparer::prepare_test_env;
@@ -21,9 +35,9 @@ mod constants;
 mod solution_compiler;
 mod solution_runner;
 mod test_env_preparer;
-pub mod tools;
+mod tools;
 
-async fn run_single_test(
+async fn get_single_test_verdict(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
     test_id: i32,
@@ -34,7 +48,7 @@ async fn run_single_test(
     let answer_path = test_path.join("out");
 
     log::info!("Run solution");
-    let solution_verdict = run_solution(config, &input_path, tests_paths).await?;
+    let solution_verdict = get_run_solution_verdict(config, &input_path, tests_paths).await?;
 
     if solution_verdict != SubgroupVerdict::Ok {
         log::error!("Run result isn't OK");
@@ -45,7 +59,36 @@ async fn run_single_test(
     }
 
     log::info!("Run checker");
-    run_checker(&config.into(), &input_path, answer_path, tests_paths).await
+    get_checker_result(&config.into(), &input_path, answer_path, tests_paths).await
+}
+
+async fn write_subgroup_result(
+    test_result: &mut SubgroupResult,
+    subgroup: &Subgroup,
+    config: &ProblemConfig,
+    tests_paths: &TestsPaths,
+) -> Result<(), TotalVerdict> {
+    for test_id in &subgroup.tests {
+        let test_id = *test_id;
+        log::info!("Run test #{test_id}");
+
+        test_result.test = test_id;
+        let run_result = get_single_test_verdict(config, tests_paths, test_id).await?;
+
+        test_result.subgroup_verdict = run_result.verdict;
+        test_result.test = test_id;
+        test_result.checker_msg = run_result.checker_msg;
+
+        if test_result.subgroup_verdict != SubgroupVerdict::Ok {
+            log::error!(
+                "Verdict {} isn't OK, skip testing",
+                test_result.subgroup_verdict
+            );
+            return Ok(());
+        }
+    }
+    test_result.score = subgroup.score;
+    Ok(())
 }
 
 /// TODO: move it to api
@@ -58,6 +101,38 @@ async fn load_config(problem_path: &Path) -> Result<ProblemConfig, TotalVerdict>
     toml::from_str::<ProblemConfig>(&config_text).map_log(TotalVerdict::InvalidProblem)
 }
 
+fn assert_subgroups_correctness(config: &ProblemConfig) -> Result<(), TotalVerdict> {
+    for (i, subgroup) in config.subgroups.iter().enumerate() {
+        log::info!("Check subgroup #{i} for correctness");
+        for x in &subgroup.depends_on {
+            if *x >= i {
+                log::error!("Subgroup depends on a subgroup that has index less than it's");
+                return Err(TotalVerdict::InvalidProblem);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn does_subgroup_need_to_be_tested_on(
+    subgroup: &Subgroup,
+    subgroups_results: &[SubgroupResult],
+) -> bool {
+    for i in &subgroup.depends_on {
+        if subgroups_results[*i].subgroup_verdict != SubgroupVerdict::Ok {
+            return false;
+        }
+    }
+    true
+}
+
+/// Tests submission for a problem on all test subgroups and writes a total verdict and a verdict for each subgroup
+/// # Errors
+/// Returns an error if:
+/// - Request is invalid
+/// - Problem is invalid
+/// - Verdict isn't Ok
+#[allow(clippy::cast_possible_wrap)]
 pub async fn test_submission(
     submission: SubmissionTask,
     pool: Data<PgPool>,
@@ -85,20 +160,12 @@ pub async fn test_submission(
     log::info!("Loaded config: {config:?}");
 
     log::info!("Check subgroups' for correctness");
-    for (i, subgroup) in config.subgroups.iter().enumerate() {
-        log::info!("Check subgroup #{i} for correctness");
-        for x in &subgroup.depends_on {
-            if *x >= i {
-                log::error!("Subgroup depends on a subgroup that has index less than it's");
-                update_total_testing_result(&pool, submission_id, &TotalVerdict::InvalidProblem, 0)
-                    .await?;
-                return Err(TotalVerdict::InvalidProblem.into());
-            }
-        }
-    }
+    assert_subgroups_correctness(&config)
+        .map_db(&pool, submission_id)
+        .await?;
 
     log::info!("Create tests paths");
-    let tests_paths = TestsPaths::new(&run_path, &submission.lang);
+    let tests_paths = TestsPaths::new(&run_path, &config, &submission.lang);
 
     log::info!("Compile solution");
     compile_solution(&tests_paths, &submission)
@@ -113,7 +180,7 @@ pub async fn test_submission(
         .await?;
 
     let mut total_score = 0;
-    let mut subgroups_result: Vec<GroupResult> = Vec::with_capacity(config.subgroups.len());
+    let mut subgroups_results: Vec<SubgroupResult> = Vec::with_capacity(config.subgroups.len());
 
     log::info!("Test solution on subgroups");
     update_total_testing_result(&pool, submission_id, &TotalVerdict::Testing, 0).await?;
@@ -128,60 +195,22 @@ pub async fn test_submission(
             .map_db(&pool, submission_id)
             .await?;
 
-        let mut test_result = GroupResult {
-            subgroup_verdict: SubgroupVerdict::Ok,
-            test: 0,
-            score: subgroup.score,
-            checker_msg: String::new(),
-        };
+        let mut test_result = SubgroupResult::default();
 
-        log::info!("Check subgroup's dependencies");
-        for i in &subgroup.depends_on {
-            if subgroups_result[*i].subgroup_verdict != SubgroupVerdict::Ok {
-                log::error!("Subgroup's dependency isn't OK, skip testing");
-                test_result.subgroup_verdict = SubgroupVerdict::Skipped;
-                test_result.score = 0;
-                break;
-            }
-        }
-
-        if test_result.subgroup_verdict != SubgroupVerdict::Skipped {
+        log::info!("Check if subgroup needs to be tested on");
+        if does_subgroup_need_to_be_tested_on(subgroup, &subgroups_results) {
             log::info!("Test solution on tests");
-            for test_id in &subgroup.tests {
-                let test_id = *test_id;
-                log::info!("Run test #{test_id}");
-
-                test_result.test = test_id;
-                let run_result = run_single_test(&config, &tests_paths, test_id).await;
-
-                match run_result {
-                    Err(verdict) => {
-                        log::error!("{verdict}");
-                        update_total_testing_result(&pool, submission_id, &verdict, 0)
-                            .await
-                            .map_db(&pool, submission_id)
-                            .await?;
-                    }
-                    Ok(value) => {
-                        test_result.subgroup_verdict = value.verdict;
-                        test_result.test = test_id;
-                        test_result.checker_msg = value.checker_msg;
-                    }
-                }
-
-                if test_result.subgroup_verdict != SubgroupVerdict::Ok {
-                    log::error!(
-                        "Verdict {} isn't OK, skip testing",
-                        test_result.subgroup_verdict
-                    );
-                    test_result.score = 0;
-                    break;
-                }
-            }
+            write_subgroup_result(&mut test_result, subgroup, &config, &tests_paths)
+                .await
+                .map_db(&pool, submission_id)
+                .await?;
+        } else {
+            log::info!("Subgroup doesn't need to be tested, skip testing");
+            test_result.subgroup_verdict = SubgroupVerdict::Skipped;
         }
 
         total_score += test_result.score;
-        subgroups_result.push(test_result.clone());
+        subgroups_results.push(test_result.clone());
 
         log::info!("Update subgroup's testing result record");
         update_subgroup_testing_result(

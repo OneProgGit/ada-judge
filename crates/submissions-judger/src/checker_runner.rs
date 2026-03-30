@@ -19,7 +19,8 @@ use tokio::{
 };
 use tools::map::MapLogExt;
 
-pub async fn run_checker(
+#[allow(clippy::cast_sign_loss)]
+pub async fn get_checker_result(
     config: &DatabaseProblemConfig,
     input_path: &Path,
     answer_path: PathBuf,

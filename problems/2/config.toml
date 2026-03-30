@@ -12,6 +12,12 @@ depends_on = []
 
 [[subgroups]]
 type = "main"
-tests = [1, 2]
-score = 100
+tests = [1]
+score = 50
 depends_on = [0]
+
+[[subgroups]]
+type = "main"
+tests = [2]
+score = 50
+depends_on = []

@@ -8,3 +8,4 @@ sqlx.workspace = true
 apalis-redis.workspace = true
 serde.workspace = true
 tokio.workspace = true
+chrono.workspace = true

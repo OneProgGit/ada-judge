@@ -11,4 +11,5 @@
 
 pub mod problem_config;
 pub mod testing;
+pub mod users;
 pub mod verdicts;

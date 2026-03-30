@@ -1,8 +1,16 @@
+create type admin_level as enum (
+    'not_admin',
+    'admin_i',
+    'admin_ii',
+    'admin_iii',
+    'owner'
+);
+
 create table users (
     id bigserial primary key,
     login text not null,
     password_hash text not null,
-    admin_level int not null,
+    admin_level admin_level not null,
     created_at timestamp not null default now() 
 );
 

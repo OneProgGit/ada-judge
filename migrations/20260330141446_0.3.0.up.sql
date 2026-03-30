@@ -8,7 +8,7 @@ create type admin_level as enum (
 
 create table users (
     id bigserial primary key,
-    login text not null,
+    login text unique not null,
     password_hash text not null,
     admin_level admin_level not null,
     created_at timestamp not null default now() 

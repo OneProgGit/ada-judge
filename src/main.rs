@@ -21,6 +21,7 @@ use tokio::{net::TcpListener, sync::Mutex};
 
 mod api;
 mod app_state;
+mod crypt;
 
 #[tokio::main]
 async fn main() {

@@ -132,7 +132,7 @@ fn does_subgroup_need_to_be_tested_on(
 /// - Request is invalid
 /// - Problem is invalid
 /// - Verdict isn't Ok
-#[allow(clippy::cast_possible_wrap)]
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub async fn test_submission(
     submission: SubmissionTask,
     pool: Data<PgPool>,
@@ -188,7 +188,7 @@ pub async fn test_submission(
         log::info!("Test on subgroup #{i}");
         log::info!("Insert a subgroup's testing result");
 
-        let subgroup_id = i as i64;
+        let subgroup_id = i as i32;
 
         insert_subgroup_testing_result(&pool, submission_id, subgroup_id)
             .await

@@ -9,6 +9,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![forbid(unsafe_code)]
 
+use crate::api::auth::register;
 use apalis_redis::RedisStorage;
 use api::push_submission_to_queue::push_submission_to_queue;
 use app_state::AppState;
@@ -47,6 +48,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/push-submission-to-queue", post(push_submission_to_queue))
+        .route("/register", post(register))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .with_state(Arc::new(AppState {
             db: pg_pool.clone(),

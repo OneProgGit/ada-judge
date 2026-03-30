@@ -1,8 +1,10 @@
 //! Structs for users
 
 use chrono::{DateTime, Utc};
+use serde::Deserialize;
 
 /// Register request called from frontend
+#[derive(Clone, Debug, Deserialize)]
 pub struct RegisterRequest {
     /// Login
     pub login: String,

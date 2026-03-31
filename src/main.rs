@@ -9,11 +9,14 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![forbid(unsafe_code)]
 
-use crate::api::auth::register;
+use crate::{
+    api::auth::{login, register},
+    middleware::auth::Auth,
+};
 use apalis_redis::RedisStorage;
 use api::push_submission_to_queue::push_submission_to_queue;
 use app_state::AppState;
-use axum::{Router, extract::DefaultBodyLimit, routing::post};
+use axum::{Extension, Router, extract::DefaultBodyLimit, routing::post};
 use log::LevelFilter;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
@@ -22,6 +25,8 @@ use tokio::{net::TcpListener, sync::Mutex};
 mod api;
 mod app_state;
 mod crypt;
+mod jwt;
+mod middleware;
 
 #[tokio::main]
 async fn main() {
@@ -50,7 +55,9 @@ async fn main() {
     let app = Router::new()
         .route("/push-submission-to-queue", post(push_submission_to_queue))
         .route("/register", post(register))
+        .route("/login", post(login))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
+        .layer(Extension(Auth))
         .with_state(Arc::new(AppState {
             db: pg_pool.clone(),
             apalis_backend: Mutex::new(backend.clone()),

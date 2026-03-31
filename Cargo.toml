@@ -19,6 +19,7 @@ serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
 argon2 = "0.5.3"
+jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 
 [workspace]
 members = [
@@ -39,11 +40,11 @@ tools = { path = "crates/tools" }
 database = { path = "crates/database" }
 axum = { version = "0.8.8", features = ["json", "multipart"] }
 tokio = { version = "1.50.0", features = ["rt-multi-thread", "process", "macros"] }
-sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "chrono"] }
 apalis-redis = "1.0.0-rc.6"
 apalis = "1.0.0-rc.7"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 log = "0.4.29"
 pretty-logging = "0.2.0"
-chrono = "0.4.44"
+chrono = { version = "0.4.44", features = ["serde"] }

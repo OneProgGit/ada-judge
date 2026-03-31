@@ -11,6 +11,7 @@
 
 use models::{
     problem_config::DatabaseProblemConfig,
+    users::DatabaseUser,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use sqlx::PgPool;
@@ -34,6 +35,28 @@ pub async fn create_user(
     .map_log(TotalVerdict::InvalidRequest)?;
 
     Ok(user_id)
+}
+
+/// Gets a user with target login
+/// # Errors
+/// Returns an error if the user with this login does not exist
+pub async fn get_user_by_login(pool: &PgPool, login: &str) -> Result<DatabaseUser, TotalVerdict> {
+    sqlx::query_as("select * from users where login = $1")
+        .bind(login)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)
+}
+
+/// Gets a user with target id
+/// # Errors
+/// Returns an error if the user with this id does not exist
+pub async fn get_user_by_id(pool: &PgPool, id: i64) -> Result<DatabaseUser, TotalVerdict> {
+    sqlx::query_as("select * from users where id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)
 }
 
 /// Get's problem's config from `problems` table
@@ -77,14 +100,19 @@ pub async fn get_problem_config(
 /// Inserts a submission to `submissions` table and returns it's id
 /// # Errors
 /// Returns an error if `problem_id` is invalid
-pub async fn insert_submission(pool: &PgPool, problem_id: i64) -> Result<i64, TotalVerdict> {
+pub async fn insert_submission(
+    pool: &PgPool,
+    user_id: i64,
+    problem_id: i64,
+) -> Result<i64, TotalVerdict> {
     let submission_id = sqlx::query_scalar(
         r"insert into submissions (problem_id, user_id, total_verdict, total_score) 
           values ($1, $2, $3, $4) returning id",
     )
     .bind(problem_id)
-    .bind(None::<i64>)
+    .bind(user_id)
     .bind(TotalVerdict::Pending)
+    .bind(0)
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;

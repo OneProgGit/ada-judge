@@ -11,7 +11,7 @@
 
 # Key features
 - Built with 🦀 Rust: a blazingly fast and safe programming language
-- Easy: configured with TOML and supports docker compose — no need for installing dependencies manually
+- Easy: problems configured with TOML and supports docker compose — no need for installing dependencies manually
 - Permissive license: licensed under the MIT license
 
 # Getting started
@@ -31,6 +31,9 @@ POSTGRES_DB=
 REDIS_PASSWORD=
 REDIS_USER=
 REDIS_USER_PASSWORD=
+MASTER_PASSWORD=
+JWT_SECRET=
+JWT_EXP_HOURS=
 DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB} # For tests
 ```
 After that, create `submissions_envs` directory.

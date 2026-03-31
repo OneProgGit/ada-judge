@@ -1,4 +1,4 @@
-use crate::app_state::AppState;
+use crate::{app_state::AppState, middleware::auth::Auth};
 use apalis::prelude::TaskSink;
 use axum::{
     Json,
@@ -20,6 +20,7 @@ use tools::map::{MapHttpExt, MapLogExt};
 
 pub async fn push_submission_to_queue(
     State(state): State<Arc<AppState>>,
+    Auth(user): Auth,
     mut multipart: Multipart,
 ) -> Result<Json<i64>, StatusCode> {
     let mut submission: Option<Submission> = None;
@@ -62,11 +63,9 @@ pub async fn push_submission_to_queue(
         return Err(StatusCode::BAD_REQUEST);
     };
 
-    // TODO: replace id with real user id
-
     log::info!("Push to queue: {submission:?}");
 
-    let submission_id = insert_submission(&state.db, submission.problem_id)
+    let submission_id = insert_submission(&state.db, user.id, submission.problem_id)
         .await
         .map_http()?;
 

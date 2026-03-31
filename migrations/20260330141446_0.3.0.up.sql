@@ -11,7 +11,7 @@ create table users (
     login text unique not null,
     password_hash text not null,
     admin_level admin_level default 'not_admin' not null,
-    created_at timestamp with time zone not null default now() 
+    created_at timestamptz not null default now() 
 );
 
 create table contests (
@@ -20,7 +20,7 @@ create table contests (
     name text not null,
     starts_at timestamp with time zone not null,
     ends_at timestamp with time zone not null,
-    created_at timestamp with time zone not null default now() 
+    created_at timestamptz not null default now() 
 );
 
 insert into contests (owner_id, name, starts_at, ends_at)
@@ -36,7 +36,7 @@ create table problems (
     memory_limit_mb int not null,
     checker_path text not null,
     tests_path text not null,
-    created_at timestamp with time zone not null default now()
+    created_at timestamptz not null default now()
 );
 
 insert into problems (owner_id, contest_id, problem_index, name, time_limit_ms, memory_limit_mb, checker_path, tests_path)
@@ -88,7 +88,7 @@ create table submissions (
     user_id bigint references users(id) on delete cascade,
     total_verdict total_verdict not null,
     total_score int not null,
-    created_at timestamp with time zone not null default now()
+    created_at timestamptz not null default now()
 );
 
 create type subgroup_verdict as enum (

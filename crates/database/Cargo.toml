@@ -7,3 +7,4 @@ edition = "2024"
 sqlx.workspace = true
 models.workspace = true
 tools.workspace = true
+log.workspace = true

@@ -9,14 +9,17 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![forbid(unsafe_code)]
 
+use ::tools::map::MapLogExt;
 use models::{
+    contest_config::DatabaseContestConfig,
     contests::LeaderboardRow,
     problem_config::DatabaseProblemConfig,
     users::DatabaseUser,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use sqlx::PgPool;
-use tools::map::MapLogExt;
+
+pub mod tools;
 
 /// Creates a user with login and password hash and returns it's id
 /// # Errors
@@ -82,18 +85,34 @@ pub async fn get_contest_leaderboard(
                 where p.contest_id = $1
             ),
             best as (
-                select r.user_id, r.problem_id, r.total_score
-                from ranked r
-                where r.rn = 1
+                select user_id, problem_id, total_score
+                from ranked
+                where rn = 1
+            ),
+            users as (
+                select distinct user_id
+                from submissions s
+                join problems p on p.id = s.problem_id
+                where p.contest_id = $1
+            ),
+            contest_problems as (
+                select id, problem_index
+                from problems
+                where contest_id = $1
             )
             select 
-                b.user_id,
-                array_agg(b.total_score order by p.problem_index) as scores,
-                sum(b.total_score) as total_score
-            from best b
-            join problems p on p.id = b.problem_id
-            where p.contest_id = $1
-            group by b.user_id
+                u.user_id,
+                array_agg(
+                    coalesce(b.total_score, 0)
+                    order by p.problem_index
+                ) as scores,
+                sum(coalesce(b.total_score, 0)) as total_score
+            from users u
+            cross join contest_problems p
+            left join best b
+                on b.user_id = u.user_id
+                and b.problem_id = p.id
+            group by u.user_id
             order by total_score desc",
     )
     .bind(contest_id)
@@ -104,20 +123,39 @@ pub async fn get_contest_leaderboard(
     Ok(leaderboard)
 }
 
-/// Get's problem's config from `problems` table
+/// Gets a contest by given id
+/// # Errors
+/// Returns an error if `contest_id` is invalid
+pub async fn get_contest_by_id(
+    pool: &PgPool,
+    contest_id: i64,
+) -> Result<DatabaseContestConfig, TotalVerdict> {
+    sqlx::query_as("select * from contests where id = $1")
+        .bind(contest_id)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)
+}
+
+/// Get's problem's config from `problems` table by bigen id
 /// # Errors
 /// Returns an error if `problem_id` is invalid
-pub async fn get_problem_config(
+pub async fn get_problem_by_id(
     pool: &PgPool,
     problem_id: i64,
 ) -> Result<DatabaseProblemConfig, TotalVerdict> {
     let config = sqlx::query_as(
         r"select
+                c.id,
+                c.owner_id,
+                c.contest_id,
+                c.problem_index,
                 c.name,
                 c.time_limit_ms,
                 c.memory_limit_mb,
                 c.checker_path,
                 c.tests_path,
+                c.created_at,
                 coalesce(
                     json_agg(
                         json_build_object(
@@ -131,7 +169,7 @@ pub async fn get_problem_config(
             from problems c
             left join problems_subgroups v on v.problem_id = c.id
             where c.id = $1
-            group by c.id, c.contest_id, c.name, c.time_limit_ms, c.memory_limit_mb, c.checker_path, c.tests_path;
+            group by c.id, c.owner_id, c.contest_id, c.problem_index, c.name, c.time_limit_ms, c.memory_limit_mb, c.checker_path, c.tests_path, c.created_at
         ",
     )
     .bind(problem_id)

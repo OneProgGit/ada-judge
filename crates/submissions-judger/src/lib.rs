@@ -12,8 +12,9 @@
 use ::tools::map::MapLogExt;
 use apalis::prelude::{BoxDynError, Data};
 use checker_runner::get_checker_result;
+use database::tools::MapDbExt;
 use database::{
-    get_problem_config, insert_subgroup_testing_result, update_subgroup_testing_result,
+    get_problem_by_id, insert_subgroup_testing_result, update_subgroup_testing_result,
     update_total_testing_result,
 };
 use models::problem_config::{ProblemConfig, Subgroup};
@@ -28,7 +29,6 @@ use sqlx::PgPool;
 use std::path::Path;
 use test_env_preparer::prepare_test_env;
 use tokio::fs::read_to_string;
-use tools::MapDbExt;
 
 mod checker_runner;
 mod constants;
@@ -152,7 +152,7 @@ pub async fn test_submission(
     let run_path = submission.run_dir.clone();
 
     log::info!("Load problem's config");
-    let config: ProblemConfig = get_problem_config(&pool, problem_id)
+    let config: ProblemConfig = get_problem_by_id(&pool, problem_id)
         .await
         .map_db(&pool, submission_id)
         .await?

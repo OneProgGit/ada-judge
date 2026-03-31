@@ -6,7 +6,8 @@ use axum::{
     extract::{Multipart, State},
     http::StatusCode,
 };
-use database::insert_submission;
+use chrono::Utc;
+use database::{get_contest_by_id, get_problem_by_id, insert_submission, tools::MapDbExt};
 use models::{
     testing::{Submission, SubmissionTask, get_lang_str},
     verdicts::TotalVerdict,
@@ -63,6 +64,18 @@ pub async fn push_submission_to_queue(
         return Err(StatusCode::BAD_REQUEST);
     };
 
+    log::info!("Check if contest has already ended or hasn't started yet");
+    let problem_config = get_problem_by_id(&state.db, submission.problem_id)
+        .await
+        .map_http()?;
+    let contest_config = get_contest_by_id(&state.db, problem_config.contest_id)
+        .await
+        .map_http()?;
+    let now = Utc::now();
+    if now > contest_config.ends_at || now < contest_config.starts_at {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
     log::info!("Push to queue: {submission:?}");
 
     let submission_id = insert_submission(&state.db, user.id, submission.problem_id)
@@ -74,6 +87,8 @@ pub async fn push_submission_to_queue(
     fs::create_dir(run_dir.clone())
         .await
         .map_log(TotalVerdict::Bug)
+        .map_db(&state.db, submission_id)
+        .await
         .map_http()?;
 
     log::info!("Create submission file");
@@ -81,11 +96,15 @@ pub async fn push_submission_to_queue(
     let mut run_file = File::create(run_path)
         .await
         .map_log(TotalVerdict::Bug)
+        .map_db(&state.db, submission_id)
+        .await
         .map_http()?;
     run_file
         .write_all(&file_stream)
         .await
         .map_log(TotalVerdict::Bug)
+        .map_db(&state.db, submission_id)
+        .await
         .map_http()?;
 
     let submission_task = SubmissionTask {
@@ -103,6 +122,8 @@ pub async fn push_submission_to_queue(
         .push(submission_task)
         .await
         .map_log(TotalVerdict::Bug)
+        .map_db(&state.db, submission_id)
+        .await
         .map_http()?;
 
     Ok(Json(submission_id))

@@ -1,13 +1,16 @@
 //! Problem's config structs
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 
 /// Problem's config
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ProblemConfig {
+    /// Problem's owner's auser id (optional)
+    pub owner_id: Option<i64>,
     /// Problems's contest id
-    pub contest_id: i32,
+    pub contest_id: i64,
     /// Problem's name or title
     pub name: String,
     /// Testing time limit in milliseconds
@@ -25,8 +28,12 @@ pub struct ProblemConfig {
 /// Problem's config for database
 #[derive(Deserialize, Serialize, Clone, Debug, sqlx::FromRow)]
 pub struct DatabaseProblemConfig {
+    /// Problem's id
+    pub id: i64,
+    /// Problem's owner id (optional)
+    pub owner_id: Option<i64>,
     /// Problems's contest id
-    pub contest_id: i32,
+    pub contest_id: i64,
     /// Problem's name or title
     pub name: String,
     /// Testing time limit in milliseconds
@@ -39,11 +46,15 @@ pub struct DatabaseProblemConfig {
     pub tests_path: String,
     /// Testing subgroups
     pub subgroups: Json<Vec<Subgroup>>,
+    /// Created at timestamp
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<&ProblemConfig> for DatabaseProblemConfig {
     fn from(value: &ProblemConfig) -> Self {
         Self {
+            id: 0,
+            owner_id: value.owner_id,
             contest_id: value.contest_id,
             name: value.name.clone(),
             time_limit_ms: value.time_limit_ms,
@@ -51,6 +62,7 @@ impl From<&ProblemConfig> for DatabaseProblemConfig {
             checker_path: value.checker_path.clone(),
             tests_path: value.tests_path.clone(),
             subgroups: Json(value.subgroups.clone()),
+            created_at: DateTime::default(),
         }
     }
 }
@@ -58,6 +70,7 @@ impl From<&ProblemConfig> for DatabaseProblemConfig {
 impl From<DatabaseProblemConfig> for ProblemConfig {
     fn from(value: DatabaseProblemConfig) -> Self {
         Self {
+            owner_id: value.owner_id,
             contest_id: value.contest_id,
             name: value.name,
             time_limit_ms: value.time_limit_ms,

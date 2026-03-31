@@ -29,14 +29,13 @@ pub async fn create_user(
     login: &str,
     password_hash: &str,
 ) -> Result<i64, TotalVerdict> {
-    let user_id = sqlx::query_scalar(
-        r"insert into users (login, password_hash) values ($1, $2) returning id",
-    )
-    .bind(login)
-    .bind(password_hash)
-    .fetch_one(pool)
-    .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    let user_id =
+        sqlx::query_scalar("insert into users (login, password_hash) values ($1, $2) returning id")
+            .bind(login)
+            .bind(password_hash)
+            .fetch_one(pool)
+            .await
+            .map_log(TotalVerdict::InvalidRequest)?;
 
     Ok(user_id)
 }
@@ -71,7 +70,7 @@ pub async fn get_contest_leaderboard(
     contest_id: i64,
 ) -> Result<Vec<LeaderboardRow>, TotalVerdict> {
     let leaderboard = sqlx::query_as(
-        r"with ranked as (
+        "with ranked as (
                 select
                     s.user_id,
                     s.problem_id,
@@ -145,7 +144,7 @@ pub async fn get_problem_by_id(
     problem_id: i64,
 ) -> Result<DatabaseProblemConfig, TotalVerdict> {
     let config = sqlx::query_as(
-        r"select
+        "select
                 c.id,
                 c.owner_id,
                 c.contest_id,
@@ -189,7 +188,7 @@ pub async fn insert_submission(
     problem_id: i64,
 ) -> Result<i64, TotalVerdict> {
     let submission_id = sqlx::query_scalar(
-        r"insert into submissions (problem_id, user_id, total_verdict, total_score) 
+        "insert into submissions (problem_id, user_id, total_verdict, total_score) 
           values ($1, $2, $3, $4) returning id",
     )
     .bind(problem_id)
@@ -213,7 +212,7 @@ pub async fn update_total_testing_result(
     score: i32,
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
-        r"update submissions set total_verdict = $1, total_score = $2 
+        "update submissions set total_verdict = $1, total_score = $2 
             where id = $3",
     )
     .bind(verdict)
@@ -234,7 +233,7 @@ pub async fn insert_subgroup_testing_result(
     subgroup_id: i32,
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
-        r"insert into submissions_subgroups_results (subgroup_id, submission_id, subgroup_verdict, test, score, checker_msg)
+        "insert into submissions_subgroups_results (subgroup_id, submission_id, subgroup_verdict, test, score, checker_msg)
             values ($1, $2, $3::subgroup_verdict, $4, $5, $6)",
     )
         .bind(subgroup_id)
@@ -262,7 +261,7 @@ pub async fn update_subgroup_testing_result(
     checker_msg: String,
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
-        r"update submissions_subgroups_results set subgroup_verdict = $1::subgroup_verdict, test = $2, score = $3, checker_msg = $4 
+        "update submissions_subgroups_results set subgroup_verdict = $1::subgroup_verdict, test = $2, score = $3, checker_msg = $4 
             where submission_id = $5 and subgroup_id = $6",
     )
         .bind(verdict)

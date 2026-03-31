@@ -14,9 +14,23 @@ create table users (
     created_at timestamp with time zone not null default now() 
 );
 
+create table contests (
+    id bigserial primary key,
+    owner_id bigint references users(id) on delete cascade,
+    name text not null,
+    starts_at timestamp with time zone not null,
+    ends_at timestamp with time zone not null,
+    created_at timestamp with time zone not null default now() 
+);
+
+insert into contests (owner_id, name, starts_at, ends_at)
+    values (null, 'Суммы чисел', '2001-01-01 01:01:01.000000+00', '20001-01-01 01:01:01.000000+00');
+
 create table problems (
     id bigserial primary key,
     owner_id bigint references users(id) on delete cascade,
+    contest_id bigint references contests(id) on delete cascade,
+    problem_index bigint not null,
     name text not null,
     time_limit_ms int not null,
     memory_limit_mb int not null,
@@ -25,11 +39,11 @@ create table problems (
     created_at timestamp with time zone not null default now()
 );
 
-insert into problems (owner_id, name, time_limit_ms, memory_limit_mb, checker_path, tests_path)
+insert into problems (owner_id, contest_id, problem_index, name, time_limit_ms, memory_limit_mb, checker_path, tests_path)
 values
-    (null, 'Сумма чисел', 1000, 10, 'checker', 'tests'),
-    (null, 'Сумма чисел', 1000, 10, 'checker', 'tests'),
-    (null, 'Сумма чисел', 1000, 10, 'checker', 'tests');
+    (null, 1, 0, 'Сумма чисел I', 1000, 10, 'checker', 'tests'),
+    (null, 1, 1, 'Сумма чисел II', 1000, 10, 'checker', 'tests'),
+    (null, 1, 2, 'Сумма чисел III', 1000, 10, 'checker', 'tests');
 
 create type subgroup_type as enum (
     'sample',
@@ -98,3 +112,6 @@ create table submissions_subgroups_results (
     checker_msg text not null,
     primary key (submission_id, subgroup_id)
 );
+
+create index idx_submissions_contest_user_problem_score
+    on submissions (user_id, problem_id, total_score desc);

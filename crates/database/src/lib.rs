@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 
 use models::{
+    contests::LeaderboardRow,
     problem_config::DatabaseProblemConfig,
     users::DatabaseUser,
     verdicts::{SubgroupVerdict, TotalVerdict},
@@ -59,6 +60,50 @@ pub async fn get_user_by_id(pool: &PgPool, id: i64) -> Result<DatabaseUser, Tota
         .map_log(TotalVerdict::InvalidRequest)
 }
 
+/// Gets contest's leaderboard
+/// # Errors
+/// Returns an error if `contest_id` is invalid
+pub async fn get_contest_leaderboard(
+    pool: &PgPool,
+    contest_id: i64,
+) -> Result<Vec<LeaderboardRow>, TotalVerdict> {
+    let leaderboard = sqlx::query_as(
+        r"with ranked as (
+                select
+                    s.user_id,
+                    s.problem_id,
+                    s.total_score,
+                    row_number() over (
+                        partition by s.user_id, s.problem_id
+                        order by s.total_score desc
+                    ) as rn
+                from submissions s
+                join problems p on p.id = s.problem_id
+                where p.contest_id = $1
+            ),
+            best as (
+                select r.user_id, r.problem_id, r.total_score
+                from ranked r
+                where r.rn = 1
+            )
+            select 
+                b.user_id,
+                array_agg(b.total_score order by p.problem_index) as scores,
+                sum(b.total_score) as total_score
+            from best b
+            join problems p on p.id = b.problem_id
+            where p.contest_id = $1
+            group by b.user_id
+            order by total_score desc",
+    )
+    .bind(contest_id)
+    .fetch_all(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(leaderboard)
+}
+
 /// Get's problem's config from `problems` table
 /// # Errors
 /// Returns an error if `problem_id` is invalid
@@ -86,7 +131,7 @@ pub async fn get_problem_config(
             from problems c
             left join problems_subgroups v on v.problem_id = c.id
             where c.id = $1
-            group by c.id, c.name, c.time_limit_ms, c.memory_limit_mb, c.checker_path, c.tests_path;
+            group by c.id, c.contest_id, c.name, c.time_limit_ms, c.memory_limit_mb, c.checker_path, c.tests_path;
         ",
     )
     .bind(problem_id)

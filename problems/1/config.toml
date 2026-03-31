@@ -1,4 +1,6 @@
-name = "Сумма чисел"
+name = "Сумма чисел I"
+contest_id = 1
+problem_index = 0
 time_limit_ms = 1000
 memory_limit_mb = 10
 checker_path = "checker"

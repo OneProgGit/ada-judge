@@ -10,13 +10,20 @@
 #![forbid(unsafe_code)]
 
 use crate::{
-    api::auth::{login, register},
+    api::{
+        auth::{login, register},
+        contests::get_contest_leaderboard,
+    },
     middleware::auth::Auth,
 };
 use apalis_redis::RedisStorage;
 use api::push_submission_to_queue::push_submission_to_queue;
 use app_state::AppState;
-use axum::{Extension, Router, extract::DefaultBodyLimit, routing::post};
+use axum::{
+    Extension, Router,
+    extract::DefaultBodyLimit,
+    routing::{get, post},
+};
 use log::LevelFilter;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
@@ -56,6 +63,7 @@ async fn main() {
         .route("/push-submission-to-queue", post(push_submission_to_queue))
         .route("/register", post(register))
         .route("/login", post(login))
+        .route("/contest-leaderboard", get(get_contest_leaderboard))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(Extension(Auth))
         .with_state(Arc::new(AppState {

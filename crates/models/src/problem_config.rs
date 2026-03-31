@@ -6,6 +6,8 @@ use sqlx::types::Json;
 /// Problem's config
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ProblemConfig {
+    /// Problems's contest id
+    pub contest_id: i32,
     /// Problem's name or title
     pub name: String,
     /// Testing time limit in milliseconds
@@ -23,6 +25,8 @@ pub struct ProblemConfig {
 /// Problem's config for database
 #[derive(Deserialize, Serialize, Clone, Debug, sqlx::FromRow)]
 pub struct DatabaseProblemConfig {
+    /// Problems's contest id
+    pub contest_id: i32,
     /// Problem's name or title
     pub name: String,
     /// Testing time limit in milliseconds
@@ -40,6 +44,7 @@ pub struct DatabaseProblemConfig {
 impl From<&ProblemConfig> for DatabaseProblemConfig {
     fn from(value: &ProblemConfig) -> Self {
         Self {
+            contest_id: value.contest_id,
             name: value.name.clone(),
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,
@@ -53,6 +58,7 @@ impl From<&ProblemConfig> for DatabaseProblemConfig {
 impl From<DatabaseProblemConfig> for ProblemConfig {
     fn from(value: DatabaseProblemConfig) -> Self {
         Self {
+            contest_id: value.contest_id,
             name: value.name,
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,

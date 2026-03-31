@@ -39,12 +39,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.102"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
-
-[[package]]
 name = "apalis"
 version = "1.0.0-rc.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -388,16 +382,6 @@ name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
-
-[[package]]
-name = "contests-manager"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "fs_extra",
- "serde",
- "toml",
-]
 
 [[package]]
 name = "core-foundation-sys"

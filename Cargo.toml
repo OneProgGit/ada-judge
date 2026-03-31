@@ -24,7 +24,6 @@ jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 [workspace]
 members = [
     "crates/submissions-judger",
-    "crates/contests-manager",
     "crates/models",
     "crates/tools",
     "crates/database",
@@ -34,7 +33,6 @@ resolver = "3"
 
 [workspace.dependencies]
 submissions-judger = { path = "crates/submissions-judger" }
-contests-manager = { path = "crates/contests-manager" }
 models = { path = "crates/models" }
 tools = { path = "crates/tools" }
 database = { path = "crates/database" }

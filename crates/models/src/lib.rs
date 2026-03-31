@@ -9,6 +9,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![forbid(unsafe_code)]
 
+pub mod contests;
 pub mod problem_config;
 pub mod testing;
 pub mod users;

@@ -11,6 +11,8 @@ pub struct ProblemConfig {
     pub owner_id: Option<i64>,
     /// Problems's contest id
     pub contest_id: i64,
+    /// Problem's index in contest
+    pub problem_index: i64,
     /// Problem's name or title
     pub name: String,
     /// Testing time limit in milliseconds
@@ -34,6 +36,8 @@ pub struct DatabaseProblemConfig {
     pub owner_id: Option<i64>,
     /// Problems's contest id
     pub contest_id: i64,
+    /// Problem's index in contest
+    pub problem_index: i64,
     /// Problem's name or title
     pub name: String,
     /// Testing time limit in milliseconds
@@ -50,19 +54,35 @@ pub struct DatabaseProblemConfig {
     pub created_at: DateTime<Utc>,
 }
 
-impl From<&ProblemConfig> for DatabaseProblemConfig {
-    fn from(value: &ProblemConfig) -> Self {
+/// Problem config visible for all users
+#[derive(Deserialize, Serialize, Clone, Debug, sqlx::FromRow)]
+pub struct PublicProblemConfig {
+    /// Problem's id
+    pub id: i64,
+    /// Problem's owner id (optional)
+    pub owner_id: Option<i64>,
+    /// Problems's contest id
+    pub contest_id: i64,
+    /// Problem's index in contest
+    pub problem_index: i64,
+    /// Problem's name or title
+    pub name: String,
+    /// Testing time limit in milliseconds
+    pub time_limit_ms: i32,
+    /// Testing memory limit in megabytes
+    pub memory_limit_mb: i32,
+}
+
+impl From<&DatabaseProblemConfig> for PublicProblemConfig {
+    fn from(value: &DatabaseProblemConfig) -> Self {
         Self {
-            id: 0,
+            id: value.id,
             owner_id: value.owner_id,
             contest_id: value.contest_id,
+            problem_index: value.problem_index,
             name: value.name.clone(),
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,
-            checker_path: value.checker_path.clone(),
-            tests_path: value.tests_path.clone(),
-            subgroups: Json(value.subgroups.clone()),
-            created_at: DateTime::default(),
         }
     }
 }
@@ -72,6 +92,7 @@ impl From<DatabaseProblemConfig> for ProblemConfig {
         Self {
             owner_id: value.owner_id,
             contest_id: value.contest_id,
+            problem_index: value.problem_index,
             name: value.name,
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,

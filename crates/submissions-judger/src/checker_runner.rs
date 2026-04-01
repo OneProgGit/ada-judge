@@ -3,7 +3,7 @@ use crate::{
     tools::convert_path_in_container_to_path_in_host,
 };
 use models::{
-    problem_config::DatabaseProblemConfig,
+    problem_config::ProblemConfig,
     testing::{CheckerResult, TestsPaths},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -21,7 +21,7 @@ use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_checker_result(
-    config: &DatabaseProblemConfig,
+    config: &ProblemConfig,
     input_path: &Path,
     answer_path: PathBuf,
     tests_paths: &TestsPaths,

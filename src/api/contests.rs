@@ -1,21 +1,31 @@
 use std::sync::Arc;
 
+use crate::app_state::AppState;
 use axum::{
     Json,
-    extract::{Query, State},
+    extract::{Path, State},
     http::StatusCode,
 };
-use models::contests::{GetContestLeaderboardRequest, LeaderboardRow};
+use models::{contests::LeaderboardRow, problem_config::PublicProblemConfig};
 use tools::map::MapHttpExt;
-
-use crate::app_state::AppState;
 
 pub async fn get_contest_leaderboard(
     State(state): State<Arc<AppState>>,
-    Query(request): Query<GetContestLeaderboardRequest>,
+    Path(contest_id): Path<i64>,
 ) -> Result<Json<Vec<LeaderboardRow>>, StatusCode> {
     Ok(Json(
-        database::get_contest_leaderboard(&state.db, request.contest_id)
+        database::get_contest_leaderboard(&state.db, contest_id)
+            .await
+            .map_http()?,
+    ))
+}
+
+pub async fn get_contest_problems(
+    State(state): State<Arc<AppState>>,
+    Path(contest_id): Path<i64>,
+) -> Result<Json<Vec<PublicProblemConfig>>, StatusCode> {
+    Ok(Json(
+        database::get_contest_public_problems(&state.db, contest_id)
             .await
             .map_http()?,
     ))

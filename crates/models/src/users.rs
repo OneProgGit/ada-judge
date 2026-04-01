@@ -80,6 +80,27 @@ pub struct DatabaseUser {
     pub password_hash: String,
 }
 
+impl From<DatabaseUser> for PublicUserData {
+    fn from(value: DatabaseUser) -> Self {
+        Self {
+            id: value.id,
+            login: value.login,
+            admin_level: value.admin_level,
+        }
+    }
+}
+
+impl From<DatabaseUser> for PrivateUserData {
+    fn from(value: DatabaseUser) -> Self {
+        Self {
+            id: value.id,
+            login: value.login,
+            admin_level: value.admin_level,
+            created_at: value.created_at,
+        }
+    }
+}
+
 /// Json web token claims
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JwtClaims {

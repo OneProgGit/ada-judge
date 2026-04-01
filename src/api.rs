@@ -1,3 +1,4 @@
 pub mod auth;
 pub mod contests;
-pub mod push_submission_to_queue;
+pub mod submissions;
+pub mod user_profiles;

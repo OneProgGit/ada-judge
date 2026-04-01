@@ -3,13 +3,12 @@ use apalis::prelude::TaskSink;
 use axum::{
     Json,
     body::Bytes,
-    extract::{Multipart, State},
+    extract::{Multipart, Path, State},
     http::StatusCode,
 };
-use chrono::Utc;
-use database::{get_contest_by_id, get_problem_by_id, insert_submission, tools::MapDbExt};
+use database::{insert_submission, tools::MapDbExt};
 use models::{
-    testing::{Submission, SubmissionTask, get_lang_str},
+    testing::{Submission, SubmissionTask, SubmissonRequest, get_lang_str},
     verdicts::TotalVerdict,
 };
 use std::{path::PathBuf, sync::Arc};
@@ -19,12 +18,46 @@ use tokio::{
 };
 use tools::map::{MapHttpExt, MapLogExt};
 
+pub async fn get_all_user_submisssions(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<i64>,
+) -> Result<Json<Vec<Submission>>, StatusCode> {
+    Ok(Json(
+        database::get_all_user_submissions(&state.db, user_id)
+            .await
+            .map_http()?,
+    ))
+}
+
+pub async fn get_contest_user_submissions(
+    State(state): State<Arc<AppState>>,
+    Path((user_id, contest_id)): Path<(i64, i64)>,
+) -> Result<Json<Vec<Submission>>, StatusCode> {
+    Ok(Json(
+        database::get_contest_user_submissions(&state.db, user_id, contest_id)
+            .await
+            .map_http()?,
+    ))
+}
+
+pub async fn get_problem_user_submissions(
+    State(state): State<Arc<AppState>>,
+    Path((user_id, problem_id)): Path<(i64, i64)>,
+) -> Result<Json<Vec<Submission>>, StatusCode> {
+    Ok(Json(
+        database::get_problem_user_submissions(&state.db, user_id, problem_id)
+            .await
+            .map_http()?,
+    ))
+}
+
 pub async fn push_submission_to_queue(
     State(state): State<Arc<AppState>>,
     Auth(user): Auth,
+    Path(_): Path<i64>,
     mut multipart: Multipart,
 ) -> Result<Json<i64>, StatusCode> {
-    let mut submission: Option<Submission> = None;
+    let mut submission: Option<SubmissonRequest> = None;
     let mut file_stream: Option<Bytes> = None;
 
     log::info!("Extracting submission data and file");
@@ -63,18 +96,6 @@ pub async fn push_submission_to_queue(
         log::error!("No submission files were provided");
         return Err(StatusCode::BAD_REQUEST);
     };
-
-    log::info!("Check if contest has already ended or hasn't started yet");
-    let problem_config = get_problem_by_id(&state.db, submission.problem_id)
-        .await
-        .map_http()?;
-    let contest_config = get_contest_by_id(&state.db, problem_config.contest_id)
-        .await
-        .map_http()?;
-    let now = Utc::now();
-    if now > contest_config.ends_at || now < contest_config.starts_at {
-        return Err(StatusCode::BAD_REQUEST);
-    }
 
     log::info!("Push to queue: {submission:?}");
 

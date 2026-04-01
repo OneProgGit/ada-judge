@@ -12,12 +12,19 @@
 use crate::{
     api::{
         auth::{login, register},
-        contests::get_contest_leaderboard,
+        contests::{get_contest_leaderboard, get_contest_problems},
+        submissions::{
+            get_all_user_submisssions, get_contest_user_submissions, get_problem_user_submissions,
+        },
+        user_profiles::{get_private_user_profile, get_public_user_profile},
     },
-    middleware::auth::Auth,
+    middleware::{
+        auth::Auth,
+        contests::{check_contest_started, check_contest_started_and_not_ended},
+    },
 };
 use apalis_redis::RedisStorage;
-use api::push_submission_to_queue::push_submission_to_queue;
+use api::submissions::push_submission_to_queue;
 use app_state::AppState;
 use axum::{
     Extension, Router,
@@ -59,17 +66,54 @@ async fn main() {
 
     let backend = RedisStorage::new(redis_pool);
 
+    let state = Arc::new(AppState {
+        db: pg_pool.clone(),
+        apalis_backend: Mutex::new(backend.clone()),
+    });
+
+    let routes_avaible_after_start_of_contest = Router::new()
+        .route(
+            "/contest/{contest_id}/leaderboard",
+            get(get_contest_leaderboard),
+        )
+        .route("/contest/{contest_id}/problems", get(get_contest_problems))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            check_contest_started,
+        ));
+
+    let routes_avaible_during_the_contest = Router::new()
+        .route(
+            "/contest/{contest_id}/push-submission-to-queue",
+            post(push_submission_to_queue),
+        )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            check_contest_started_and_not_ended,
+        ));
+
     let app = Router::new()
-        .route("/push-submission-to-queue", post(push_submission_to_queue))
         .route("/register", post(register))
         .route("/login", post(login))
-        .route("/contest-leaderboard", get(get_contest_leaderboard))
+        .route(
+            "/submissions/user/{user_id}",
+            get(get_all_user_submisssions),
+        )
+        .route(
+            "/submissions/user/{user_id}/contest/{contest_id}",
+            get(get_contest_user_submissions),
+        )
+        .route(
+            "/submissions/user/{user_id}/problem/{problem_id}",
+            get(get_problem_user_submissions),
+        )
+        .route("/users/{user_id}", get(get_public_user_profile))
+        .route("/users/me", get(get_private_user_profile))
+        .merge(routes_avaible_after_start_of_contest)
+        .merge(routes_avaible_during_the_contest)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(Extension(Auth))
-        .with_state(Arc::new(AppState {
-            db: pg_pool.clone(),
-            apalis_backend: Mutex::new(backend.clone()),
-        }));
+        .with_state(state);
 
     let listener = TcpListener::bind("0.0.0.0:4444")
         .await

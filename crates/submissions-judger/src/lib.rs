@@ -28,7 +28,7 @@ use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;
 use std::path::Path;
 use test_env_preparer::prepare_test_env;
-use tokio::fs::read_to_string;
+use tokio::fs::{self, read_to_string};
 
 mod checker_runner;
 mod constants;
@@ -59,7 +59,7 @@ async fn get_single_test_verdict(
     }
 
     log::info!("Run checker");
-    get_checker_result(&config.into(), &input_path, answer_path, tests_paths).await
+    get_checker_result(config, &input_path, answer_path, tests_paths).await
 }
 
 async fn write_subgroup_result(
@@ -226,6 +226,11 @@ pub async fn test_submission(
         .map_db(&pool, submission_id)
         .await?;
     }
+
+    log::info!("Delete run directory");
+    _ = fs::remove_dir_all(run_path)
+        .await
+        .map_log(TotalVerdict::Bug);
 
     log::info!("Update total testing result");
     update_total_testing_result(

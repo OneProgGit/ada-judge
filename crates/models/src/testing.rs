@@ -4,6 +4,7 @@ use crate::{
     problem_config::ProblemConfig,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use std::path::{Path, PathBuf};
@@ -29,9 +30,9 @@ pub const fn get_lang_str(lang: &Language) -> &'static str {
     }
 }
 
-/// Submission data
+/// Submission request data
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Submission {
+pub struct SubmissonRequest {
     /// Target problem's id
     pub problem_id: i64,
     /// Submission's file language
@@ -60,6 +61,23 @@ pub struct TotalResult {
     pub total_verdict: TotalVerdict,
     /// Total submission's score
     pub total_score: i32,
+}
+
+/// Submission data
+#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
+pub struct Submission {
+    /// Submission's id
+    pub id: i64,
+    /// Problem's id
+    pub problem_id: i64,
+    /// User's id
+    pub user_id: i64,
+    /// Total submission's testing verdict
+    pub total_verdict: TotalVerdict,
+    /// Total submission's score
+    pub total_score: i32,
+    /// Created at timestamp
+    pub created_at: DateTime<Utc>,
 }
 
 /// Subgroup result, including verdict, test of that verdict, score and checker's message

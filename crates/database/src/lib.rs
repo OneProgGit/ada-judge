@@ -13,7 +13,8 @@ use ::tools::map::MapLogExt;
 use models::{
     contest_config::DatabaseContestConfig,
     contests::LeaderboardRow,
-    problem_config::DatabaseProblemConfig,
+    problem_config::{DatabaseProblemConfig, PublicProblemConfig},
+    testing::Submission,
     users::DatabaseUser,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -120,6 +121,20 @@ pub async fn get_contest_leaderboard(
     .map_log(TotalVerdict::InvalidRequest)?;
 
     Ok(leaderboard)
+}
+
+/// Gets contest's problem by `contest_id`
+/// # Errors
+/// Returns an error if `contest_id` is invalid
+pub async fn get_contest_public_problems(
+    pool: &PgPool,
+    contest_id: i64,
+) -> Result<Vec<PublicProblemConfig>, TotalVerdict> {
+    sqlx::query_as("select * from problems where contest_id = $1")
+        .bind(contest_id)
+        .fetch_all(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)
 }
 
 /// Gets a contest by given id
@@ -274,4 +289,63 @@ pub async fn update_subgroup_testing_result(
         .await
         .map_log(TotalVerdict::InvalidRequest)?;
     Ok(())
+}
+
+/// Gets all user's submissions
+/// # Errors
+/// Returns an error if `user_id` is invalid
+pub async fn get_all_user_submissions(
+    pool: &PgPool,
+    user_id: i64,
+) -> Result<Vec<Submission>, TotalVerdict> {
+    let submissions = sqlx::query_as(
+        "select * from submissions
+                where user_id = $1",
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+    Ok(submissions)
+}
+
+/// Gets user's submissions for contest
+/// # Errors
+/// Returns an error if `user_id` or `contest_id` is invalid
+pub async fn get_contest_user_submissions(
+    pool: &PgPool,
+    user_id: i64,
+    contest_id: i64,
+) -> Result<Vec<Submission>, TotalVerdict> {
+    let submissions = sqlx::query_as(
+        "select s.* 
+                from submissions s
+                join problems p on p.id = s.problem_id
+                where p.contest_id = $2
+                    and s.user_id = $1",
+    )
+    .bind(user_id)
+    .bind(contest_id)
+    .fetch_all(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+    Ok(submissions)
+}
+
+/// Gets user's submissions for problem
+/// # Errors
+/// Returns an error if `user_id` or `problem_id` is invalid
+pub async fn get_problem_user_submissions(
+    pool: &PgPool,
+    user_id: i64,
+    problem_id: i64,
+) -> Result<Vec<Submission>, TotalVerdict> {
+    let submissions =
+        sqlx::query_as("select * from submissions where user_id = $1 and problem_id = $2")
+            .bind(user_id)
+            .bind(problem_id)
+            .fetch_all(pool)
+            .await
+            .map_log(TotalVerdict::InvalidRequest)?;
+    Ok(submissions)
 }

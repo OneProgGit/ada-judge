@@ -1,6 +1,6 @@
 # ada-judge
 
-[![stars](https://img.shields.io/github/stars/freeCodeCamp/freeCodeCamp?gitea_url=https://codeberg.org&style=for-the-badge&logo=codeberg)](https://codeberg.org/oneprog/ada-judge)
+[![stars](https://img.shields.io/gitea/stars/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge&logo=codeberg)](https://codeberg.org/oneprog/ada-judge)
 [![release](https://img.shields.io/gitea/v/release/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge)](https://codeberg.org/oneprog/ada-judge/releases)
 [![last commit](https://img.shields.io/gitea/last-commit/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge)](https://codeberg.org/oneprog/ada-judge/commits/branch/master)
 

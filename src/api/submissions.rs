@@ -22,10 +22,14 @@ pub async fn get_all_user_submisssions(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<i64>,
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
+    log::info!("Get all user submissions");
     Ok(Json(
         database::get_all_user_submissions(&state.db, user_id)
             .await
-            .map_http()?,
+            .map_http()?
+            .iter()
+            .map(Into::into)
+            .collect(),
     ))
 }
 
@@ -33,10 +37,14 @@ pub async fn get_contest_user_submissions(
     State(state): State<Arc<AppState>>,
     Path((user_id, contest_id)): Path<(i64, i64)>,
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
+    log::info!("Get contest user submissions");
     Ok(Json(
         database::get_contest_user_submissions(&state.db, user_id, contest_id)
             .await
-            .map_http()?,
+            .map_http()?
+            .iter()
+            .map(Into::into)
+            .collect(),
     ))
 }
 
@@ -44,10 +52,14 @@ pub async fn get_problem_user_submissions(
     State(state): State<Arc<AppState>>,
     Path((user_id, problem_id)): Path<(i64, i64)>,
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
+    log::info!("Get problem user submissions");
     Ok(Json(
         database::get_problem_user_submissions(&state.db, user_id, problem_id)
             .await
-            .map_http()?,
+            .map_http()?
+            .iter()
+            .map(Into::into)
+            .collect(),
     ))
 }
 

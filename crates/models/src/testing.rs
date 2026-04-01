@@ -6,7 +6,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::prelude::FromRow;
+use sqlx::{prelude::FromRow, types::Json};
 use std::path::{Path, PathBuf};
 
 /// Submission's language variants
@@ -78,6 +78,41 @@ pub struct Submission {
     pub total_score: i32,
     /// Created at timestamp
     pub created_at: DateTime<Utc>,
+    /// Subgroup's results
+    pub subgroups_results: Vec<SubgroupResult>,
+}
+
+/// Submission data for database
+#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
+pub struct DatabaseSubmission {
+    /// Submission's id
+    pub id: i64,
+    /// Problem's id
+    pub problem_id: i64,
+    /// User's id
+    pub user_id: i64,
+    /// Total submission's testing verdict
+    pub total_verdict: TotalVerdict,
+    /// Total submission's score
+    pub total_score: i32,
+    /// Created at timestamp
+    pub created_at: DateTime<Utc>,
+    /// Subgroup's results
+    pub subgroups_results: Json<Vec<SubgroupResult>>,
+}
+
+impl From<&DatabaseSubmission> for Submission {
+    fn from(value: &DatabaseSubmission) -> Self {
+        Self {
+            id: value.id,
+            problem_id: value.problem_id,
+            user_id: value.user_id,
+            total_verdict: value.total_verdict.clone(),
+            total_score: value.total_score,
+            created_at: value.created_at,
+            subgroups_results: value.subgroups_results.0.clone(),
+        }
+    }
 }
 
 /// Subgroup result, including verdict, test of that verdict, score and checker's message

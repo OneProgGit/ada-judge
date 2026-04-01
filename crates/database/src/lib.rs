@@ -14,7 +14,7 @@ use models::{
     contest_config::DatabaseContestConfig,
     contests::LeaderboardRow,
     problem_config::{DatabaseProblemConfig, PublicProblemConfig},
-    testing::Submission,
+    testing::DatabaseSubmission,
     users::DatabaseUser,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -193,7 +193,16 @@ pub async fn get_problem_by_id(
             from problems c
             left join problems_subgroups v on v.problem_id = c.id
             where c.id = $1
-            group by c.id, c.owner_id, c.contest_id, c.problem_index, c.name, c.time_limit_ms, c.memory_limit_mb, c.checker_path, c.tests_path, c.created_at
+            group by c.id,
+                c.owner_id,
+                c.contest_id,
+                c.problem_index,
+                c.name,
+                c.time_limit_ms,
+                c.memory_limit_mb,
+                c.checker_path,
+                c.tests_path,
+                c.created_at
         ",
     )
     .bind(problem_id)
@@ -251,17 +260,17 @@ pub async fn update_total_testing_result(
 
 /// Inserts a subgroup's testing result to `submissions_subgroups_results` table
 /// # Errors
-/// Returns an error if `submission_id` is invalid. `TODO`: return an error if `subgroup_id` is out of range
+/// Returns an error if `submission_id` is invalid. `TODO`: return an error if `subgroup_index` is out of range
 pub async fn insert_subgroup_testing_result(
     pool: &PgPool,
     submission_id: i64,
-    subgroup_id: i32,
+    subgroup_index: i32,
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
-        "insert into submissions_subgroups_results (subgroup_id, submission_id, subgroup_verdict, test, score, checker_msg)
+        "insert into submissions_subgroups_results (subgroup_index, submission_id, subgroup_verdict, test, score, checker_msg)
             values ($1, $2, $3::subgroup_verdict, $4, $5, $6)",
     )
-        .bind(subgroup_id)
+        .bind(subgroup_index)
         .bind(submission_id)
         .bind(SubgroupVerdict::Testing)
         .bind(0)
@@ -275,11 +284,11 @@ pub async fn insert_subgroup_testing_result(
 
 /// Updates testing result for a subgroup of the problem
 /// # Errors
-/// Returns an error if `submission_id` is invalid. `TODO`: return an error if `subgroup_id` is out of range
+/// Returns an error if `submission_id` is invalid. `TODO`: return an error if `subgroup_index` is out of range
 pub async fn update_subgroup_testing_result(
     pool: &PgPool,
     submission_id: i64,
-    subgroup_id: i32,
+    subgroup_index: i32,
     verdict: &SubgroupVerdict,
     test: i32,
     score: i32,
@@ -287,14 +296,14 @@ pub async fn update_subgroup_testing_result(
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
         "update submissions_subgroups_results set subgroup_verdict = $1::subgroup_verdict, test = $2, score = $3, checker_msg = $4 
-            where submission_id = $5 and subgroup_id = $6",
+            where submission_id = $5 and subgroup_index = $6",
     )
         .bind(verdict)
         .bind(test)
         .bind(score)
         .bind(checker_msg)
         .bind(submission_id)
-        .bind(subgroup_id)
+        .bind(subgroup_index)
         .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;
@@ -307,10 +316,35 @@ pub async fn update_subgroup_testing_result(
 pub async fn get_all_user_submissions(
     pool: &PgPool,
     user_id: i64,
-) -> Result<Vec<Submission>, TotalVerdict> {
+) -> Result<Vec<DatabaseSubmission>, TotalVerdict> {
     let submissions = sqlx::query_as(
-        "select * from submissions
-                where user_id = $1",
+        "select
+                c.id,
+                c.problem_id,
+                c.user_id,
+                c.total_verdict,
+                c.total_score,
+                c.created_at,
+                coalesce(
+                    json_agg(
+                        json_build_object(
+                            'subgroup_verdict', v.subgroup_verdict,
+                            'test', v.test,
+                            'score', v.score,
+                            'checker_msg', v.checker_msg
+                        ) order by v.subgroup_index
+                    ) filter (where v.submission_id is not null),
+                    '[]'
+                ) as subgroups_results
+            from submissions c
+            left join submissions_subgroups_results v on v.submission_id = c.id
+            where c.user_id = $1
+            group by c.id,
+                c.problem_id,
+                c.user_id,
+                c.total_verdict,
+                c.total_score,
+                c.created_at",
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -326,13 +360,36 @@ pub async fn get_contest_user_submissions(
     pool: &PgPool,
     user_id: i64,
     contest_id: i64,
-) -> Result<Vec<Submission>, TotalVerdict> {
+) -> Result<Vec<DatabaseSubmission>, TotalVerdict> {
     let submissions = sqlx::query_as(
-        "select s.* 
-                from submissions s
-                join problems p on p.id = s.problem_id
-                where p.contest_id = $2
-                    and s.user_id = $1",
+        "select
+                c.id,
+                c.problem_id,
+                c.user_id,
+                c.total_verdict,
+                c.total_score,
+                c.created_at,
+                coalesce(
+                    json_agg(
+                        json_build_object(
+                            'subgroup_verdict', v.subgroup_verdict,
+                            'test', v.test,
+                            'score', v.score,
+                            'checker_msg', v.checker_msg
+                        ) order by v.subgroup_index
+                    ) filter (where v.submission_id is not null),
+                    '[]'
+                ) as subgroups_results
+            from submissions c
+            left join submissions_subgroups_results v on v.submission_id = c.id
+            join problems p on p.id = c.problem_id
+            where c.user_id = $1 and p.contest_id = $2
+            group by c.id,
+                c.problem_id,
+                c.user_id,
+                c.total_verdict,
+                c.total_score,
+                c.created_at",
     )
     .bind(user_id)
     .bind(contest_id)
@@ -349,13 +406,40 @@ pub async fn get_problem_user_submissions(
     pool: &PgPool,
     user_id: i64,
     problem_id: i64,
-) -> Result<Vec<Submission>, TotalVerdict> {
-    let submissions =
-        sqlx::query_as("select * from submissions where user_id = $1 and problem_id = $2")
-            .bind(user_id)
-            .bind(problem_id)
-            .fetch_all(pool)
-            .await
-            .map_log(TotalVerdict::InvalidRequest)?;
+) -> Result<Vec<DatabaseSubmission>, TotalVerdict> {
+    let submissions = sqlx::query_as(
+        "select
+                c.id,
+                c.problem_id,
+                c.user_id,
+                c.total_verdict,
+                c.total_score,
+                c.created_at,
+                coalesce(
+                    json_agg(
+                        json_build_object(
+                            'subgroup_verdict', v.subgroup_verdict,
+                            'test', v.test,
+                            'score', v.score,
+                            'checker_msg', v.checker_msg
+                        ) order by v.subgroup_index
+                    ) filter (where v.submission_id is not null),
+                    '[]'
+                ) as subgroups_results
+            from submissions c
+            left join submissions_subgroups_results v on v.submission_id = c.id
+            where c.user_id = $1 and c.problem_id = $2
+            group by c.id,
+                c.problem_id,
+                c.user_id,
+                c.total_verdict,
+                c.total_score,
+                c.created_at",
+    )
+    .bind(user_id)
+    .bind(problem_id)
+    .fetch_all(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
     Ok(submissions)
 }

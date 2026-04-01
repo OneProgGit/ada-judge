@@ -188,9 +188,9 @@ pub async fn test_submission(
         log::info!("Test on subgroup #{i}");
         log::info!("Insert a subgroup's testing result");
 
-        let subgroup_id = i as i32;
+        let subgroup_index = i as i32;
 
-        insert_subgroup_testing_result(&pool, submission_id, subgroup_id)
+        insert_subgroup_testing_result(&pool, submission_id, subgroup_index)
             .await
             .map_db(&pool, submission_id)
             .await?;
@@ -216,7 +216,7 @@ pub async fn test_submission(
         update_subgroup_testing_result(
             &pool,
             submission_id,
-            subgroup_id,
+            subgroup_index,
             &test_result.subgroup_verdict,
             test_result.test,
             test_result.score,

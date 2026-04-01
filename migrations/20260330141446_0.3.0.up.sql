@@ -24,7 +24,7 @@ create table contests (
 );
 
 insert into contests (owner_id, name, starts_at, ends_at)
-    values (null, 'Суммы чисел', '2001-01-01 01:01:01.000000+00', '20001-01-01 01:01:01.000000+00');
+    values (null, 'Суммы чисел', '2001-01-01 01:01:01.000000+00', '2030-01-01 01:01:01.000000+00');
 
 create table problems (
     id bigserial primary key,
@@ -105,12 +105,12 @@ create type subgroup_verdict as enum (
 
 create table submissions_subgroups_results (
     submission_id bigint references submissions(id) on delete cascade,
-    subgroup_id int not null,
+    subgroup_index int not null,
     subgroup_verdict subgroup_verdict not null,
     test int not null,
     score int not null,
     checker_msg text not null,
-    primary key (submission_id, subgroup_id)
+    primary key (submission_id, subgroup_index)
 );
 
 create index idx_submissions_contest_user_problem_score

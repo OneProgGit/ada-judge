@@ -66,7 +66,7 @@ async fn test_1(
         "select subgroup_verdict, score, test, score, checker_msg
              from submissions_subgroups_results
              where submission_id = $1
-             order by subgroup_id",
+             order by subgroup_index",
     )
     .bind(id)
     .map(|row: PgRow| SubgroupResult::from_row(&row).unwrap())
@@ -140,7 +140,7 @@ async fn test_2(
         "select subgroup_verdict, score, test, score, checker_msg
              from submissions_subgroups_results
              where submission_id = $1
-             order by subgroup_id",
+             order by subgroup_index",
     )
     .bind(id)
     .map(|row: PgRow| SubgroupResult::from_row(&row).unwrap())

@@ -16,6 +16,8 @@ pub async fn check_contest_started(
     req: Request,
     next: Next,
 ) -> Response {
+    log::info!("Check contest started");
+
     let Ok(contest_config) = get_contest_by_id(&state.db, contest_id).await else {
         return StatusCode::BAD_REQUEST.into_response();
     };
@@ -35,6 +37,8 @@ pub async fn check_contest_started_and_not_ended(
     req: Request,
     next: Next,
 ) -> Response {
+    log::info!("Check contest started and not ended");
+
     let Ok(contest_config) = get_contest_by_id(&state.db, contest_id).await else {
         return StatusCode::BAD_REQUEST.into_response();
     };

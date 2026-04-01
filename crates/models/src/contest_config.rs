@@ -46,3 +46,15 @@ pub struct PublicContestConfig {
     /// Timestamp of contest ending
     pub ends_at: DateTime<Utc>,
 }
+
+impl From<&DatabaseContestConfig> for PublicContestConfig {
+    fn from(value: &DatabaseContestConfig) -> Self {
+        Self {
+            id: value.id,
+            owner_id: value.owner_id,
+            name: value.name.clone(),
+            starts_at: value.starts_at,
+            ends_at: value.ends_at,
+        }
+    }
+}

@@ -12,7 +12,7 @@
 use crate::{
     api::{
         auth::{login, register},
-        contests::{get_contest_leaderboard, get_contest_problems},
+        contests::{get_contest_leaderboard, get_contest_problems, get_contests},
         submissions::{
             get_all_user_submisssions, get_contest_user_submissions, get_problem_user_submissions,
         },
@@ -73,10 +73,10 @@ async fn main() {
 
     let routes_avaible_after_start_of_contest = Router::new()
         .route(
-            "/contest/{contest_id}/leaderboard",
+            "/contests/{contest_id}/leaderboard",
             get(get_contest_leaderboard),
         )
-        .route("/contest/{contest_id}/problems", get(get_contest_problems))
+        .route("/contests/{contest_id}/problems", get(get_contest_problems))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_contest_started,
@@ -84,7 +84,7 @@ async fn main() {
 
     let routes_avaible_during_the_contest = Router::new()
         .route(
-            "/contest/{contest_id}/push-submission-to-queue",
+            "/contests/{contest_id}/push-submission-to-queue",
             post(push_submission_to_queue),
         )
         .layer(axum::middleware::from_fn_with_state(
@@ -96,19 +96,20 @@ async fn main() {
         .route("/register", post(register))
         .route("/login", post(login))
         .route(
-            "/submissions/user/{user_id}",
+            "/submissions/by_user/{user_id}",
             get(get_all_user_submisssions),
         )
         .route(
-            "/submissions/user/{user_id}/contest/{contest_id}",
+            "/submissions/by_user/{user_id}/by_contest/{contest_id}",
             get(get_contest_user_submissions),
         )
         .route(
-            "/submissions/user/{user_id}/problem/{problem_id}",
+            "/submissions/by_user/{user_id}/by_problem/{problem_id}",
             get(get_problem_user_submissions),
         )
         .route("/users/{user_id}", get(get_public_user_profile))
         .route("/users/me", get(get_private_user_profile))
+        .route("/contests", get(get_contests))
         .merge(routes_avaible_after_start_of_contest)
         .merge(routes_avaible_during_the_contest)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))

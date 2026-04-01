@@ -137,6 +137,16 @@ pub async fn get_contest_public_problems(
         .map_log(TotalVerdict::InvalidRequest)
 }
 
+/// Gets all contests
+/// # Errors
+/// Returns an error if `contest_id` is invalid
+pub async fn get_contests(pool: &PgPool) -> Result<Vec<DatabaseContestConfig>, TotalVerdict> {
+    sqlx::query_as("select * from contests")
+        .fetch_all(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)
+}
+
 /// Gets a contest by given id
 /// # Errors
 /// Returns an error if `contest_id` is invalid

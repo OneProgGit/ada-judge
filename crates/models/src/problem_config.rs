@@ -119,8 +119,8 @@ pub struct Subgroup {
 
 /// Subgroup's type
 #[derive(Deserialize, Serialize, Debug, Clone, sqlx::Type)]
-#[serde(rename_all = "snake_case")]
 #[sqlx(type_name = "subgroup_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum SubgroupType {
     /// Don't count score for this subgroup
     Sample,

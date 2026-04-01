@@ -28,6 +28,7 @@ pub struct LoginRequest {
 /// Admin level
 #[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
 #[sqlx(type_name = "admin_level", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum AdminLevel {
     /// Not admin: can create private contests only
     NotAdmin,

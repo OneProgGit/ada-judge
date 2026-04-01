@@ -40,7 +40,7 @@ pub async fn get_run_solution_verdict(
             "--memory",
             &format!("{}m", config.memory_limit_mb),
             "--cpus",
-            "0.3",
+            "0.5",
             "--pids-limit",
             "32",
             "--read-only",
@@ -66,14 +66,15 @@ pub async fn get_run_solution_verdict(
         .map_log(TotalVerdict::Bug)?;
 
     let timeout_duration = Duration::from_millis(config.time_limit_ms as u64);
-    let solution_status = match timeout(timeout_duration, solution_cmd.wait()).await {
+    let solution_status = timeout(timeout_duration, solution_cmd.wait()).await;
+    _ = solution_cmd.kill();
+    let solution_status = match solution_status {
         Ok(solution_status) => solution_status,
         Err(e) => {
             log::error!("{e}");
             return Ok(SubgroupVerdict::TimeLimitExceeded);
         }
     };
-    _ = solution_cmd.kill();
     log::info!("Check solution status");
     solution_status.map_or(
         Ok(SubgroupVerdict::TimeLimitExceeded),

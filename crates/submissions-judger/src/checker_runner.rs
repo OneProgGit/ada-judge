@@ -42,7 +42,7 @@ pub async fn get_checker_result(
             "--memory",
             &format!("{}m", config.memory_limit_mb),
             "--cpus",
-            "0.3",
+            "0.5",
             "--pids-limit",
             "32",
             "--read-only",
@@ -84,11 +84,10 @@ pub async fn get_checker_result(
         .map_log(TotalVerdict::Bug)?;
 
     let timeout_duration = Duration::from_millis(config.time_limit_ms as u64);
-    let checker_status = timeout(timeout_duration, checker_cmd.wait())
-        .await
-        .map_log(TotalVerdict::InvalidProblem)?;
-
+    let checker_status = timeout(timeout_duration, checker_cmd.wait()).await;
     _ = checker_cmd.kill();
+    let checker_status = checker_status.map_log(TotalVerdict::InvalidProblem)?;
+
     log::info!("Check checker status");
     match checker_status {
         Err(_) => Err(TotalVerdict::InvalidProblem),

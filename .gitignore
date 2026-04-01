@@ -5,6 +5,9 @@
 /.idea
 /.helix
 submissions_envs
+problems/4
+problems/5
+problems/6
 .editorconfig
 .env
 .sqlx

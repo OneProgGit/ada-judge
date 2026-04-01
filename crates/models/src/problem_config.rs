@@ -71,6 +71,8 @@ pub struct PublicProblemConfig {
     pub time_limit_ms: i32,
     /// Testing memory limit in megabytes
     pub memory_limit_mb: i32,
+    /// Problem's subgroups
+    pub subgroups: Vec<Subgroup>,
 }
 
 impl From<&DatabaseProblemConfig> for PublicProblemConfig {
@@ -83,6 +85,7 @@ impl From<&DatabaseProblemConfig> for PublicProblemConfig {
             name: value.name.clone(),
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,
+            subgroups: value.subgroups.0.clone(),
         }
     }
 }

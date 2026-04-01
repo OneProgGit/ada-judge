@@ -13,7 +13,7 @@ use ::tools::map::MapLogExt;
 use models::{
     contest_config::DatabaseContestConfig,
     contests::LeaderboardRow,
-    problem_config::{DatabaseProblemConfig, PublicProblemConfig},
+    problem_config::DatabaseProblemConfig,
     testing::DatabaseSubmission,
     users::DatabaseUser,
     verdicts::{SubgroupVerdict, TotalVerdict},
@@ -129,12 +129,47 @@ pub async fn get_contest_leaderboard(
 pub async fn get_contest_public_problems(
     pool: &PgPool,
     contest_id: i64,
-) -> Result<Vec<PublicProblemConfig>, TotalVerdict> {
-    sqlx::query_as("select * from problems where contest_id = $1")
-        .bind(contest_id)
-        .fetch_all(pool)
-        .await
-        .map_log(TotalVerdict::InvalidRequest)
+) -> Result<Vec<DatabaseProblemConfig>, TotalVerdict> {
+    sqlx::query_as(
+        "select
+                c.id,
+                c.owner_id,
+                c.contest_id,
+                c.problem_index,
+                c.name,
+                c.time_limit_ms,
+                c.memory_limit_mb,
+                c.checker_path,
+                c.tests_path,
+                c.created_at,
+                coalesce(
+                    json_agg(
+                        json_build_object(
+                            'type', v.type,
+                            'tests', v.tests,
+                            'score', v.score,
+                            'depends_on', v.depends_on
+                        ) order by v.subgroup_index
+                    ), '[]'
+                ) as subgroups
+            from problems c
+            left join problems_subgroups v on v.problem_id = c.id
+            where c.contest_id = $1
+            group by c.id,
+                c.owner_id,
+                c.contest_id,
+                c.problem_index,
+                c.name,
+                c.time_limit_ms,
+                c.memory_limit_mb,
+                c.checker_path,
+                c.tests_path,
+                c.created_at",
+    )
+    .bind(contest_id)
+    .fetch_all(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)
 }
 
 /// Gets all contests

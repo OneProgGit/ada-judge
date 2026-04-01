@@ -30,7 +30,10 @@ pub async fn get_contest_problems(
     Ok(Json(
         database::get_contest_public_problems(&state.db, contest_id)
             .await
-            .map_http()?,
+            .map_http()?
+            .iter()
+            .map(Into::into)
+            .collect(),
     ))
 }
 

@@ -34,6 +34,7 @@ REDIS_USER_PASSWORD=
 MASTER_PASSWORD=
 JWT_SECRET=
 JWT_EXP_HOURS=
+SANDBOX_IMAGE=
 DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB} # For tests
 ```
 After that, create `submissions_envs` directory.

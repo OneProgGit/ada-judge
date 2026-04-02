@@ -7,7 +7,7 @@ use models::{
     testing::TestsPaths,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
-use std::{path::Path, process::Stdio, time::Duration};
+use std::{env, path::Path, process::Stdio, time::Duration};
 use tokio::{fs::File, process::Command, time::timeout};
 use tools::map::MapLogExt;
 
@@ -31,6 +31,8 @@ pub async fn get_run_solution_verdict(
         .map_log(TotalVerdict::InvalidProblem)?;
 
     log::info!("Run solution cmd");
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+
     let mut solution_cmd = Command::new("docker")
         .args([
             "run",
@@ -57,7 +59,7 @@ pub async fn get_run_solution_verdict(
             ),
             "-w",
             "/sandbox",
-            "sandbox-runner",
+            &sandbox_image,
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(stdin_file.into_std().await))

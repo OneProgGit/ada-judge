@@ -8,6 +8,7 @@ use models::{
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use std::{
+    env,
     path::{Path, PathBuf},
     process::Stdio,
     time::Duration,
@@ -33,6 +34,8 @@ pub async fn get_checker_result(
         .map_log(TotalVerdict::InvalidProblem)?;
 
     log::info!("Run checker cmd");
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+
     let mut checker_cmd = Command::new("docker")
         .args([
             "run",
@@ -74,7 +77,7 @@ pub async fn get_checker_result(
             ),
             "-w",
             "/sandbox",
-            "sandbox-runner",
+            &sandbox_image,
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",

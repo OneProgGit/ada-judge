@@ -20,7 +20,9 @@ use crate::{
     },
     middleware::{
         auth::Auth,
-        contests::{check_contest_started, check_contest_started_and_not_ended},
+        contests::{
+            check_contest_ended, check_contest_started, check_contest_started_and_not_ended,
+        },
     },
 };
 use apalis_redis::RedisStorage;
@@ -72,10 +74,6 @@ async fn main() {
     });
 
     let routes_avaible_after_start_of_contest = Router::new()
-        .route(
-            "/contests/{contest_id}/leaderboard",
-            get(get_contest_leaderboard),
-        )
         .route("/contests/{contest_id}/problems", get(get_contest_problems))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
@@ -92,19 +90,26 @@ async fn main() {
             check_contest_started_and_not_ended,
         ));
 
+    let routes_avaible_after_end_of_contest = Router::new()
+        .route(
+            "/contests/{contest_id}/leaderboard",
+            get(get_contest_leaderboard),
+        )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            check_contest_ended,
+        ));
+
     let app = Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .route("/submissions/my", get(get_all_user_submisssions))
         .route(
-            "/submissions/by_user/{user_id}",
-            get(get_all_user_submisssions),
-        )
-        .route(
-            "/submissions/by_user/{user_id}/by_contest/{contest_id}",
+            "/submissions/my/by_contest/{contest_id}",
             get(get_contest_user_submissions),
         )
         .route(
-            "/submissions/by_user/{user_id}/by_problem/{problem_id}",
+            "/submissions/my/by_problem/{problem_id}",
             get(get_problem_user_submissions),
         )
         .route("/users/{user_id}", get(get_public_user_profile))
@@ -112,6 +117,7 @@ async fn main() {
         .route("/contests", get(get_contests))
         .merge(routes_avaible_after_start_of_contest)
         .merge(routes_avaible_during_the_contest)
+        .merge(routes_avaible_after_end_of_contest)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(Extension(Auth))
         .with_state(state);

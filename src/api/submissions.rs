@@ -20,11 +20,11 @@ use tools::map::{MapHttpExt, MapLogExt};
 
 pub async fn get_all_user_submisssions(
     State(state): State<Arc<AppState>>,
-    Path(user_id): Path<i64>,
+    Auth(auth): Auth,
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
     log::info!("Get all user submissions");
     Ok(Json(
-        database::get_all_user_submissions(&state.db, user_id)
+        database::get_all_user_submissions(&state.db, auth.id)
             .await
             .map_http()?
             .iter()
@@ -35,11 +35,12 @@ pub async fn get_all_user_submisssions(
 
 pub async fn get_contest_user_submissions(
     State(state): State<Arc<AppState>>,
-    Path((user_id, contest_id)): Path<(i64, i64)>,
+    Path(contest_id): Path<i64>,
+    Auth(auth): Auth,
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
     log::info!("Get contest user submissions");
     Ok(Json(
-        database::get_contest_user_submissions(&state.db, user_id, contest_id)
+        database::get_contest_user_submissions(&state.db, auth.id, contest_id)
             .await
             .map_http()?
             .iter()
@@ -50,11 +51,12 @@ pub async fn get_contest_user_submissions(
 
 pub async fn get_problem_user_submissions(
     State(state): State<Arc<AppState>>,
-    Path((user_id, problem_id)): Path<(i64, i64)>,
+    Path(problem_id): Path<i64>,
+    Auth(auth): Auth,
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
     log::info!("Get problem user submissions");
     Ok(Json(
-        database::get_problem_user_submissions(&state.db, user_id, problem_id)
+        database::get_problem_user_submissions(&state.db, auth.id, problem_id)
             .await
             .map_http()?
             .iter()
@@ -66,7 +68,6 @@ pub async fn get_problem_user_submissions(
 pub async fn push_submission_to_queue(
     State(state): State<Arc<AppState>>,
     Auth(user): Auth,
-    Path(_): Path<i64>,
     mut multipart: Multipart,
 ) -> Result<Json<i64>, StatusCode> {
     let mut submission: Option<SubmissonRequest> = None;

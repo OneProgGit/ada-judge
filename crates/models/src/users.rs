@@ -26,7 +26,7 @@ pub struct LoginRequest {
 }
 
 /// Admin level
-#[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize, PartialOrd, Ord)]
 #[sqlx(type_name = "admin_level", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AdminLevel {

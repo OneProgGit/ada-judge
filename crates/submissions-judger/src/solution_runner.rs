@@ -35,6 +35,7 @@ pub async fn get_run_solution_verdict(
         .args([
             "run",
             "--rm",
+            "--init",
             "--network",
             "none",
             "--memory",

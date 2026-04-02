@@ -37,6 +37,7 @@ pub async fn get_checker_result(
         .args([
             "run",
             "--rm",
+            "--init",
             "--network",
             "none",
             "--memory",

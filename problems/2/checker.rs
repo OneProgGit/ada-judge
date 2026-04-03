@@ -2,12 +2,12 @@ use std::env;
 use std::fs;
 use std::process::exit;
 
-const OK: u8 = 0;
-const WRONG_ANSWER: u8 = 1;
-const _PRESENTATION_ERROR: u8 = 2;
-const FAIL: u8 = 3;
+const OK: i32 = 0;
+const WRONG_ANSWER: i32 = 1;
+const _PRESENTATION_ERROR: i32 = 2;
+const FAIL: i32 = 3;
 
-fn die(code: u8, msg: &str) -> ! {
+fn die(code: i32, msg: &str) -> ! {
     eprintln!("{msg}");
     exit(code);
 }

@@ -6,7 +6,10 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use models::{contests::LeaderboardRow, problem_config::PublicProblemConfig};
+use models::{
+    contest_config::PublicContestConfig, contests::LeaderboardRow,
+    problem_config::PublicProblemConfig,
+};
 use tools::map::MapHttpExt;
 
 pub async fn get_contest_leaderboard(
@@ -49,6 +52,18 @@ pub async fn get_problem_by_index_in_contest(
 ) -> Result<Json<PublicProblemConfig>, StatusCode> {
     Ok(Json(
         database::get_problem_by_index_in_contest(&state.db, contest_id, problem_index)
+            .await
+            .map_http()?
+            .into(),
+    ))
+}
+
+pub async fn get_contest_by_id(
+    State(state): State<Arc<AppState>>,
+    Path(contest_id): Path<i64>,
+) -> Result<Json<PublicContestConfig>, StatusCode> {
+    Ok(Json(
+        database::get_contest_by_id(&state.db, contest_id)
             .await
             .map_http()?
             .into(),

@@ -13,8 +13,8 @@ use crate::{
     api::{
         auth::{login, register},
         contests::{
-            get_contest_leaderboard, get_contest_problems, get_contests, get_problem_by_id,
-            get_problem_by_index_in_contest,
+            get_contest_by_id, get_contest_leaderboard, get_contest_problems, get_contests,
+            get_problem_by_id, get_problem_by_index_in_contest,
         },
         submissions::{
             get_all_user_submisssions, get_contest_user_submissions, get_problem_user_submissions,
@@ -132,6 +132,7 @@ async fn main() {
         .route("/users/{user_id}", get(get_public_user_profile))
         .route("/users/me", get(get_private_user_profile))
         .route("/contests", get(get_contests))
+        .route("/contests/{contest_id}", get(get_contest_by_id))
         .merge(routes_avaible_after_start_of_contest_1_path_element)
         .merge(routes_avaible_after_start_of_contest_2_path_elements)
         .merge(routes_avaible_during_the_contest)

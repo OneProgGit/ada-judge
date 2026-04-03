@@ -75,21 +75,6 @@ pub struct PublicProblemConfig {
     pub subgroups: Vec<Subgroup>,
 }
 
-impl From<&DatabaseProblemConfig> for PublicProblemConfig {
-    fn from(value: &DatabaseProblemConfig) -> Self {
-        Self {
-            id: value.id,
-            owner_id: value.owner_id,
-            contest_id: value.contest_id,
-            problem_index: value.problem_index,
-            name: value.name.clone(),
-            time_limit_ms: value.time_limit_ms,
-            memory_limit_mb: value.memory_limit_mb,
-            subgroups: value.subgroups.0.clone(),
-        }
-    }
-}
-
 impl From<DatabaseProblemConfig> for ProblemConfig {
     fn from(value: DatabaseProblemConfig) -> Self {
         Self {

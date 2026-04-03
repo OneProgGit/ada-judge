@@ -123,62 +123,31 @@ pub async fn get_contest_leaderboard(
     Ok(leaderboard)
 }
 
-/// Gets contest's problem by `contest_id`
+/// Gets contest's problems by `contest_id`
 /// # Errors
 /// Returns an error if `contest_id` is invalid
-pub async fn get_contest_public_problems(
+pub async fn get_contest_problems(
     pool: &PgPool,
     contest_id: i64,
-) -> Result<Vec<DatabaseProblemConfig>, TotalVerdict> {
-    sqlx::query_as(
-        "select
-                c.id,
-                c.owner_id,
-                c.contest_id,
-                c.problem_index,
-                c.name,
-                c.time_limit_ms,
-                c.memory_limit_mb,
-                c.checker_path,
-                c.tests_path,
-                c.created_at,
-                coalesce(
-                    json_agg(
-                        json_build_object(
-                            'type', v.type,
-                            'tests', v.tests,
-                            'score', v.score,
-                            'depends_on', v.depends_on
-                        ) order by v.subgroup_index
-                    ), '[]'
-                ) as subgroups
-            from problems c
-            left join problems_subgroups v on v.problem_id = c.id
-            where c.contest_id = $1
-            group by c.id,
-                c.owner_id,
-                c.contest_id,
-                c.problem_index,
-                c.name,
-                c.time_limit_ms,
-                c.memory_limit_mb,
-                c.checker_path,
-                c.tests_path,
-                c.created_at",
+) -> Result<Vec<i64>, TotalVerdict> {
+    sqlx::query_as::<_, (i64,)>(
+        "select id from problems where contest_id = $1 order by problem_index",
     )
     .bind(contest_id)
     .fetch_all(pool)
     .await
+    .map(|rows| rows.iter().map(|(id,)| *id).collect())
     .map_log(TotalVerdict::InvalidRequest)
 }
 
-/// Gets all contests
+/// Gets all contests starting with new ones
 /// # Errors
 /// Returns an error if `contest_id` is invalid
-pub async fn get_contests(pool: &PgPool) -> Result<Vec<DatabaseContestConfig>, TotalVerdict> {
-    sqlx::query_as("select * from contests")
+pub async fn get_contests(pool: &PgPool) -> Result<Vec<i64>, TotalVerdict> {
+    sqlx::query_as::<_, (i64,)>("select id from contests order by id desc")
         .fetch_all(pool)
         .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
         .map_log(TotalVerdict::InvalidRequest)
 }
 
@@ -196,7 +165,7 @@ pub async fn get_contest_by_id(
         .map_log(TotalVerdict::InvalidRequest)
 }
 
-/// Get's problem's config from `problems` table by bigen id
+/// Get's problem's config from `problems` table by given id
 /// # Errors
 /// Returns an error if `problem_id` is invalid
 pub async fn get_problem_by_id(
@@ -223,7 +192,8 @@ pub async fn get_problem_by_id(
                             'score', v.score,
                             'depends_on', v.depends_on
                         ) order by v.subgroup_index
-                    ), '[]'
+                    ) filter (where v.problem_id is not null), 
+                    '[]'
                 ) as subgroups
             from problems c
             left join problems_subgroups v on v.problem_id = c.id
@@ -241,6 +211,61 @@ pub async fn get_problem_by_id(
         ",
     )
     .bind(problem_id)
+    .fetch_one(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(config)
+}
+
+/// Get's problem's config from `problems` table by given index in contest `contest_id`
+/// # Errors
+/// Returns an error if `contest_id` or `problem_index` is invalid
+pub async fn get_problem_by_index_in_contest(
+    pool: &PgPool,
+    contest_id: i64,
+    problem_index: i64,
+) -> Result<DatabaseProblemConfig, TotalVerdict> {
+    let config = sqlx::query_as(
+        "select
+                c.id,
+                c.owner_id,
+                c.contest_id,
+                c.problem_index,
+                c.name,
+                c.time_limit_ms,
+                c.memory_limit_mb,
+                c.checker_path,
+                c.tests_path,
+                c.created_at,
+                coalesce(
+                    json_agg(
+                        json_build_object(
+                            'type', v.type,
+                            'tests', v.tests,
+                            'score', v.score,
+                            'depends_on', v.depends_on
+                        ) order by v.subgroup_index
+                    ) filter (where v.problem_id is not null), 
+                    '[]' 
+                ) as subgroups
+            from problems c
+            left join problems_subgroups v on v.problem_id = c.id
+            where c.contest_id = $1 and c.problem_index = $2
+            group by c.id,
+                c.owner_id,
+                c.contest_id,
+                c.problem_index,
+                c.name,
+                c.time_limit_ms,
+                c.memory_limit_mb,
+                c.checker_path,
+                c.tests_path,
+                c.created_at
+        ",
+    )
+    .bind(contest_id)
+    .bind(problem_index)
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;

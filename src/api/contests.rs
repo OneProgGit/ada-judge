@@ -6,10 +6,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use models::{
-    contest_config::PublicContestConfig, contests::LeaderboardRow,
-    problem_config::PublicProblemConfig,
-};
+use models::{contests::LeaderboardRow, problem_config::PublicProblemConfig};
 use tools::map::MapHttpExt;
 
 pub async fn get_contest_leaderboard(
@@ -26,26 +23,40 @@ pub async fn get_contest_leaderboard(
 pub async fn get_contest_problems(
     State(state): State<Arc<AppState>>,
     Path(contest_id): Path<i64>,
-) -> Result<Json<Vec<PublicProblemConfig>>, StatusCode> {
+) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        database::get_contest_public_problems(&state.db, contest_id)
+        database::get_contest_problems(&state.db, contest_id)
+            .await
+            .map_http()?,
+    ))
+}
+
+pub async fn get_problem_by_id(
+    State(state): State<Arc<AppState>>,
+    Path((_, problem_index)): Path<(i64, i64)>,
+) -> Result<Json<PublicProblemConfig>, StatusCode> {
+    Ok(Json(
+        database::get_problem_by_id(&state.db, problem_index)
             .await
             .map_http()?
-            .iter()
-            .map(Into::into)
-            .collect(),
+            .into(),
+    ))
+}
+
+pub async fn get_problem_by_index_in_contest(
+    State(state): State<Arc<AppState>>,
+    Path((contest_id, problem_index)): Path<(i64, i64)>,
+) -> Result<Json<PublicProblemConfig>, StatusCode> {
+    Ok(Json(
+        database::get_problem_by_index_in_contest(&state.db, contest_id, problem_index)
+            .await
+            .map_http()?
+            .into(),
     ))
 }
 
 pub async fn get_contests(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<PublicContestConfig>>, StatusCode> {
-    Ok(Json(
-        database::get_contests(&state.db)
-            .await
-            .map_http()?
-            .iter()
-            .map(Into::into)
-            .collect(),
-    ))
+) -> Result<Json<Vec<i64>>, StatusCode> {
+    Ok(Json(database::get_contests(&state.db).await.map_http()?))
 }

@@ -9,7 +9,7 @@ services:
     ports:
       - "1111:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/18/docker
   redis:
     image: redis:8-alpine
     restart: always
@@ -30,6 +30,8 @@ services:
         echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
         redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
       '
+    volumes:
+      - redisdata:/data
   sandbox:
     build: ./containers/sandbox
   submissions-judger:
@@ -76,3 +78,4 @@ services:
       - ./problems:/problems
 volumes:
   pgdata:
+  redisdata:

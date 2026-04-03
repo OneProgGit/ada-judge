@@ -12,7 +12,10 @@
 use crate::{
     api::{
         auth::{login, register},
-        contests::{get_contest_leaderboard, get_contest_problems, get_contests},
+        contests::{
+            get_contest_leaderboard, get_contest_problems, get_contests, get_problem_by_id,
+            get_problem_by_index_in_contest,
+        },
         submissions::{
             get_all_user_submisssions, get_contest_user_submissions, get_problem_user_submissions,
         },
@@ -21,7 +24,8 @@ use crate::{
     middleware::{
         auth::Auth,
         contests::{
-            check_contest_ended, check_contest_started, check_contest_started_and_not_ended,
+            check_contest_ended, check_contest_started, check_contest_started_2_path_elements,
+            check_contest_started_and_not_ended,
         },
     },
 };
@@ -73,11 +77,24 @@ async fn main() {
         apalis_backend: Mutex::new(backend.clone()),
     });
 
-    let routes_avaible_after_start_of_contest = Router::new()
+    let routes_avaible_after_start_of_contest_1_path_element = Router::new()
         .route("/contests/{contest_id}/problems", get(get_contest_problems))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_contest_started,
+        ));
+    let routes_avaible_after_start_of_contest_2_path_elements = Router::new()
+        .route(
+            "/contests/{contest_id}/problems/{problem_index}",
+            get(get_problem_by_index_in_contest),
+        )
+        .route(
+            "/contests/{contest_id}/problems/by_id/{problem_index}",
+            get(get_problem_by_id),
+        )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            check_contest_started_2_path_elements,
         ));
 
     let routes_avaible_during_the_contest = Router::new()
@@ -115,7 +132,8 @@ async fn main() {
         .route("/users/{user_id}", get(get_public_user_profile))
         .route("/users/me", get(get_private_user_profile))
         .route("/contests", get(get_contests))
-        .merge(routes_avaible_after_start_of_contest)
+        .merge(routes_avaible_after_start_of_contest_1_path_element)
+        .merge(routes_avaible_after_start_of_contest_2_path_elements)
         .merge(routes_avaible_during_the_contest)
         .merge(routes_avaible_after_end_of_contest)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))

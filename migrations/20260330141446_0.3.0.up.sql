@@ -109,7 +109,6 @@ create table submissions_subgroups_results (
     subgroup_verdict subgroup_verdict not null,
     test int not null,
     score int not null,
-    checker_msg text not null,
     primary key (submission_id, subgroup_index)
 );
 

@@ -20,7 +20,7 @@ use database::{
 use models::problem_config::{ProblemConfig, Subgroup};
 use models::verdicts::TotalVerdict;
 use models::{
-    testing::{CheckerResult, SubgroupResult, SubmissionTask, TestsPaths},
+    testing::{SubgroupResult, SubmissionTask, TestsPaths},
     verdicts::SubgroupVerdict,
 };
 use solution_compiler::compile_solution;
@@ -41,7 +41,7 @@ async fn get_single_test_verdict(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
     test_id: i32,
-) -> Result<CheckerResult, TotalVerdict> {
+) -> Result<SubgroupVerdict, TotalVerdict> {
     let test_path = tests_paths.tests.join(test_id.to_string());
 
     let input_path = test_path.join("in");
@@ -52,10 +52,7 @@ async fn get_single_test_verdict(
 
     if solution_verdict != SubgroupVerdict::Ok {
         log::error!("Run result isn't OK");
-        return Ok(CheckerResult {
-            verdict: solution_verdict,
-            checker_msg: String::default(),
-        });
+        return Ok(solution_verdict);
     }
 
     log::info!("Run checker");
@@ -73,11 +70,10 @@ async fn write_subgroup_result(
         log::info!("Run test #{test_id}");
 
         test_result.test = test_id;
-        let run_result = get_single_test_verdict(config, tests_paths, test_id).await?;
+        let subgroup_verdict = get_single_test_verdict(config, tests_paths, test_id).await?;
 
-        test_result.subgroup_verdict = run_result.verdict;
+        test_result.subgroup_verdict = subgroup_verdict;
         test_result.test = test_id;
-        test_result.checker_msg = run_result.checker_msg;
 
         if test_result.subgroup_verdict != SubgroupVerdict::Ok {
             log::error!(
@@ -195,36 +191,28 @@ pub async fn test_submission(
             .map_db(&pool, submission_id)
             .await?;
 
-        let mut test_result = SubgroupResult::default();
+        let mut subgroup_result = SubgroupResult::default();
 
         log::info!("Check if subgroup needs to be tested on");
         if does_subgroup_need_to_be_tested_on(subgroup, &subgroups_results) {
             log::info!("Test solution on tests");
-            write_subgroup_result(&mut test_result, subgroup, &config, &tests_paths)
+            write_subgroup_result(&mut subgroup_result, subgroup, &config, &tests_paths)
                 .await
                 .map_db(&pool, submission_id)
                 .await?;
         } else {
             log::info!("Subgroup doesn't need to be tested, skip testing");
-            test_result.subgroup_verdict = SubgroupVerdict::Skipped;
+            subgroup_result.subgroup_verdict = SubgroupVerdict::Skipped;
         }
 
-        total_score += test_result.score;
-        subgroups_results.push(test_result.clone());
+        total_score += subgroup_result.score;
+        subgroups_results.push(subgroup_result.clone());
 
         log::info!("Update subgroup's testing result record");
-        update_subgroup_testing_result(
-            &pool,
-            submission_id,
-            subgroup_index,
-            &test_result.subgroup_verdict,
-            test_result.test,
-            test_result.score,
-            test_result.checker_msg,
-        )
-        .await
-        .map_db(&pool, submission_id)
-        .await?;
+        update_subgroup_testing_result(&pool, submission_id, subgroup_index, &subgroup_result)
+            .await
+            .map_db(&pool, submission_id)
+            .await?;
     }
 
     log::info!("Update total testing result");

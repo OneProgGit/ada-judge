@@ -14,7 +14,7 @@ use models::{
     contest_config::DatabaseContestConfig,
     contests::LeaderboardRow,
     problem_config::DatabaseProblemConfig,
-    testing::DatabaseSubmission,
+    testing::{DatabaseSubmission, SubgroupResult},
     users::DatabaseUser,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -328,7 +328,7 @@ pub async fn insert_subgroup_testing_result(
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
         "insert into submissions_subgroups_results (subgroup_index, submission_id, subgroup_verdict, test, score, checker_msg)
-            values ($1, $2, $3::subgroup_verdict, $4, $5, $6)",
+            values ($1, $2, $3, $4, $5, $6)",
     )
         .bind(subgroup_index)
         .bind(submission_id)
@@ -349,19 +349,15 @@ pub async fn update_subgroup_testing_result(
     pool: &PgPool,
     submission_id: i64,
     subgroup_index: i32,
-    verdict: &SubgroupVerdict,
-    test: i32,
-    score: i32,
-    checker_msg: String,
+    subgroup_result: &SubgroupResult,
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
-        "update submissions_subgroups_results set subgroup_verdict = $1::subgroup_verdict, test = $2, score = $3, checker_msg = $4 
+        "update submissions_subgroups_results set subgroup_verdict = $1, test = $2, score = $3, checker_msg = $4 
             where submission_id = $5 and subgroup_index = $6",
     )
-        .bind(verdict)
-        .bind(test)
-        .bind(score)
-        .bind(checker_msg)
+        .bind(&subgroup_result.subgroup_verdict)
+        .bind(subgroup_result.test)
+        .bind(subgroup_result.score)
         .bind(submission_id)
         .bind(subgroup_index)
         .execute(pool)
@@ -390,8 +386,7 @@ pub async fn get_all_user_submissions(
                         json_build_object(
                             'subgroup_verdict', v.subgroup_verdict,
                             'test', v.test,
-                            'score', v.score,
-                            'checker_msg', v.checker_msg
+                            'score', v.score
                         ) order by v.subgroup_index
                     ) filter (where v.submission_id is not null),
                     '[]'
@@ -434,8 +429,7 @@ pub async fn get_contest_user_submissions(
                         json_build_object(
                             'subgroup_verdict', v.subgroup_verdict,
                             'test', v.test,
-                            'score', v.score,
-                            'checker_msg', v.checker_msg
+                            'score', v.score
                         ) order by v.subgroup_index
                     ) filter (where v.submission_id is not null),
                     '[]'
@@ -480,8 +474,7 @@ pub async fn get_problem_user_submissions(
                         json_build_object(
                             'subgroup_verdict', v.subgroup_verdict,
                             'test', v.test,
-                            'score', v.score,
-                            'checker_msg', v.checker_msg
+                            'score', v.score
                         ) order by v.subgroup_index
                     ) filter (where v.submission_id is not null),
                     '[]'

@@ -4,7 +4,7 @@ use crate::{
 };
 use models::{
     problem_config::ProblemConfig,
-    testing::{CheckerResult, TestsPaths},
+    testing::TestsPaths,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use std::{
@@ -13,11 +13,7 @@ use std::{
     process::Stdio,
     time::Duration,
 };
-use tokio::{
-    fs::{self, File},
-    process::Command,
-    time::timeout,
-};
+use tokio::{fs::File, process::Command, time::timeout};
 use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
@@ -26,7 +22,7 @@ pub async fn get_checker_result(
     input_path: &Path,
     answer_path: PathBuf,
     tests_paths: &TestsPaths,
-) -> Result<CheckerResult, TotalVerdict> {
+) -> Result<SubgroupVerdict, TotalVerdict> {
     log::info!("Open stderr file");
 
     let stderr_file = File::create(tests_paths.error.clone())
@@ -93,28 +89,12 @@ pub async fn get_checker_result(
     let checker_status = checker_status.map_log(TotalVerdict::InvalidProblem)?;
 
     log::info!("Check checker status");
-    match checker_status {
-        Err(_) => Err(TotalVerdict::InvalidProblem),
-        Ok(status) => {
-            let checker_msg = fs::read_to_string(tests_paths.error.clone())
-                .await
-                .map_log(TotalVerdict::InvalidProblem)?;
-
-            match status.code() {
-                Some(CHECKER_OK) => Ok(CheckerResult {
-                    verdict: SubgroupVerdict::Ok,
-                    checker_msg,
-                }),
-                Some(CHECKER_WA) => Ok(CheckerResult {
-                    verdict: SubgroupVerdict::WrongAnswer,
-                    checker_msg,
-                }),
-                Some(CHECKER_PE) => Ok(CheckerResult {
-                    verdict: SubgroupVerdict::PresentationError,
-                    checker_msg,
-                }),
-                _ => Err(TotalVerdict::InvalidProblem),
-            }
+    checker_status.map_or(Err(TotalVerdict::InvalidProblem), |status| {
+        match status.code() {
+            Some(CHECKER_OK) => Ok(SubgroupVerdict::Ok),
+            Some(CHECKER_WA) => Ok(SubgroupVerdict::WrongAnswer),
+            Some(CHECKER_PE) => Ok(SubgroupVerdict::PresentationError),
+            _ => Err(TotalVerdict::InvalidProblem),
         }
-    }
+    })
 }

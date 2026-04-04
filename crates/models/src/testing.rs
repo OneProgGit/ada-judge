@@ -124,17 +124,6 @@ pub struct SubgroupResult {
     pub test: i32,
     /// Score for the subgroup
     pub score: i32,
-    /// Checker's stderr message
-    pub checker_msg: String,
-}
-
-/// Checker result, including checker's verdict and message
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CheckerResult {
-    /// Checker's verdict
-    pub verdict: SubgroupVerdict,
-    /// Checker's stderr message
-    pub checker_msg: String,
 }
 
 /// Useful paths for testing

@@ -327,7 +327,7 @@ pub async fn insert_subgroup_testing_result(
     subgroup_index: i32,
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
-        "insert into submissions_subgroups_results (subgroup_index, submission_id, subgroup_verdict, test, score, checker_msg)
+        "insert into submissions_subgroups_results (subgroup_index, submission_id, subgroup_verdict, test, score)
             values ($1, $2, $3, $4, $5, $6)",
     )
         .bind(subgroup_index)
@@ -352,17 +352,17 @@ pub async fn update_subgroup_testing_result(
     subgroup_result: &SubgroupResult,
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
-        "update submissions_subgroups_results set subgroup_verdict = $1, test = $2, score = $3, checker_msg = $4 
+        "update submissions_subgroups_results set subgroup_verdict = $1, test = $2, score = $3
             where submission_id = $5 and subgroup_index = $6",
     )
-        .bind(&subgroup_result.subgroup_verdict)
-        .bind(subgroup_result.test)
-        .bind(subgroup_result.score)
-        .bind(submission_id)
-        .bind(subgroup_index)
-        .execute(pool)
-        .await
-        .map_log(TotalVerdict::InvalidRequest)?;
+    .bind(&subgroup_result.subgroup_verdict)
+    .bind(subgroup_result.test)
+    .bind(subgroup_result.score)
+    .bind(submission_id)
+    .bind(subgroup_index)
+    .execute(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
     Ok(())
 }
 

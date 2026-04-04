@@ -35,12 +35,14 @@ use app_state::AppState;
 use axum::{
     Extension, Router,
     extract::DefaultBodyLimit,
+    http::{Method, header},
     routing::{get, post},
 };
 use log::LevelFilter;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
+use tower_http::cors::{Any, CorsLayer};
 
 mod api;
 mod app_state;
@@ -76,6 +78,11 @@ async fn main() {
         db: pg_pool.clone(),
         apalis_backend: Mutex::new(backend.clone()),
     });
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     let routes_avaible_after_start_of_contest_1_path_element = Router::new()
         .route("/contests/{contest_id}/problems", get(get_contest_problems))
@@ -139,6 +146,7 @@ async fn main() {
         .merge(routes_avaible_after_end_of_contest)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(Extension(Auth))
+        .layer(cors)
         .with_state(state);
 
     let listener = TcpListener::bind("0.0.0.0:4444")

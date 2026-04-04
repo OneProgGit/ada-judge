@@ -328,7 +328,7 @@ pub async fn insert_subgroup_testing_result(
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
         "insert into submissions_subgroups_results (subgroup_index, submission_id, subgroup_verdict, test, score)
-            values ($1, $2, $3, $4, $5, $6)",
+            values ($1, $2, $3, $4, $5)",
     )
         .bind(subgroup_index)
         .bind(submission_id)
@@ -353,7 +353,7 @@ pub async fn update_subgroup_testing_result(
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
         "update submissions_subgroups_results set subgroup_verdict = $1, test = $2, score = $3
-            where submission_id = $5 and subgroup_index = $6",
+            where submission_id = $4 and subgroup_index = $5",
     )
     .bind(&subgroup_result.subgroup_verdict)
     .bind(subgroup_result.test)

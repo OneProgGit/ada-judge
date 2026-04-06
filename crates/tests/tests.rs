@@ -63,7 +63,7 @@ async fn test_1(
     .unwrap();
 
     let subgroups_results: Vec<SubgroupResult> = sqlx::query(
-        "select subgroup_verdict, score, test, score, checker_msg
+        "select subgroup_verdict, score, test, score
              from submissions_subgroups_results
              where submission_id = $1
              order by subgroup_index",
@@ -137,7 +137,7 @@ async fn test_2(
     .unwrap();
 
     let subgroups_results: Vec<SubgroupResult> = sqlx::query(
-        "select subgroup_verdict, score, test, score, checker_msg
+        "select subgroup_verdict, score, test, score
              from submissions_subgroups_results
              where submission_id = $1
              order by subgroup_index",

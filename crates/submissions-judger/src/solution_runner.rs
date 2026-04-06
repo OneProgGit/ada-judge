@@ -1,5 +1,5 @@
 use crate::{
-    constants::{VERDICT_MLE, VERDICT_OK},
+    constants::{VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
     tools::convert_path_in_container_to_path_in_host,
 };
 use models::{
@@ -7,8 +7,8 @@ use models::{
     testing::TestsPaths,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
-use std::{env, path::Path, process::Stdio, time::Duration};
-use tokio::{fs::File, process::Command, time::timeout};
+use std::{env, path::Path, process::Stdio};
+use tokio::{fs::File, process::Command};
 use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
@@ -33,7 +33,7 @@ pub async fn get_run_solution_verdict(
     log::info!("Run solution cmd");
     let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
 
-    let mut solution_cmd = Command::new("docker")
+    let solution_cmd = Command::new("docker")
         .args([
             "run",
             "--rm",
@@ -60,31 +60,25 @@ pub async fn get_run_solution_verdict(
             "-w",
             "/sandbox",
             &sandbox_image,
+            "timeout",
+            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(stdin_file.into_std().await))
         .stdout(Stdio::from(stdout_file.into_std().await))
         .stderr(Stdio::from(stderr_file.into_std().await))
-        .spawn()
-        .map_log(TotalVerdict::Bug)?;
+        .status();
 
-    let timeout_duration = Duration::from_millis(config.time_limit_ms as u64);
-    let solution_status = timeout(timeout_duration, solution_cmd.wait()).await;
-    _ = solution_cmd.kill();
-    let solution_status = match solution_status {
-        Ok(solution_status) => solution_status,
-        Err(e) => {
-            log::error!("{e}");
-            return Ok(SubgroupVerdict::TimeLimitExceeded);
-        }
-    };
+    let solution_status = solution_cmd.await;
+
     log::info!("Check solution status");
     solution_status.map_or(
         Ok(SubgroupVerdict::TimeLimitExceeded),
         |status| match status.code() {
             Some(VERDICT_OK) => Ok(SubgroupVerdict::Ok),
             Some(VERDICT_MLE) => Ok(SubgroupVerdict::MemoryLimitExceeded),
-            _ => Ok(SubgroupVerdict::RuntimeError),
+            Some(VERDICT_TLE) | None => Ok(SubgroupVerdict::TimeLimitExceeded),
+            Some(_code) => Ok(SubgroupVerdict::RuntimeError),
         },
     )
 }

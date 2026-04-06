@@ -11,9 +11,8 @@ use std::{
     env,
     path::{Path, PathBuf},
     process::Stdio,
-    time::Duration,
 };
-use tokio::{fs::File, process::Command, time::timeout};
+use tokio::{fs::File, process::Command};
 use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
@@ -32,7 +31,7 @@ pub async fn get_checker_result(
     log::info!("Run checker cmd");
     let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
 
-    let mut checker_cmd = Command::new("docker")
+    let checker_cmd = Command::new("docker")
         .args([
             "run",
             "--rm",
@@ -74,19 +73,17 @@ pub async fn get_checker_result(
             "-w",
             "/sandbox",
             &sandbox_image,
+            "timeout",
+            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",
             "/sandbox/answer",
         ])
         .stderr(Stdio::from(stderr_file.into_std().await))
-        .spawn()
-        .map_log(TotalVerdict::Bug)?;
+        .status();
 
-    let timeout_duration = Duration::from_millis(config.time_limit_ms as u64);
-    let checker_status = timeout(timeout_duration, checker_cmd.wait()).await;
-    _ = checker_cmd.kill();
-    let checker_status = checker_status.map_log(TotalVerdict::InvalidProblem)?;
+    let checker_status = checker_cmd.await;
 
     log::info!("Check checker status");
     checker_status.map_or(Err(TotalVerdict::InvalidProblem), |status| {

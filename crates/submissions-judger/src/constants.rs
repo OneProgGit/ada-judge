@@ -4,3 +4,4 @@ pub const CHECKER_PE: i32 = 2;
 
 pub const VERDICT_OK: i32 = 0;
 pub const VERDICT_MLE: i32 = 137;
+pub const VERDICT_TLE: i32 = 124;

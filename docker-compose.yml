@@ -39,6 +39,8 @@ services:
       dockerfile: ./containers/app/Dockerfile
       context: .
       target: submissions-judger
+    deploy:
+      replicas: 10
     depends_on:
       - postgres
       - redis
@@ -48,8 +50,6 @@ services:
       REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
       HOST_RUNS_DIR: ${PWD}
       SANDBOX_IMAGE: sandbox-runner
-    ports:
-      - "3333:3333"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./submissions_envs:/submissions_envs

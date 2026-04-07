@@ -38,7 +38,9 @@ async fn main() {
 
     let backend = RedisStorage::new(redis_pool);
 
-    let worker = WorkerBuilder::new("worker")
+    let host_name = env::var("HOSTNAME").expect("HOSTNAME must be set!");
+
+    let worker = WorkerBuilder::new(format!("worker-{host_name}"))
         .backend(backend)
         .data(pg_pool)
         .retry(RetryPolicy::retries(0))

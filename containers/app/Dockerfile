@@ -39,6 +39,9 @@ RUN curl -LO https://go.dev/dl/go1.26.1.linux-amd64.tar.gz \
     && rm go1.26.1.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
+# Install Haskell
+RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+
 COPY --from=builder-main /usr/src/app/target/release/ada-judge ./ada-judge
 CMD ["./ada-judge"]
 
@@ -59,6 +62,9 @@ RUN curl -LO https://go.dev/dl/go1.26.1.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go1.26.1.linux-amd64.tar.gz \
     && rm go1.26.1.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Install Haskell
+RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
 
 COPY --from=builder-submissions-judger /usr/src/app/target/release/submissions-judger ./submissions-judger
 CMD ["./submissions-judger"]

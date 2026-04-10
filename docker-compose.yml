@@ -40,7 +40,7 @@ services:
       context: .
       target: submissions-judger
     deploy:
-      replicas: 10
+      replicas: ${WORKERS_COUNT}
     depends_on:
       - postgres
       - redis

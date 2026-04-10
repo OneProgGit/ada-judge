@@ -8,7 +8,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::Utc;
-use database::get_contest_by_id;
 use models::users::AdminLevel;
 use sqlx::PgPool;
 
@@ -17,16 +16,19 @@ async fn check_contest_started_common(
     contest_id: i64,
     admin_level: AdminLevel,
 ) -> Result<(), Response> {
-    let Ok(contest_config) = get_contest_by_id(pool, contest_id).await else {
+    let Ok(contest_config) = database::contests::get_contest_by_id(pool, contest_id).await else {
         return Err(StatusCode::BAD_REQUEST.into_response());
     };
 
     let now = Utc::now();
 
-    if now < contest_config.starts_at && admin_level < AdminLevel::AdminII {
-        return Err(StatusCode::BAD_REQUEST.into_response());
+    if now < contest_config.starts_at {
+        Err(StatusCode::BAD_REQUEST.into_response())
+    } else if admin_level < AdminLevel::AdminII {
+        Err(StatusCode::FORBIDDEN.into_response())
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
 pub async fn check_contest_started(
@@ -70,19 +72,20 @@ pub async fn check_contest_started_and_not_ended(
 ) -> Response {
     log::info!("Check contest started and not ended");
 
-    let Ok(contest_config) = get_contest_by_id(&state.db, contest_id).await else {
+    let Ok(contest_config) = database::contests::get_contest_by_id(&state.db, contest_id).await
+    else {
         return StatusCode::BAD_REQUEST.into_response();
     };
 
     let now = Utc::now();
 
-    if (now < contest_config.starts_at || now > contest_config.ends_at)
-        && auth.admin_level < AdminLevel::AdminII
-    {
-        return StatusCode::BAD_REQUEST.into_response();
+    if now < contest_config.starts_at || now > contest_config.ends_at {
+        StatusCode::BAD_REQUEST.into_response()
+    } else if auth.admin_level < AdminLevel::AdminII {
+        StatusCode::FORBIDDEN.into_response()
+    } else {
+        next.run(req).await
     }
-
-    next.run(req).await
 }
 
 pub async fn check_contest_ended(
@@ -94,15 +97,18 @@ pub async fn check_contest_ended(
 ) -> Response {
     log::info!("Check contest ended");
 
-    let Ok(contest_config) = get_contest_by_id(&state.db, contest_id).await else {
+    let Ok(contest_config) = database::contests::get_contest_by_id(&state.db, contest_id).await
+    else {
         return StatusCode::BAD_REQUEST.into_response();
     };
 
     let now = Utc::now();
 
-    if now <= contest_config.ends_at && auth.admin_level < AdminLevel::AdminII {
-        return StatusCode::BAD_REQUEST.into_response();
+    if now <= contest_config.ends_at {
+        StatusCode::BAD_REQUEST.into_response()
+    } else if auth.admin_level < AdminLevel::AdminII {
+        StatusCode::FORBIDDEN.into_response()
+    } else {
+        next.run(req).await
     }
-
-    next.run(req).await
 }

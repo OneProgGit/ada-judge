@@ -4,7 +4,6 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
 };
-use database::get_user_by_id;
 use models::{users::DatabaseUser, verdicts::TotalVerdict};
 use tools::map::{MapHttpExt, MapLogExt};
 
@@ -39,7 +38,9 @@ where
         let claims = decode_jwt(token, &secret).map_http()?;
 
         log::info!("Get user");
-        let user = get_user_by_id(&state.db, claims.id).await.map_http()?;
+        let user = database::auth::get_user_by_id(&state.db, claims.id)
+            .await
+            .map_http()?;
 
         Ok(Self(user))
     }

@@ -6,7 +6,7 @@ use axum::{
     extract::{Multipart, Path, State},
     http::StatusCode,
 };
-use database::{insert_submission, tools::MapDbExt};
+use database::tools::MapDbExt;
 use models::{
     testing::{Submission, SubmissionTask, SubmissonRequest, get_lang_str},
     verdicts::TotalVerdict,
@@ -24,7 +24,7 @@ pub async fn get_all_user_submisssions(
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
     log::info!("Get all user submissions");
     Ok(Json(
-        database::get_all_user_submissions(&state.db, auth.id)
+        database::submissions::get_all_user_submissions(&state.db, auth.id)
             .await
             .map_http()?
             .iter()
@@ -40,7 +40,7 @@ pub async fn get_contest_user_submissions(
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
     log::info!("Get contest user submissions");
     Ok(Json(
-        database::get_contest_user_submissions(&state.db, auth.id, contest_id)
+        database::submissions::get_contest_user_submissions(&state.db, auth.id, contest_id)
             .await
             .map_http()?
             .iter()
@@ -56,7 +56,7 @@ pub async fn get_problem_user_submissions(
 ) -> Result<Json<Vec<Submission>>, StatusCode> {
     log::info!("Get problem user submissions");
     Ok(Json(
-        database::get_problem_user_submissions(&state.db, auth.id, problem_id)
+        database::submissions::get_problem_user_submissions(&state.db, auth.id, problem_id)
             .await
             .map_http()?
             .iter()
@@ -112,9 +112,10 @@ pub async fn push_submission_to_queue(
 
     log::info!("Push to queue: {submission:?}");
 
-    let submission_id = insert_submission(&state.db, user.id, submission.problem_id)
-        .await
-        .map_http()?;
+    let submission_id =
+        database::submissions::insert_submission(&state.db, user.id, submission.problem_id)
+            .await
+            .map_http()?;
 
     log::info!("Create env dir");
     let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());

@@ -6,7 +6,6 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use database::get_user_by_id;
 use models::users::{PrivateUserData, PublicUserData};
 use tools::map::MapHttpExt;
 
@@ -15,7 +14,10 @@ pub async fn get_public_user_profile(
     Path(user_id): Path<i64>,
 ) -> Result<Json<PublicUserData>, StatusCode> {
     Ok(Json(
-        get_user_by_id(&state.db, user_id).await.map_http()?.into(),
+        database::auth::get_user_by_id(&state.db, user_id)
+            .await
+            .map_http()?
+            .into(),
     ))
 }
 
@@ -24,6 +26,9 @@ pub async fn get_private_user_profile(
     Auth(auth): Auth,
 ) -> Result<Json<PrivateUserData>, StatusCode> {
     Ok(Json(
-        get_user_by_id(&state.db, auth.id).await.map_http()?.into(),
+        database::auth::get_user_by_id(&state.db, auth.id)
+            .await
+            .map_http()?
+            .into(),
     ))
 }

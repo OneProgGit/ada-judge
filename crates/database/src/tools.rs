@@ -1,6 +1,6 @@
 //! Database map tools
 
-use crate::update_total_testing_result;
+use crate::submissions::update_total_testing_result;
 use models::verdicts::TotalVerdict;
 use sqlx::PgPool;
 

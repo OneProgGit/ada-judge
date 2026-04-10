@@ -13,7 +13,6 @@ pub async fn compile_solution(
         Language::Clang => "clang++",
         Language::Go => "go",
         Language::Rust => "rustc",
-        Language::Haskell => "ghc",
     });
     let compile_cmd = match submission.lang {
         Language::Clang => compile_cmd
@@ -28,7 +27,6 @@ pub async fn compile_solution(
             .arg(&tests_paths.solution_source)
             .args(["-O", "-C", "target-cpu=native", "-C", "lto", "-o"])
             .arg(&tests_paths.solution),
-        Language::Haskell => compile_cmd.arg("-O2").arg(&tests_paths.solution),
     };
     let mut compile_cmd = compile_cmd
         .spawn()

@@ -12,11 +12,8 @@
 use ::tools::map::MapLogExt;
 use apalis::prelude::{BoxDynError, Data};
 use checker_runner::get_checker_result;
+use database::get_problem_by_id;
 use database::tools::MapDbExt;
-use database::{
-    get_problem_by_id, insert_subgroup_testing_result, update_subgroup_testing_result,
-    update_total_testing_result,
-};
 use models::problem_config::{ProblemConfig, Subgroup};
 use models::verdicts::TotalVerdict;
 use models::{
@@ -138,10 +135,15 @@ pub async fn test_submission(
     log::info!("Test submission #{submission_id}");
 
     log::info!("Update total verdict");
-    update_total_testing_result(&pool, submission_id, &TotalVerdict::Compiling, 0)
-        .await
-        .map_db(&pool, submission_id)
-        .await?;
+    database::submissions::update_total_testing_result(
+        &pool,
+        submission_id,
+        &TotalVerdict::Compiling,
+        0,
+    )
+    .await
+    .map_db(&pool, submission_id)
+    .await?;
 
     let problem_id = submission.problem_id;
     let problem_path = submission.problem_path.clone();
@@ -179,14 +181,20 @@ pub async fn test_submission(
     let mut subgroups_results: Vec<SubgroupResult> = Vec::with_capacity(config.subgroups.len());
 
     log::info!("Test solution on subgroups");
-    update_total_testing_result(&pool, submission_id, &TotalVerdict::Testing, 0).await?;
+    database::submissions::update_total_testing_result(
+        &pool,
+        submission_id,
+        &TotalVerdict::Testing,
+        0,
+    )
+    .await?;
     for (i, subgroup) in config.subgroups.clone().iter().enumerate() {
         log::info!("Test on subgroup #{i}");
         log::info!("Insert a subgroup's testing result");
 
         let subgroup_index = i as i32;
 
-        insert_subgroup_testing_result(&pool, submission_id, subgroup_index)
+        database::submissions::insert_subgroup_testing_result(&pool, submission_id, subgroup_index)
             .await
             .map_db(&pool, submission_id)
             .await?;
@@ -209,14 +217,19 @@ pub async fn test_submission(
         subgroups_results.push(subgroup_result.clone());
 
         log::info!("Update subgroup's testing result record");
-        update_subgroup_testing_result(&pool, submission_id, subgroup_index, &subgroup_result)
-            .await
-            .map_db(&pool, submission_id)
-            .await?;
+        database::submissions::update_subgroup_testing_result(
+            &pool,
+            submission_id,
+            subgroup_index,
+            &subgroup_result,
+        )
+        .await
+        .map_db(&pool, submission_id)
+        .await?;
     }
 
     log::info!("Update total testing result");
-    update_total_testing_result(
+    database::submissions::update_total_testing_result(
         &pool,
         submission_id,
         &match total_score {

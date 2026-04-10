@@ -25,17 +25,25 @@ git clone https://codeberg.org/oneprog/ada-judge
 ```
 Go to the project's directory and create `.env` file with following fields:
 ```env
+# Postgres profile data
 POSTGRES_USER=
 POSTGRES_PASSWORD=
 POSTGRES_DB=
+# Redis profile data
 REDIS_PASSWORD=
 REDIS_USER=
 REDIS_USER_PASSWORD=
+# Password for registration
 MASTER_PASSWORD=
+# Jwt settings
 JWT_SECRET=
 JWT_EXP_HOURS=
+# Sandbox image name for `submissions-judger`
 SANDBOX_IMAGE=
-DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB} # For tests
+# Number of parallel workers 
+WORKERS_COUNT=
+# Database url for tests
+DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB}
 ```
 After that, create `submissions_envs` directory.
 Build and run `ada-judge` with `docker compose`:

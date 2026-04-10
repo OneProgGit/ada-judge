@@ -3,7 +3,6 @@ use crate::jwt::create_jwt;
 use crate::{app_state::AppState, crypt::verify_password};
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
-use database::{create_user, get_user_by_login};
 use models::users::JwtClaims;
 use models::{
     users::{LoginRequest, RegisterRequest},
@@ -32,7 +31,7 @@ pub async fn register(
     let password_hash = get_password_hash(&user.password).map_http()?;
 
     log::info!("Create user");
-    let user_id = create_user(&state.db, &user.login, &password_hash)
+    let user_id = database::auth::create_user(&state.db, &user.login, &password_hash)
         .await
         .map_http()?;
 
@@ -45,7 +44,9 @@ pub async fn login(
     Json(user): Json<LoginRequest>,
 ) -> Result<(StatusCode, Json<String>), StatusCode> {
     log::info!("Get expected user");
-    let expected_user = get_user_by_login(&state.db, &user.login).await.map_http()?;
+    let expected_user = database::auth::get_user_by_login(&state.db, &user.login)
+        .await
+        .map_http()?;
 
     log::info!("Verify password");
     let is_valid_password =

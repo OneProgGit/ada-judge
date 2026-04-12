@@ -121,7 +121,7 @@ pub async fn create_contest(
     ends_at: &DateTime<Utc>,
 ) -> Result<i64, TotalVerdict> {
     let contest_id = sqlx::query_scalar(
-        "insert into contests (owner_id, name, starts_at, ends_at) values ($1, $2, $3, $4)",
+        "insert into contests (owner_id, name, starts_at, ends_at) values ($1, $2, $3, $4) returning id",
     )
     .bind(owner_id)
     .bind(name)

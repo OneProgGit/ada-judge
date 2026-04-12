@@ -8,11 +8,24 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Language {
     /// clang++ compiler
+    Clangpp,
+    /// clang compiler
     Clang,
     /// go compiler
     Go,
     /// rustc compiler
     Rust,
+}
+
+/// Returns a file extension for a language
+#[must_use]
+pub const fn get_lang_str(lang: &Language) -> &'static str {
+    match lang {
+        Language::Clang => "c",
+        Language::Clangpp => "cpp",
+        Language::Go => "go",
+        Language::Rust => "rs",
+    }
 }
 
 /// Submission request data

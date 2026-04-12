@@ -2,23 +2,13 @@
 
 use ada_judge_public_models::{
     problems::ProblemConfig,
-    testing::{Language, SubgroupResult, Submission},
+    testing::{Language, SubgroupResult, Submission, get_lang_str},
     verdicts::TotalVerdict,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::Json};
 use std::path::{Path, PathBuf};
-
-/// Returns a file extension for a language
-#[must_use]
-pub const fn get_lang_str(lang: &Language) -> &'static str {
-    match lang {
-        Language::Clang => "cpp",
-        Language::Go => "go",
-        Language::Rust => "rs",
-    }
-}
 
 /// Submission task data
 #[derive(Clone, Debug, Serialize, Deserialize)]

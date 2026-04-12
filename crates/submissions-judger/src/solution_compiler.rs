@@ -8,12 +8,13 @@ pub async fn compile_solution(
     submission: &SubmissionTask,
 ) -> Result<(), TotalVerdict> {
     let mut compile_cmd = Command::new(match submission.lang {
-        Language::Clang => "clang++",
+        Language::Clang => "clang",
+        Language::Clangpp => "clang++",
         Language::Go => "go",
         Language::Rust => "rustc",
     });
     let compile_cmd = match submission.lang {
-        Language::Clang => compile_cmd
+        Language::Clang | Language::Clangpp => compile_cmd
             .args(["-O2", "-pipe", "-march=native", "-flto", "-s"])
             .arg(&tests_paths.solution_source)
             .arg("-o")

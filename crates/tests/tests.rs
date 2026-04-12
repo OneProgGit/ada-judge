@@ -4,14 +4,12 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 
-use ada_judge_public_models::testing::Language;
-use ada_judge_public_models::testing::SubgroupResult;
-use ada_judge_public_models::testing::TotalResult;
-use ada_judge_public_models::verdicts::SubgroupVerdict;
-use ada_judge_public_models::verdicts::TotalVerdict;
+use ada_judge_public_models::{
+    testing::{Language, SubgroupResult, TotalResult, get_lang_str},
+    verdicts::{SubgroupVerdict, TotalVerdict},
+};
 use apalis::prelude::Data;
 use models::testing::SubmissionTask;
-use models::testing::get_lang_str;
 use sqlx::FromRow;
 use sqlx::{PgPool, postgres::PgRow};
 use tempfile::tempdir;

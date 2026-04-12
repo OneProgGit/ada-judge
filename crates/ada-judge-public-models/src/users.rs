@@ -32,13 +32,15 @@ pub struct LoginRequest {
 pub enum AdminLevel {
     /// Not admin: can create private contests only
     NotAdmin,
-    /// Admin level I: can be a co-author of public contest
+    /// Beta tester: just a status
+    BetaTester,
+    /// Admin level I: can create public contests
     AdminI,
-    /// Admin level II: can create public contests (with Admin level III+ moderation)
+    /// Admin level II: can do things in contest in any time
     AdminII,
-    /// Admin level III: can moderate public contests
+    /// Admin level III: TODO
     AdminIII,
-    /// Owner: can manage all public contests and system settings
+    /// Owner: TODO
     Owner,
 }
 

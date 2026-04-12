@@ -1,6 +1,7 @@
 //! Database tools for auth
 
-use models::{users::DatabaseUser, verdicts::TotalVerdict};
+use ada_judge_public_models::verdicts::TotalVerdict;
+use models::users::DatabaseUser;
 use sqlx::PgPool;
 use tools::map::MapLogExt;
 

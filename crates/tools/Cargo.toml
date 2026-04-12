@@ -8,3 +8,4 @@ publish = false
 models.workspace = true
 log.workspace = true
 axum.workspace = true
+ada-judge-public-models.workspace = true

@@ -1,8 +1,7 @@
 //! Database tools for contests
 
-use models::{
-    contest_config::DatabaseContestConfig, contests::LeaderboardRow, verdicts::TotalVerdict,
-};
+use ada_judge_public_models::{contests::LeaderboardRow, verdicts::TotalVerdict};
+use models::contests::DatabaseContestConfig;
 use sqlx::{
     PgPool,
     types::chrono::{DateTime, Utc},

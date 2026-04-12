@@ -1,10 +1,11 @@
 use std::{env, sync::Arc};
 
+use ada_judge_public_models::verdicts::TotalVerdict;
 use axum::{
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
 };
-use models::{users::DatabaseUser, verdicts::TotalVerdict};
+use models::users::DatabaseUser;
 use tools::map::{MapHttpExt, MapLogExt};
 
 use crate::{app_state::AppState, jwt::decode_jwt};

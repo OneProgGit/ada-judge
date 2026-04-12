@@ -4,13 +4,16 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 
+use ada_judge_public_models::testing::Language;
+use ada_judge_public_models::testing::SubgroupResult;
+use ada_judge_public_models::testing::TotalResult;
+use ada_judge_public_models::verdicts::SubgroupVerdict;
+use ada_judge_public_models::verdicts::TotalVerdict;
 use apalis::prelude::Data;
+use models::testing::SubmissionTask;
 use models::testing::get_lang_str;
-use models::{
-    testing::{Language, SubgroupResult, SubmissionTask, TotalResult},
-    verdicts::{SubgroupVerdict, TotalVerdict},
-};
-use sqlx::{FromRow, PgPool, postgres::PgRow};
+use sqlx::FromRow;
+use sqlx::{PgPool, postgres::PgRow};
 use tempfile::tempdir;
 use tokio::fs;
 
@@ -53,7 +56,7 @@ async fn test_1(
         .unwrap();
 
     let total_result: TotalResult = sqlx::query(
-        "select total_verdict, total_score 
+        "select total_verdict, total_score
              from submissions where id = $1",
     )
     .bind(id)
@@ -127,7 +130,7 @@ async fn test_2(
         .unwrap();
 
     let total_result: TotalResult = sqlx::query(
-        "select total_verdict, total_score 
+        "select total_verdict, total_score
              from submissions where id = $1",
     )
     .bind(id)
@@ -203,7 +206,7 @@ async fn test_3(pool: &PgPool, lang: Language) {
         .unwrap_err();
 
     let total_result: TotalResult = sqlx::query(
-        "select total_verdict, total_score 
+        "select total_verdict, total_score
          from submissions where id = $1",
     )
     .bind(id)
@@ -250,7 +253,7 @@ async fn test_ce_common(pool: &PgPool, lang: Language) {
         .unwrap_err();
 
     let total_result: TotalResult = sqlx::query(
-        "select total_verdict, total_score 
+        "select total_verdict, total_score
          from submissions where id = $1",
     )
     .bind(id)

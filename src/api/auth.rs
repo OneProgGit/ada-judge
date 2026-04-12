@@ -1,13 +1,11 @@
 use crate::crypt::get_password_hash;
 use crate::jwt::create_jwt;
 use crate::{app_state::AppState, crypt::verify_password};
+use ada_judge_public_models::users::{LoginRequest, RegisterRequest};
+use ada_judge_public_models::verdicts::TotalVerdict;
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
 use models::users::JwtClaims;
-use models::{
-    users::{LoginRequest, RegisterRequest},
-    verdicts::TotalVerdict,
-};
 use std::{env, sync::Arc};
 use tools::map::{MapHttpExt, MapLogExt};
 

@@ -10,16 +10,16 @@
 #![forbid(unsafe_code)]
 
 use ::tools::map::MapLogExt;
+use ada_judge_public_models::{
+    problems::{ProblemConfig, Subgroup},
+    testing::SubgroupResult,
+    verdicts::{SubgroupVerdict, TotalVerdict},
+};
 use apalis::prelude::{BoxDynError, Data};
 use checker_runner::get_checker_result;
 use database::get_problem_by_id;
 use database::tools::MapDbExt;
-use models::problem_config::{ProblemConfig, Subgroup};
-use models::verdicts::TotalVerdict;
-use models::{
-    testing::{SubgroupResult, SubmissionTask, TestsPaths},
-    verdicts::SubgroupVerdict,
-};
+use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;
 use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;

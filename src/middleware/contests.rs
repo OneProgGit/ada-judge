@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::{app_state::AppState, middleware::auth::Auth};
+use ada_judge_public_models::users::AdminLevel;
 use axum::{
     extract::{Path, Request, State},
     http::StatusCode,
@@ -8,7 +9,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::Utc;
-use models::users::AdminLevel;
 use sqlx::PgPool;
 
 async fn check_contest_started_common(

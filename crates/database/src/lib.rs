@@ -10,7 +10,8 @@
 #![forbid(unsafe_code)]
 
 use ::tools::map::MapLogExt;
-use models::{problem_config::DatabaseProblemConfig, verdicts::TotalVerdict};
+use ada_judge_public_models::verdicts::TotalVerdict;
+use models::problems::DatabaseProblemConfig;
 use sqlx::PgPool;
 
 pub mod auth;

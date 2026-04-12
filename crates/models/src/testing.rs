@@ -1,24 +1,14 @@
 //! Structs used for testings
 
-use crate::{
-    problem_config::ProblemConfig,
-    verdicts::{SubgroupVerdict, TotalVerdict},
+use ada_judge_public_models::{
+    problems::ProblemConfig,
+    testing::{Language, SubgroupResult, Submission},
+    verdicts::TotalVerdict,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::Json};
 use std::path::{Path, PathBuf};
-
-/// Submission's language variants
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum Language {
-    /// clang++ compiler
-    Clang,
-    /// go compiler
-    Go,
-    /// rustc compiler
-    Rust,
-}
 
 /// Returns a file extension for a language
 #[must_use]
@@ -28,15 +18,6 @@ pub const fn get_lang_str(lang: &Language) -> &'static str {
         Language::Go => "go",
         Language::Rust => "rs",
     }
-}
-
-/// Submission request data
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SubmissonRequest {
-    /// Target problem's id
-    pub problem_id: i64,
-    /// Submission's file language
-    pub lang: Language,
 }
 
 /// Submission task data
@@ -52,34 +33,6 @@ pub struct SubmissionTask {
     pub run_dir: PathBuf,
     /// Submission's file language
     pub lang: Language,
-}
-
-/// Total testing result
-#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
-pub struct TotalResult {
-    /// Total submission's testing verdict
-    pub total_verdict: TotalVerdict,
-    /// Total submission's score
-    pub total_score: i32,
-}
-
-/// Submission data
-#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
-pub struct Submission {
-    /// Submission's id
-    pub id: i64,
-    /// Problem's id
-    pub problem_id: i64,
-    /// User's id
-    pub user_id: i64,
-    /// Total submission's testing verdict
-    pub total_verdict: TotalVerdict,
-    /// Total submission's score
-    pub total_score: i32,
-    /// Created at timestamp
-    pub created_at: DateTime<Utc>,
-    /// Subgroup's results
-    pub subgroups_results: Vec<SubgroupResult>,
 }
 
 /// Submission data for database
@@ -113,17 +66,6 @@ impl From<&DatabaseSubmission> for Submission {
             subgroups_results: value.subgroups_results.0.clone(),
         }
     }
-}
-
-/// Subgroup result, including verdict, test of that verdict, score and checker's message
-#[derive(Clone, Debug, Default, Serialize, Deserialize, FromRow)]
-pub struct SubgroupResult {
-    /// Subgroup's verdict
-    pub subgroup_verdict: SubgroupVerdict,
-    /// Last tested test
-    pub test: i32,
-    /// Score for the subgroup
-    pub score: i32,
 }
 
 /// Useful paths for testing

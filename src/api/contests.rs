@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
 use crate::{app_state::AppState, middleware::auth::Auth};
+use ada_judge_public_models::{
+    contests::{CreateContestRequest, LeaderboardRow, PublicContestConfig},
+    problems::PublicProblemConfig,
+    users::AdminLevel,
+};
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
-};
-use models::{
-    contest_config::PublicContestConfig,
-    contests::{CreateContestRequest, LeaderboardRow},
-    problem_config::PublicProblemConfig,
-    users::AdminLevel,
 };
 use tools::map::MapHttpExt;
 

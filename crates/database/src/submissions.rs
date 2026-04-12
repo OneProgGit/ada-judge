@@ -1,9 +1,10 @@
 //! Database tools for submissions
 
-use models::{
-    testing::{DatabaseSubmission, SubgroupResult},
+use ada_judge_public_models::{
+    testing::SubgroupResult,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
+use models::testing::DatabaseSubmission;
 use sqlx::PgPool;
 use tools::map::MapLogExt;
 

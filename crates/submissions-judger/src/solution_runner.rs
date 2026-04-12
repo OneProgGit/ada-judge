@@ -2,11 +2,11 @@ use crate::{
     constants::{VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
     tools::convert_path_in_container_to_path_in_host,
 };
-use models::{
-    problem_config::ProblemConfig,
-    testing::TestsPaths,
+use ada_judge_public_models::{
+    problems::ProblemConfig,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
+use models::testing::TestsPaths;
 use std::{env, path::Path, process::Stdio};
 use tokio::{fs::File, process::Command};
 use tools::map::MapLogExt;

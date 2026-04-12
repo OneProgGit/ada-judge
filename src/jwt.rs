@@ -1,5 +1,6 @@
+use ada_judge_public_models::verdicts::TotalVerdict;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
-use models::{users::JwtClaims, verdicts::TotalVerdict};
+use models::users::JwtClaims;
 use tools::map::MapLogExt;
 
 pub fn create_jwt(claims: &JwtClaims, secret: &str) -> Result<String, TotalVerdict> {

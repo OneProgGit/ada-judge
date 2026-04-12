@@ -1,5 +1,6 @@
+use ada_judge_public_models::{problems::ProblemConfig, verdicts::TotalVerdict};
 use fs_extra::dir::CopyOptions;
-use models::{problem_config::ProblemConfig, testing::TestsPaths, verdicts::TotalVerdict};
+use models::testing::TestsPaths;
 use std::path::PathBuf;
 use tokio::fs;
 use tools::map::MapLogExt;

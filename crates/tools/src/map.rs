@@ -2,8 +2,8 @@
 
 use std::fmt;
 
+use ada_judge_public_models::verdicts::TotalVerdict;
 use axum::http::StatusCode;
-use models::verdicts::TotalVerdict;
 
 /// Extension for logging an error in `Result<T, E>`
 pub trait MapLogExt<T, E: fmt::Display> {

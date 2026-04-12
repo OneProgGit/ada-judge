@@ -4,8 +4,9 @@ version = 4
 
 [[package]]
 name = "ada-judge"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
+ "ada-judge-public-models",
  "apalis",
  "apalis-redis",
  "argon2",
@@ -22,6 +23,15 @@ dependencies = [
  "tokio",
  "tools",
  "tower-http",
+]
+
+[[package]]
+name = "ada-judge-public-models"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "sqlx",
 ]
 
 [[package]]
@@ -449,6 +459,7 @@ dependencies = [
 name = "database"
 version = "0.0.0"
 dependencies = [
+ "ada-judge-public-models",
  "log",
  "models",
  "sqlx",
@@ -1223,6 +1234,7 @@ dependencies = [
 name = "models"
 version = "0.0.0"
 dependencies = [
+ "ada-judge-public-models",
  "apalis-redis",
  "chrono",
  "serde",
@@ -2082,6 +2094,7 @@ dependencies = [
 name = "submissions-judger"
 version = "0.0.0"
 dependencies = [
+ "ada-judge-public-models",
  "apalis",
  "apalis-redis",
  "database",
@@ -2148,6 +2161,7 @@ dependencies = [
 name = "tests"
 version = "0.0.0"
 dependencies = [
+ "ada-judge-public-models",
  "apalis",
  "axum",
  "log",
@@ -2331,6 +2345,7 @@ checksum = "756daf9b1013ebe47a8776667b466417e2d4c5679d441c26230efd9ef78692db"
 name = "tools"
 version = "0.0.0"
 dependencies = [
+ "ada-judge-public-models",
  "axum",
  "log",
  "models",

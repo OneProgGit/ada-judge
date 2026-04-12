@@ -1,4 +1,4 @@
-//! Common models for `ada-judge`
+//! Public shared models for `ada-judge`
 
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
@@ -13,3 +13,4 @@ pub mod contests;
 pub mod problems;
 pub mod testing;
 pub mod users;
+pub mod verdicts;

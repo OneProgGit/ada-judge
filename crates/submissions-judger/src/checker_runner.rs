@@ -2,11 +2,11 @@ use crate::{
     constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA},
     tools::convert_path_in_container_to_path_in_host,
 };
-use models::{
-    problem_config::ProblemConfig,
-    testing::TestsPaths,
+use ada_judge_public_models::{
+    problems::ProblemConfig,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
+use models::testing::TestsPaths;
 use std::{
     env,
     path::{Path, PathBuf},

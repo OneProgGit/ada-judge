@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use crate::{app_state::AppState, middleware::auth::Auth};
+use ada_judge_public_models::users::{PrivateUserData, PublicUserData};
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
 };
-use models::users::{PrivateUserData, PublicUserData};
 use tools::map::MapHttpExt;
 
 pub async fn get_public_user_profile(

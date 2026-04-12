@@ -1,4 +1,8 @@
 use crate::{app_state::AppState, middleware::auth::Auth};
+use ada_judge_public_models::{
+    testing::{Submission, SubmissonRequest},
+    verdicts::TotalVerdict,
+};
 use apalis::prelude::TaskSink;
 use axum::{
     Json,
@@ -7,10 +11,7 @@ use axum::{
     http::StatusCode,
 };
 use database::tools::MapDbExt;
-use models::{
-    testing::{Submission, SubmissionTask, SubmissonRequest, get_lang_str},
-    verdicts::TotalVerdict,
-};
+use models::testing::{SubmissionTask, get_lang_str};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{
     fs::{self, File},

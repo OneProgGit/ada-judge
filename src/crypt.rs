@@ -1,8 +1,8 @@
+use ada_judge_public_models::verdicts::TotalVerdict;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
-use models::verdicts::TotalVerdict;
 use tools::map::MapLogExt;
 
 pub fn get_password_hash(password: &str) -> Result<String, TotalVerdict> {

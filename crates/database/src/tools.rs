@@ -1,7 +1,7 @@
 //! Database map tools
 
 use crate::submissions::update_total_testing_result;
-use models::verdicts::TotalVerdict;
+use ada_judge_public_models::verdicts::TotalVerdict;
 use sqlx::PgPool;
 
 /// Extension updating total verdict if `Self` is `Err(TotalVerdict)`

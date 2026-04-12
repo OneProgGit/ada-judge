@@ -22,9 +22,7 @@ async fn check_contest_started_common(
 
     let now = Utc::now();
 
-    if now < contest_config.starts_at {
-        Err(StatusCode::BAD_REQUEST.into_response())
-    } else if admin_level < AdminLevel::AdminII {
+    if now < contest_config.starts_at && admin_level < AdminLevel::AdminII {
         Err(StatusCode::FORBIDDEN.into_response())
     } else {
         Ok(())
@@ -79,9 +77,9 @@ pub async fn check_contest_started_and_not_ended(
 
     let now = Utc::now();
 
-    if now < contest_config.starts_at || now > contest_config.ends_at {
-        StatusCode::BAD_REQUEST.into_response()
-    } else if auth.admin_level < AdminLevel::AdminII {
+    if (now < contest_config.starts_at || now > contest_config.ends_at)
+        && auth.admin_level < AdminLevel::AdminII
+    {
         StatusCode::FORBIDDEN.into_response()
     } else {
         next.run(req).await
@@ -104,9 +102,7 @@ pub async fn check_contest_ended(
 
     let now = Utc::now();
 
-    if now <= contest_config.ends_at {
-        StatusCode::BAD_REQUEST.into_response()
-    } else if auth.admin_level < AdminLevel::AdminII {
+    if now <= contest_config.ends_at && auth.admin_level < AdminLevel::AdminII {
         StatusCode::FORBIDDEN.into_response()
     } else {
         next.run(req).await

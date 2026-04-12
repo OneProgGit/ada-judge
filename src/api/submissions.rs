@@ -1,4 +1,5 @@
 use crate::{app_state::AppState, middleware::auth::Auth};
+use ada_judge_public_models::testing::get_lang_str;
 use ada_judge_public_models::{
     testing::{Submission, SubmissonRequest},
     verdicts::TotalVerdict,
@@ -11,7 +12,7 @@ use axum::{
     http::StatusCode,
 };
 use database::tools::MapDbExt;
-use models::testing::{SubmissionTask, get_lang_str};
+use models::testing::SubmissionTask;
 use std::{path::PathBuf, sync::Arc};
 use tokio::{
     fs::{self, File},

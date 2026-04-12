@@ -76,7 +76,7 @@ pub async fn create_contest(
 ) -> Result<Json<i64>, StatusCode> {
     if auth.admin_level < AdminLevel::AdminI {
         Err(StatusCode::FORBIDDEN)
-    } else if request.starts_at <= request.ends_at {
+    } else if request.starts_at >= request.ends_at {
         Err(StatusCode::BAD_REQUEST)
     } else {
         Ok(Json(

@@ -25,10 +25,6 @@ pub async fn get_run_solution_verdict(
     let stdout_file = File::create(tests_paths.output.clone())
         .await
         .map_log(TotalVerdict::InvalidProblem)?;
-    log::info!("Open stderr file");
-    let stderr_file = File::create(tests_paths.error.clone())
-        .await
-        .map_log(TotalVerdict::InvalidProblem)?;
 
     log::info!("Run solution cmd");
     let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
@@ -61,12 +57,13 @@ pub async fn get_run_solution_verdict(
             "/sandbox",
             &sandbox_image,
             "timeout",
+            "-s",
+            "KILL",
             &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(stdin_file.into_std().await))
         .stdout(Stdio::from(stdout_file.into_std().await))
-        .stderr(Stdio::from(stderr_file.into_std().await))
         .status();
 
     let solution_status = solution_cmd.await;

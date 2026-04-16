@@ -24,14 +24,12 @@ use solution_compiler::compile_solution;
 use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;
 use std::path::Path;
-use test_env_preparer::prepare_test_env;
 use tokio::fs::read_to_string;
 
 mod checker_runner;
 mod constants;
 mod solution_compiler;
 mod solution_runner;
-mod test_env_preparer;
 mod tools;
 
 async fn get_single_test_verdict(
@@ -146,7 +144,6 @@ pub async fn test_submission(
     .await?;
 
     let problem_id = submission.problem_id;
-    let problem_path = submission.problem_path.clone();
     let run_path = submission.run_dir.clone();
 
     log::info!("Load problem's config");
@@ -163,16 +160,15 @@ pub async fn test_submission(
         .await?;
 
     log::info!("Create tests paths");
-    let tests_paths = TestsPaths::new(&run_path, &config, &submission.lang);
+    let tests_paths = TestsPaths::new(
+        &submission.problem_path,
+        &run_path,
+        &config,
+        &submission.lang,
+    );
 
     log::info!("Compile solution");
-    compile_solution(&tests_paths, &submission)
-        .await
-        .map_db(&pool, submission_id)
-        .await?;
-
-    log::info!("Prepare test env");
-    prepare_test_env(problem_path, &config, &tests_paths)
+    compile_solution(&run_path, &tests_paths, &submission)
         .await
         .map_db(&pool, submission_id)
         .await?;

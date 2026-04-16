@@ -279,7 +279,7 @@ async fn test_ok_no_deps(pool: PgPool) {
         "ok",
         TotalVerdict::Ok,
         SubgroupVerdict::Ok,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_1(
@@ -307,7 +307,7 @@ async fn test_wa_no_deps(pool: PgPool) {
         "wa",
         TotalVerdict::PartialSolution,
         SubgroupVerdict::WrongAnswer,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_1(
@@ -335,7 +335,7 @@ async fn test_tle_no_deps(pool: PgPool) {
         "tle",
         TotalVerdict::PartialSolution,
         SubgroupVerdict::TimeLimitExceeded,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_1(
@@ -363,7 +363,7 @@ async fn test_mle_no_deps(pool: PgPool) {
         "mle",
         TotalVerdict::PartialSolution,
         SubgroupVerdict::MemoryLimitExceeded,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_1(
@@ -391,7 +391,7 @@ async fn test_re_no_deps(pool: PgPool) {
         "re",
         TotalVerdict::PartialSolution,
         SubgroupVerdict::RuntimeError,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_1(
@@ -419,7 +419,7 @@ async fn test_ok_with_deps(pool: PgPool) {
         "ok",
         TotalVerdict::Ok,
         SubgroupVerdict::Ok,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_2(
@@ -447,7 +447,7 @@ async fn test_wa_with_deps(pool: PgPool) {
         "wa",
         TotalVerdict::PartialSolution,
         SubgroupVerdict::WrongAnswer,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_2(
@@ -475,7 +475,7 @@ async fn test_tle_with_deps(pool: PgPool) {
         "tle",
         TotalVerdict::PartialSolution,
         SubgroupVerdict::TimeLimitExceeded,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_2(
@@ -503,7 +503,7 @@ async fn test_mle_with_deps(pool: PgPool) {
         "mle",
         TotalVerdict::PartialSolution,
         SubgroupVerdict::MemoryLimitExceeded,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_2(
@@ -531,7 +531,7 @@ async fn test_re_with_deps(pool: PgPool) {
         "re",
         TotalVerdict::PartialSolution,
         SubgroupVerdict::RuntimeError,
-        Language::Clang,
+        Language::Clangpp,
     )
     .await;
     test_2(
@@ -547,13 +547,13 @@ async fn test_re_with_deps(pool: PgPool) {
 #[sqlx::test(migrations = "../../migrations")]
 async fn test_incorrect_deps(pool: PgPool) {
     test_3(&pool, Language::Rust).await;
-    test_3(&pool, Language::Clang).await;
+    test_3(&pool, Language::Clangpp).await;
     test_3(&pool, Language::Go).await;
 }
 
 #[sqlx::test(migrations = "../../migrations")]
 async fn test_ce(pool: PgPool) {
     test_ce_common(&pool, Language::Rust).await;
-    test_ce_common(&pool, Language::Clang).await;
+    test_ce_common(&pool, Language::Clangpp).await;
     test_ce_common(&pool, Language::Go).await;
 }

@@ -1,33 +1,109 @@
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
+
 use ada_judge_public_models::{testing::Language, verdicts::TotalVerdict};
 use models::testing::{SubmissionTask, TestsPaths};
 use tokio::process::Command;
 use tools::map::MapLogExt;
 
+use crate::tools::convert_path_in_container_to_path_in_host;
+
 pub async fn compile_solution(
+    run_path: &Path,
     tests_paths: &TestsPaths,
     submission: &SubmissionTask,
 ) -> Result<(), TotalVerdict> {
-    let mut compile_cmd = Command::new(match submission.lang {
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+
+    let compile_cmd = match submission.lang {
         Language::Clang => "clang",
         Language::Clangpp => "clang++",
         Language::Go => "go",
         Language::Rust => "rustc",
-    });
-    let compile_cmd = match submission.lang {
-        Language::Clang | Language::Clangpp => compile_cmd
-            .args(["-O2", "-pipe", "-march=native", "-flto", "-s"])
-            .arg(&tests_paths.solution_source)
-            .arg("-o")
-            .arg(&tests_paths.solution),
-        Language::Go => compile_cmd
-            .args(["build", "-o"])
-            .args([&tests_paths.solution, &tests_paths.solution_source]),
-        Language::Rust => compile_cmd
-            .arg(&tests_paths.solution_source)
-            .args(["-O", "-C", "target-cpu=native", "-C", "lto", "-o"])
-            .arg(&tests_paths.solution),
     };
-    let mut compile_cmd = compile_cmd
+    let solution_source_path = PathBuf::from("env")
+        .join(
+            tests_paths
+                .solution_source
+                .file_name()
+                .ok_or(TotalVerdict::Bug)?
+                .to_string_lossy()
+                .to_string(),
+        )
+        .to_string_lossy()
+        .to_string();
+    let solution_path = PathBuf::from("env")
+        .join(
+            tests_paths
+                .solution
+                .file_name()
+                .ok_or(TotalVerdict::Bug)?
+                .to_string_lossy()
+                .to_string(),
+        )
+        .to_string_lossy()
+        .to_string();
+
+    let uid = nix::unistd::Uid::current().as_raw();
+    let gid = nix::unistd::Gid::current().as_raw();
+
+    let mut compile_cmd = Command::new("docker")
+        .args([
+            "run",
+            "--rm",
+            "--init",
+            "--network",
+            "none",
+            "--cpus",
+            "0.5",
+            "--pids-limit",
+            "32",
+            "--cap-drop",
+            "ALL",
+            "-i",
+            "--security-opt",
+            "no-new-privileges",
+            "--user",
+            &format!("{}:{}", uid, gid),
+            "-v",
+            &format!(
+                "{}:/sandbox/env",
+                convert_path_in_container_to_path_in_host(run_path)?.display(),
+            ),
+            "-w",
+            "/sandbox",
+            &sandbox_image,
+        ])
+        .args(match submission.lang {
+            Language::Clang | Language::Clangpp => vec![
+                compile_cmd,
+                "-O2",
+                "-pipe",
+                "-flto",
+                "-s",
+                &solution_source_path,
+                "-o",
+                &solution_path,
+            ],
+            Language::Go => vec![
+                compile_cmd,
+                "build",
+                "-o",
+                &solution_path,
+                &solution_source_path,
+            ],
+            Language::Rust => vec![
+                compile_cmd,
+                &solution_source_path,
+                "-O",
+                "-C",
+                "lto",
+                "-o",
+                &solution_path,
+            ],
+        })
         .spawn()
         .map_log(TotalVerdict::CompilationError)?;
     let compilation_result = compile_cmd

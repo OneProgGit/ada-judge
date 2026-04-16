@@ -63,8 +63,6 @@ impl From<&DatabaseSubmission> for Submission {
 pub struct TestsPaths {
     /// Path to stdout
     pub output: PathBuf,
-    /// Path to stderr
-    pub error: PathBuf,
     /// Path to solution binary
     pub solution: PathBuf,
     /// Path to solution source file
@@ -78,14 +76,18 @@ pub struct TestsPaths {
 impl TestsPaths {
     /// Create new test's path based on the run path and config
     #[must_use]
-    pub fn new(run_path: &Path, config: &ProblemConfig, lang: &Language) -> Self {
+    pub fn new(
+        problem_path: &Path,
+        run_path: &Path,
+        config: &ProblemConfig,
+        lang: &Language,
+    ) -> Self {
         Self {
             output: run_path.join("stdout"),
-            error: run_path.join("stderr"),
             solution: run_path.join("run"),
             solution_source: run_path.join(format!("run.{}", get_lang_str(lang))),
-            checker: run_path.join(config.checker_path.clone()),
-            tests: run_path.join(config.tests_path.clone()),
+            checker: problem_path.join(config.checker_path.clone()),
+            tests: problem_path.join(config.tests_path.clone()),
         }
     }
 }

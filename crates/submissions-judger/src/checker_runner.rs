@@ -10,9 +10,8 @@ use models::testing::TestsPaths;
 use std::{
     env,
     path::{Path, PathBuf},
-    process::Stdio,
 };
-use tokio::{fs::File, process::Command};
+use tokio::process::Command;
 use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
@@ -22,12 +21,6 @@ pub async fn get_checker_result(
     answer_path: PathBuf,
     tests_paths: &TestsPaths,
 ) -> Result<SubgroupVerdict, TotalVerdict> {
-    log::info!("Open stderr file");
-
-    let stderr_file = File::create(tests_paths.error.clone())
-        .await
-        .map_log(TotalVerdict::InvalidProblem)?;
-
     log::info!("Run checker cmd");
     let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
 
@@ -74,13 +67,14 @@ pub async fn get_checker_result(
             "/sandbox",
             &sandbox_image,
             "timeout",
+            "-s",
+            "KILL",
             &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",
             "/sandbox/answer",
         ])
-        .stderr(Stdio::from(stderr_file.into_std().await))
         .status();
 
     let checker_status = checker_cmd.await;

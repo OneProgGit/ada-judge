@@ -6,8 +6,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "1111:5432"
     volumes:
       - pgdata:/var/lib/postgresql/18/docker
   redis:
@@ -17,8 +15,6 @@ services:
       REDIS_USER: ${REDIS_USER}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       REDIS_USER_PASSWORD: ${REDIS_USER_PASSWORD}
-    ports:
-      - "2222:6379"
     command: >
       sh -c '
         mkdir -p /usr/local/etc/redis &&

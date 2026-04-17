@@ -1,5 +1,5 @@
 use crate::{app_state::AppState, middleware::auth::Auth};
-use ada_judge_public_models::testing::get_lang_str;
+use ada_judge_public_models::testing::get_language_file_extension;
 use ada_judge_public_models::{
     testing::{Submission, SubmissonRequest},
     verdicts::TotalVerdict,
@@ -114,10 +114,14 @@ pub async fn push_submission_to_queue(
 
     log::info!("Push to queue: {submission:?}");
 
-    let submission_id =
-        database::submissions::insert_submission(&state.db, user.id, submission.problem_id)
-            .await
-            .map_http()?;
+    let submission_id = database::submissions::insert_submission(
+        &state.db,
+        user.id,
+        submission.problem_id,
+        &submission.language,
+    )
+    .await
+    .map_http()?;
 
     log::info!("Create env dir");
     let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());
@@ -129,7 +133,10 @@ pub async fn push_submission_to_queue(
         .map_http()?;
 
     log::info!("Create submission file");
-    let run_path = run_dir.join(format!("run.{}", get_lang_str(&submission.lang)));
+    let run_path = run_dir.join(format!(
+        "run.{}",
+        get_language_file_extension(&submission.language)
+    ));
     let mut run_file = File::create(run_path)
         .await
         .map_log(TotalVerdict::Bug)
@@ -149,7 +156,7 @@ pub async fn push_submission_to_queue(
         problem_id: submission.problem_id,
         id: submission_id,
         run_dir,
-        lang: submission.lang,
+        language: submission.language,
     };
 
     state

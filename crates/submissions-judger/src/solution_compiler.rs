@@ -17,11 +17,12 @@ pub async fn compile_solution(
 ) -> Result<(), TotalVerdict> {
     let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
 
-    let compile_cmd = match submission.lang {
+    let compile_cmd = match submission.language {
         Language::Clang => "clang",
         Language::Clangpp => "clang++",
         Language::Go => "go",
         Language::Rust => "rustc",
+        Language::Unknown => return Err(TotalVerdict::InvalidRequest),
     };
     let solution_source_path = PathBuf::from("env")
         .join(
@@ -76,7 +77,7 @@ pub async fn compile_solution(
             "/sandbox",
             &sandbox_image,
         ])
-        .args(match submission.lang {
+        .args(match submission.language {
             Language::Clang | Language::Clangpp => vec![
                 compile_cmd,
                 "-O2",
@@ -103,6 +104,7 @@ pub async fn compile_solution(
                 "-o",
                 &solution_path,
             ],
+            Language::Unknown => unreachable!(),
         })
         .spawn()
         .map_log(TotalVerdict::CompilationError)?;

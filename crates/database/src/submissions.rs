@@ -1,7 +1,7 @@
 //! Database tools for submissions
 
 use ada_judge_public_models::{
-    testing::SubgroupResult,
+    testing::{Language, SubgroupResult},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use models::testing::DatabaseSubmission;
@@ -15,13 +15,15 @@ pub async fn insert_submission(
     pool: &PgPool,
     user_id: i64,
     problem_id: i64,
+    language: &Language,
 ) -> Result<i64, TotalVerdict> {
     let submission_id = sqlx::query_scalar(
-        "insert into submissions (problem_id, user_id, total_verdict, total_score)
-          values ($1, $2, $3, $4) returning id",
+        "insert into submissions (problem_id, user_id, language, total_verdict, total_score)
+          values ($1, $2, $3, $4, $5) returning id",
     )
     .bind(problem_id)
     .bind(user_id)
+    .bind(language)
     .bind(TotalVerdict::Pending)
     .bind(0)
     .fetch_one(pool)
@@ -116,6 +118,7 @@ pub async fn get_all_user_submissions(
                 c.id,
                 c.problem_id,
                 c.user_id,
+                c.language,
                 c.total_verdict,
                 c.total_score,
                 c.created_at,
@@ -135,6 +138,7 @@ pub async fn get_all_user_submissions(
             group by c.id,
                 c.problem_id,
                 c.user_id,
+                c.language,
                 c.total_verdict,
                 c.total_score,
                 c.created_at",
@@ -160,6 +164,7 @@ pub async fn get_contest_user_submissions(
                 c.id,
                 c.problem_id,
                 c.user_id,
+                c.language,
                 c.total_verdict,
                 c.total_score,
                 c.created_at,
@@ -180,6 +185,7 @@ pub async fn get_contest_user_submissions(
             group by c.id,
                 c.problem_id,
                 c.user_id,
+                c.language,
                 c.total_verdict,
                 c.total_score,
                 c.created_at",
@@ -206,6 +212,7 @@ pub async fn get_problem_user_submissions(
                 c.id,
                 c.problem_id,
                 c.user_id,
+                c.language,
                 c.total_verdict,
                 c.total_score,
                 c.created_at,
@@ -225,6 +232,7 @@ pub async fn get_problem_user_submissions(
             group by c.id,
                 c.problem_id,
                 c.user_id,
+                c.language,
                 c.total_verdict,
                 c.total_score,
                 c.created_at",

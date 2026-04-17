@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::{app_state::AppState, middleware::auth::Auth};
+use crate::{
+    app_state::AppState,
+    middleware::{auth::Auth, contests::check_contest_started_common},
+};
 use ada_judge_public_models::{
     contests::{CreateContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,
@@ -49,14 +52,18 @@ pub async fn get_problem_by_id(
 
 pub async fn get_contest_by_id(
     State(state): State<Arc<AppState>>,
+    Auth(auth): Auth,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<PublicContestConfig>, StatusCode> {
-    Ok(Json(
+    let mut contest: PublicContestConfig =
         database::contests::get_contest_by_id(&state.db, contest_id)
             .await
             .map_http()?
-            .into(),
-    ))
+            .into();
+    if let Err(_) = check_contest_started_common(&state.db, contest_id, auth.admin_level).await {
+        contest.statements_url = String::default();
+    }
+    Ok(Json(contest))
 }
 
 pub async fn get_contests(
@@ -74,7 +81,7 @@ pub async fn create_contest(
     Auth(auth): Auth,
     Json(request): Json<CreateContestRequest>,
 ) -> Result<Json<i64>, StatusCode> {
-    if auth.admin_level < AdminLevel::AdminI {
+    if auth.admin_level < AdminLevel::AdminII {
         Err(StatusCode::FORBIDDEN)
     } else if request.starts_at >= request.ends_at {
         Err(StatusCode::BAD_REQUEST)

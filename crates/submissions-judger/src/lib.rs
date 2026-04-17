@@ -164,7 +164,7 @@ pub async fn test_submission(
         &submission.problem_path,
         &run_path,
         &config,
-        &submission.lang,
+        &submission.language,
     );
 
     log::info!("Compile solution");

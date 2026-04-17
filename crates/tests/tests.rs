@@ -5,7 +5,7 @@
 #![forbid(unsafe_code)]
 
 use ada_judge_public_models::{
-    testing::{Language, SubgroupResult, TotalResult, get_lang_str},
+    testing::{Language, SubgroupResult, TotalResult, get_language_file_extension},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use apalis::prelude::Data;
@@ -20,10 +20,10 @@ async fn test_1(
     solution_name: &str,
     total_verdict: TotalVerdict,
     verdict: SubgroupVerdict,
-    lang: Language,
+    language: Language,
 ) {
     let env_path = tempdir().unwrap();
-    let lang_str = get_lang_str(&lang);
+    let lang_str = get_language_file_extension(&language);
 
     fs::copy(
         &format!("solutions/{lang_str}/{solution_name}.{lang_str}"),
@@ -38,7 +38,7 @@ async fn test_1(
         problem_path: format!("../../problems/{problem_id}").into(),
         problem_id,
         run_dir: env_path.path().to_path_buf(),
-        lang,
+        language,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
@@ -94,10 +94,10 @@ async fn test_2(
     solution_name: &str,
     total_verdict: TotalVerdict,
     verdict: SubgroupVerdict,
-    lang: Language,
+    language: Language,
 ) {
     let env_path = tempdir().unwrap();
-    let lang_str = get_lang_str(&lang);
+    let lang_str = get_language_file_extension(&language);
 
     fs::copy(
         &format!("solutions/{lang_str}/{solution_name}.{lang_str}"),
@@ -112,7 +112,7 @@ async fn test_2(
         problem_path: format!("../../problems/{problem_id}").into(),
         problem_id,
         run_dir: env_path.path().to_path_buf(),
-        lang,
+        language,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
@@ -170,9 +170,9 @@ async fn test_2(
     assert_eq!(subgroups_results[2].subgroup_verdict, verdict);
 }
 
-async fn test_3(pool: &PgPool, lang: Language) {
+async fn test_3(pool: &PgPool, language: Language) {
     let env_path = tempdir().unwrap();
-    let lang_str = get_lang_str(&lang);
+    let lang_str = get_language_file_extension(&language);
 
     fs::copy(
         format!("solutions/{lang_str}/ok.{lang_str}"),
@@ -185,7 +185,7 @@ async fn test_3(pool: &PgPool, lang: Language) {
         problem_path: "../../problems/3".into(),
         problem_id: 3,
         run_dir: env_path.path().to_path_buf(),
-        lang,
+        language,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")
@@ -217,9 +217,9 @@ async fn test_3(pool: &PgPool, lang: Language) {
     assert_eq!(total_result.total_verdict, TotalVerdict::InvalidProblem);
 }
 
-async fn test_ce_common(pool: &PgPool, lang: Language) {
+async fn test_ce_common(pool: &PgPool, language: Language) {
     let env_path = tempdir().unwrap();
-    let lang_str = get_lang_str(&lang);
+    let lang_str = get_language_file_extension(&language);
 
     fs::copy(
         format!("solutions/{lang_str}/ce.{lang_str}"),
@@ -232,7 +232,7 @@ async fn test_ce_common(pool: &PgPool, lang: Language) {
         problem_path: "../../problems/1".into(),
         problem_id: 1,
         run_dir: env_path.path().to_path_buf(),
-        lang,
+        language,
         id: 0,
     };
     let id: i64 = sqlx::query_scalar("insert into submissions (problem_id, user_id, total_verdict, total_score) values ($1, $2, $3, $4) returning id")

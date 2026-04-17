@@ -11,7 +11,7 @@ use axum::{
 use chrono::Utc;
 use sqlx::PgPool;
 
-async fn check_contest_started_common(
+pub async fn check_contest_started_common(
     pool: &PgPool,
     contest_id: i64,
     admin_level: AdminLevel,

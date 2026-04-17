@@ -31,6 +31,8 @@ pub struct ContestConfig {
     pub owner_id: Option<i64>,
     /// Contest's name
     pub name: String,
+    /// Url to contest's statements
+    pub statements_url: String,
     /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending
@@ -46,6 +48,8 @@ pub struct PublicContestConfig {
     pub owner_id: Option<i64>,
     /// Contest's name
     pub name: String,
+    /// Url to contest's statements
+    pub statements_url: String,
     /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending

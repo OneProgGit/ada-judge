@@ -2,7 +2,7 @@
 
 use ada_judge_public_models::{
     problems::ProblemConfig,
-    testing::{Language, SubgroupResult, Submission, get_lang_str},
+    testing::{Language, SubgroupResult, Submission, get_language_file_extension},
     verdicts::TotalVerdict,
 };
 use chrono::{DateTime, Utc};
@@ -21,8 +21,8 @@ pub struct SubmissionTask {
     pub id: i64,
     /// Test environment's paths
     pub run_dir: PathBuf,
-    /// Submission's file language
-    pub lang: Language,
+    /// Submission's language
+    pub language: Language,
 }
 
 /// Submission data for database
@@ -34,6 +34,8 @@ pub struct DatabaseSubmission {
     pub problem_id: i64,
     /// User's id
     pub user_id: i64,
+    /// Submission's language
+    pub language: Language,
     /// Total submission's testing verdict
     pub total_verdict: TotalVerdict,
     /// Total submission's score
@@ -50,6 +52,7 @@ impl From<&DatabaseSubmission> for Submission {
             id: value.id,
             problem_id: value.problem_id,
             user_id: value.user_id,
+            language: value.language.clone(),
             total_verdict: value.total_verdict.clone(),
             total_score: value.total_score,
             created_at: value.created_at,
@@ -85,7 +88,7 @@ impl TestsPaths {
         Self {
             output: run_path.join("stdout"),
             solution: run_path.join("run"),
-            solution_source: run_path.join(format!("run.{}", get_lang_str(lang))),
+            solution_source: run_path.join(format!("run.{}", get_language_file_extension(lang))),
             checker: problem_path.join(config.checker_path.clone()),
             tests: problem_path.join(config.tests_path.clone()),
         }

@@ -1,7 +1,8 @@
 use crate::crypt::get_password_hash;
 use crate::jwt::create_jwt;
+use crate::middleware::auth::Auth;
 use crate::{app_state::AppState, crypt::verify_password};
-use ada_judge_public_models::users::{LoginRequest, RegisterRequest};
+use ada_judge_public_models::users::{DeleteAccountRequest, LoginRequest, RegisterRequest};
 use ada_judge_public_models::verdicts::TotalVerdict;
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
@@ -76,4 +77,31 @@ pub async fn login(
         StatusCode::OK,
         Json(create_jwt(&claims, &secret).map_http()?),
     ))
+}
+
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+pub async fn delete_account(
+    State(state): State<Arc<AppState>>,
+    Auth(auth): Auth,
+    Json(request): Json<DeleteAccountRequest>,
+) -> Result<(), StatusCode> {
+    if request.login != auth.login
+        || request.password != request.password_confirmation
+        || !request.deletion_confirmation
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    log::info!("Verify password");
+    let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
+
+    if !is_valid_password {
+        log::error!("Invalid password");
+        Err(StatusCode::BAD_REQUEST)
+    } else {
+        database::auth::delete_user(&state.db, auth.id)
+            .await
+            .map_http()?;
+        Ok(())
+    }
 }

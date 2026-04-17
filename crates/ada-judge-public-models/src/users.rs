@@ -25,6 +25,19 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+/// Delete account request called from frontend
+#[derive(Clone, Debug, Deserialize)]
+pub struct DeleteAccountRequest {
+    /// Login
+    pub login: String,
+    /// Password
+    pub password: String,
+    /// Password confirmation
+    pub password_confirmation: String,
+    /// Deletion confirmation
+    pub deletion_confirmation: bool,
+}
+
 /// Admin level
 #[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize, PartialOrd, Ord)]
 #[sqlx(type_name = "admin_level", rename_all = "snake_case")]
@@ -34,9 +47,9 @@ pub enum AdminLevel {
     NotAdmin,
     /// Beta tester: just a status
     BetaTester,
-    /// Admin level I: can create public contests
+    /// Admin level I: TODO
     AdminI,
-    /// Admin level II: can do things in contest in any time
+    /// Admin level II: can create contests and do things in contest in any time
     AdminII,
     /// Admin level III: TODO
     AdminIII,

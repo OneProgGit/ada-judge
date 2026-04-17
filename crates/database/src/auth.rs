@@ -24,6 +24,19 @@ pub async fn create_user(
     Ok(user_id)
 }
 
+/// Deletes a user by given id
+/// # Errors
+/// Returns an error if the user with this id does not exist
+pub async fn delete_user(pool: &PgPool, id: i64) -> Result<(), TotalVerdict> {
+    sqlx::query("delete from users where id = $1")
+        .bind(id)
+        .execute(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
 /// Gets a user with target login
 /// # Errors
 /// Returns an error if the user with this login does not exist

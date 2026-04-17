@@ -11,7 +11,7 @@
 
 use crate::{
     api::{
-        auth::{login, register},
+        auth::{delete_account, login, register},
         contests::{
             create_contest, get_contest_by_id, get_contest_leaderboard, get_contest_problems,
             get_contests, get_problem_by_id,
@@ -36,7 +36,7 @@ use axum::{
     Extension, Router,
     extract::DefaultBodyLimit,
     http::{Method, header},
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use log::LevelFilter;
 use sqlx::postgres::PgPoolOptions;
@@ -81,7 +81,7 @@ async fn main() {
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::DELETE])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     let routes_avaible_after_start_of_contest_1_path_element = Router::new()
@@ -134,6 +134,7 @@ async fn main() {
         )
         .route("/users/{user_id}", get(get_public_user_profile))
         .route("/users/me", get(get_private_user_profile))
+        .route("/users/me/delete_account", delete(delete_account))
         .route("/contests", get(get_contests))
         .route("/contests/{contest_id}", get(get_contest_by_id))
         .route("/contests/new", post(create_contest))

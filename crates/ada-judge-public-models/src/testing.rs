@@ -5,7 +5,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Submission's language variants
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "language", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum Language {
     /// clang++ compiler
     Clangpp,
@@ -15,16 +17,19 @@ pub enum Language {
     Go,
     /// rustc compiler
     Rust,
+    /// Unknown language
+    Unknown,
 }
 
 /// Returns a file extension for a language
 #[must_use]
-pub const fn get_lang_str(lang: &Language) -> &'static str {
-    match lang {
+pub const fn get_language_file_extension(language: &Language) -> &'static str {
+    match language {
         Language::Clang => "c",
         Language::Clangpp => "cpp",
         Language::Go => "go",
         Language::Rust => "rs",
+        Language::Unknown => "!!",
     }
 }
 
@@ -33,8 +38,8 @@ pub const fn get_lang_str(lang: &Language) -> &'static str {
 pub struct SubmissonRequest {
     /// Target problem's id
     pub problem_id: i64,
-    /// Submission's file language
-    pub lang: Language,
+    /// Submission's language
+    pub language: Language,
 }
 
 /// Total testing result
@@ -66,6 +71,8 @@ pub struct Submission {
     pub problem_id: i64,
     /// User's id
     pub user_id: i64,
+    /// Submission's language
+    pub language: Language,
     /// Total submission's testing verdict
     pub total_verdict: TotalVerdict,
     /// Total submission's score

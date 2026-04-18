@@ -110,9 +110,9 @@ pub async fn get_contest_by_id(
         .map_log(TotalVerdict::InvalidRequest)
 }
 
-/// Creates a contest with given contest data
+/// Creates a contest by given contest data
 /// # Errors
-/// Returns an error if `owner_id` is incorrect
+/// Returns an error if `owner_id` is invalid
 pub async fn create_contest(
     pool: &PgPool,
     owner_id: i64,
@@ -132,4 +132,26 @@ pub async fn create_contest(
     .map_log(TotalVerdict::InvalidRequest)?;
 
     Ok(contest_id)
+}
+
+/// Updates a contest by given contest id and contest data
+/// # Errors
+/// Returns an error if `contest_id` is invalid
+pub async fn update_contest(
+    pool: &PgPool,
+    contest_id: i64,
+    name: &str,
+    starts_at: &DateTime<Utc>,
+    ends_at: &DateTime<Utc>,
+) -> Result<(), TotalVerdict> {
+    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3 where id = $4")
+        .bind(name)
+        .bind(starts_at)
+        .bind(ends_at)
+        .bind(contest_id)
+        .execute(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
 }

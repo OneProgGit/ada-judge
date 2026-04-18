@@ -14,7 +14,7 @@ use crate::{
         auth::{delete_account, login, register},
         contests::{
             create_contest, get_contest_by_id, get_contest_leaderboard, get_contest_problems,
-            get_contests, get_problem_by_id,
+            get_contests, get_problem_by_id, update_contest,
         },
         submissions::{
             get_all_user_submisssions, get_contest_user_submissions, get_problem_user_submissions,
@@ -36,7 +36,7 @@ use axum::{
     Extension, Router,
     extract::DefaultBodyLimit,
     http::{Method, header},
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
 };
 use log::LevelFilter;
 use sqlx::postgres::PgPoolOptions;
@@ -90,6 +90,7 @@ async fn main() {
             state.clone(),
             check_contest_started,
         ));
+
     let routes_avaible_after_start_of_contest_2_path_elements = Router::new()
         .route(
             "/contests/{contest_id}/problems/{problem_id}",
@@ -137,6 +138,7 @@ async fn main() {
         .route("/users/me/delete_account", delete(delete_account))
         .route("/contests", get(get_contests))
         .route("/contests/{contest_id}", get(get_contest_by_id))
+        .route("/contests/{contest_id}/update", patch(update_contest))
         .route("/contests/new", post(create_contest))
         .merge(routes_avaible_after_start_of_contest_1_path_element)
         .merge(routes_avaible_after_start_of_contest_2_path_elements)

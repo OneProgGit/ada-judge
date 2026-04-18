@@ -14,9 +14,9 @@ pub struct LeaderboardRow {
     pub total_score: i64,
 }
 
-/// Request for creating a contest
+/// Request for creating/updating a contest
 #[derive(Clone, Debug, Deserialize)]
-pub struct CreateContestRequest {
+pub struct ContestRequest {
     /// Contest's name
     pub name: String,
     /// Timestamp of contest beginning

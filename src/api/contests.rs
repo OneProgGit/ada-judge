@@ -5,7 +5,7 @@ use crate::{
     middleware::{auth::Auth, contests::check_contest_started_common},
 };
 use ada_judge_public_models::{
-    contests::{CreateContestRequest, LeaderboardRow, PublicContestConfig},
+    contests::{ContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,
     users::AdminLevel,
 };
@@ -79,7 +79,7 @@ pub async fn get_contests(
 pub async fn create_contest(
     State(state): State<Arc<AppState>>,
     Auth(auth): Auth,
-    Json(request): Json<CreateContestRequest>,
+    Json(request): Json<ContestRequest>,
 ) -> Result<Json<i64>, StatusCode> {
     if auth.admin_level < AdminLevel::AdminII {
         Err(StatusCode::FORBIDDEN)
@@ -97,5 +97,29 @@ pub async fn create_contest(
             .await
             .map_http()?,
         ))
+    }
+}
+
+pub async fn update_contest(
+    State(state): State<Arc<AppState>>,
+    Path(contest_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<ContestRequest>,
+) -> Result<(), StatusCode> {
+    if auth.admin_level < AdminLevel::AdminII {
+        Err(StatusCode::FORBIDDEN)
+    } else if request.starts_at >= request.ends_at {
+        Err(StatusCode::BAD_REQUEST)
+    } else {
+        database::contests::update_contest(
+            &state.db,
+            contest_id,
+            &request.name,
+            &request.starts_at,
+            &request.ends_at,
+        )
+        .await
+        .map_http()?;
+        Ok(())
     }
 }

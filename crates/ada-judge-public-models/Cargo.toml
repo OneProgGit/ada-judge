@@ -1,11 +1,15 @@
 [package]
 name = "ada-judge-public-models"
-version = "0.4.0"
+version = "0.5.0"
 description = "Public (shared) models of ada-judge for using in frontends"
 license = "MIT"
 edition = "2024"
 
 [dependencies]
-sqlx.workspace = true
 serde.workspace = true
 chrono.workspace = true
+sqlx.workspace = true
+sqlx.optional = true
+
+[features]
+db = ["sqlx"]

@@ -39,8 +39,12 @@ pub struct DeleteAccountRequest {
 }
 
 /// Admin level
-#[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize, PartialOrd, Ord)]
-#[sqlx(type_name = "admin_level", rename_all = "snake_case")]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, PartialOrd, Ord)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::Type))]
+#[cfg_attr(
+    not(target_arch = "wasm32"),
+    sqlx(type_name = "admin_level", rename_all = "snake_case")
+)]
 #[serde(rename_all = "snake_case")]
 pub enum AdminLevel {
     /// Not admin: can create private contests only

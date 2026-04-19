@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /// Problem's config
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ProblemConfig {
-    /// Problem's owner's auser id (optional)
+    /// Problem's owner's user id (optional)
     pub owner_id: Option<i64>,
     /// Problems's contest id
     pub contest_id: i64,
@@ -26,7 +26,8 @@ pub struct ProblemConfig {
 }
 
 /// Problem config visible for all users
-#[derive(Deserialize, Serialize, Clone, Debug, sqlx::FromRow)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct PublicProblemConfig {
     /// Problem's id
     pub id: i64,
@@ -47,7 +48,8 @@ pub struct PublicProblemConfig {
 }
 
 /// Testing subgroup
-#[derive(Deserialize, Serialize, Debug, Clone, sqlx::FromRow)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Subgroup {
     /// Subgroup's type
     pub r#type: SubgroupType,
@@ -61,8 +63,12 @@ pub struct Subgroup {
 }
 
 /// Subgroup's type
-#[derive(Deserialize, Serialize, Debug, Clone, sqlx::Type)]
-#[sqlx(type_name = "subgroup_type", rename_all = "snake_case")]
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::Type))]
+#[cfg_attr(
+    not(target_arch = "wasm32"),
+    sqlx(type_name = "subgroup_type", rename_all = "snake_case")
+)]
 #[serde(rename_all = "snake_case")]
 pub enum SubgroupType {
     /// Don't count score for this subgroup

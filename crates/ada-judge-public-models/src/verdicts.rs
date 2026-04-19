@@ -4,8 +4,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Subgroup's verdict
-#[derive(Clone, Default, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
-#[sqlx(type_name = "subgroup_verdict", rename_all = "snake_case")]
+#[derive(Clone, Default, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::Type))]
+#[cfg_attr(
+    not(target_arch = "wasm32"),
+    sqlx(type_name = "subgroup_verdict", rename_all = "snake_case")
+)]
 #[serde(rename_all = "snake_case")]
 pub enum SubgroupVerdict {
     /// Ok, full score
@@ -49,8 +53,12 @@ impl fmt::Display for SubgroupVerdict {
 impl std::error::Error for SubgroupVerdict {}
 
 /// Total testing verdict
-#[derive(Clone, PartialEq, Eq, sqlx::Type, Debug, Serialize, Deserialize)]
-#[sqlx(type_name = "total_verdict", rename_all = "snake_case")]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::Type))]
+#[cfg_attr(
+    not(target_arch = "wasm32"),
+    sqlx(type_name = "total_verdict", rename_all = "snake_case")
+)]
 #[serde(rename_all = "snake_case")]
 pub enum TotalVerdict {
     /// Ok, full score

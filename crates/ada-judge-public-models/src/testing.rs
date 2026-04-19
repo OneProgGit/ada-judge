@@ -5,8 +5,12 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Submission's language variants
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "language", rename_all = "snake_case")]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::Type))]
+#[cfg_attr(
+    not(target_arch = "wasm32"),
+    sqlx(type_name = "language", rename_all = "snake_case")
+)]
 #[serde(rename_all = "snake_case")]
 pub enum Language {
     /// clang++ compiler
@@ -43,7 +47,8 @@ pub struct SubmissonRequest {
 }
 
 /// Total testing result
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct TotalResult {
     /// Total submission's testing verdict
     pub total_verdict: TotalVerdict,
@@ -52,7 +57,8 @@ pub struct TotalResult {
 }
 
 /// Subgroup result, including verdict, test of that verdict, score and checker's message
-#[derive(Clone, Debug, Default, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct SubgroupResult {
     /// Subgroup's verdict
     pub subgroup_verdict: SubgroupVerdict,
@@ -63,7 +69,8 @@ pub struct SubgroupResult {
 }
 
 /// Submission data
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Submission {
     /// Submission's id
     pub id: i64,

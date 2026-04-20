@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Leaderboard single row
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "db", derive(sqlx::FromRow))]
 pub struct LeaderboardRow {
     /// User id
@@ -16,7 +16,7 @@ pub struct LeaderboardRow {
 }
 
 /// Request for creating/updating a contest
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ContestRequest {
     /// Contest's name
     pub name: String,

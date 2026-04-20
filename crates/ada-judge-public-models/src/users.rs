@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Register request called from frontend
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegisterRequest {
     /// Login
     pub login: String,
@@ -17,7 +17,7 @@ pub struct RegisterRequest {
 }
 
 /// Login request called from frontend
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
     /// Login
     pub login: String,
@@ -26,7 +26,7 @@ pub struct LoginRequest {
 }
 
 /// Delete account request called from frontend
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DeleteAccountRequest {
     /// Login
     pub login: String,

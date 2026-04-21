@@ -81,7 +81,13 @@ async fn main() {
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::DELETE])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::OPTIONS,
+            Method::DELETE,
+            Method::PATCH,
+        ])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     let routes_avaible_after_start_of_contest_1_path_element = Router::new()

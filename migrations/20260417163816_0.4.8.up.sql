@@ -6,5 +6,5 @@ create type language as enum (
     'unknown'
 );
 
-alter table submissions add column language language default 'unknown';
-alter table contests add column statements_url text;
+alter table submissions add column language language default 'unknown' not null;
+alter table contests add column statements_url text default '' not null;

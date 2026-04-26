@@ -27,7 +27,7 @@ pub struct ProblemConfig {
 
 /// Problem config visible for all users
 #[derive(Deserialize, Serialize, Clone, Debug)]
-#[cfg_attr(feature = "db", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct PublicProblemConfig {
     /// Problem's id
     pub id: i64,
@@ -49,7 +49,7 @@ pub struct PublicProblemConfig {
 
 /// Testing subgroup
 #[derive(Deserialize, Serialize, Debug, Clone)]
-#[cfg_attr(feature = "db", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct Subgroup {
     /// Subgroup's type
     pub r#type: SubgroupType,
@@ -64,9 +64,9 @@ pub struct Subgroup {
 
 /// Subgroup's type
 #[derive(Deserialize, Serialize, Debug, Clone)]
-#[cfg_attr(feature = "db", derive(sqlx::Type))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
-    feature = "db",
+    feature = "sqlx",
     sqlx(type_name = "subgroup_type", rename_all = "snake_case")
 )]
 #[serde(rename_all = "snake_case")]

@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 
 /// Submission's language variants
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "db", derive(sqlx::Type))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
-    feature = "db",
+    feature = "sqlx",
     sqlx(type_name = "language", rename_all = "snake_case")
 )]
 #[serde(rename_all = "snake_case")]
@@ -48,7 +48,7 @@ pub struct SubmissonRequest {
 
 /// Total testing result
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "db", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct TotalResult {
     /// Total submission's testing verdict
     pub total_verdict: TotalVerdict,
@@ -58,7 +58,7 @@ pub struct TotalResult {
 
 /// Subgroup result, including verdict, test of that verdict, score and checker's message
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "db", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct SubgroupResult {
     /// Subgroup's verdict
     pub subgroup_verdict: SubgroupVerdict,
@@ -70,7 +70,7 @@ pub struct SubgroupResult {
 
 /// Submission data
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "db", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct Submission {
     /// Submission's id
     pub id: i64,

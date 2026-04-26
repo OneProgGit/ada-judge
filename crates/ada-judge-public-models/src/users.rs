@@ -40,9 +40,9 @@ pub struct DeleteAccountRequest {
 
 /// Admin level
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, PartialOrd, Ord)]
-#[cfg_attr(feature = "db", derive(sqlx::Type))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
-    feature = "db",
+    feature = "sqlx",
     sqlx(type_name = "admin_level", rename_all = "snake_case")
 )]
 #[serde(rename_all = "snake_case")]

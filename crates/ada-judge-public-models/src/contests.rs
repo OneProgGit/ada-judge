@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// Leaderboard single row
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "db", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct LeaderboardRow {
     /// User id
     pub user_id: i64,

@@ -6,6 +6,9 @@ create type admin_level_new as enum (
 );
 
 alter table users
+set admin_level = 'not_admin';
+
+alter table users
 alter column admin_level type admin_level_new
 using admin_level::text::admin_level_new;
 

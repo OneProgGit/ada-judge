@@ -186,7 +186,7 @@ pub async fn get_contest_user_submissions(
 ) -> Result<Vec<i64>, TotalVerdict> {
     if user_id == -1 {
         sqlx::query_as::<_, (i64,)>(
-            "select id from submissions c
+            "select c.id from submissions c
                 join problems p on p.id = c.problem_id
             where p.contest_id = $1 order by c.id desc",
         )
@@ -197,7 +197,7 @@ pub async fn get_contest_user_submissions(
         .map_log(TotalVerdict::InvalidRequest)
     } else {
         sqlx::query_as::<_, (i64,)>(
-            "select id from submissions c
+            "select c.id from submissions c
                 join problems p on p.id = c.problem_id
             where c.user_id = $1 and p.contest_id = $2 order by c.id desc",
         )

@@ -100,7 +100,7 @@ pub async fn get_problem_user_submissions(
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get problem user submissions");
 
-    let problem = database::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
@@ -158,7 +158,7 @@ pub async fn get_problem_submissions(
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get problem submissions");
 
-    let problem = database::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
@@ -240,7 +240,7 @@ pub async fn push_submission_to_queue(
         return Err(StatusCode::BAD_REQUEST);
     };
 
-    let problem = database::get_problem_by_id(&state.db, submission.problem_id)
+    let problem = database::problems::get_problem_by_id(&state.db, submission.problem_id)
         .await
         .map_http()?;
 

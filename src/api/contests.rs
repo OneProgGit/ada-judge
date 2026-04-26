@@ -12,6 +12,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::Utc;
+use database::contests::get_all_user_contests;
 use tools::map::MapHttpExt;
 
 pub async fn get_contest_leaderboard(
@@ -38,10 +39,10 @@ pub async fn get_contest_problems(
 
 pub async fn get_problem_by_id(
     State(state): State<Arc<AppState>>,
-    Path((_, problem_index)): Path<(i64, i64)>,
+    Path((_, problem_id)): Path<(i64, i64)>,
 ) -> Result<Json<PublicProblemConfig>, StatusCode> {
     Ok(Json(
-        database::get_problem_by_id(&state.db, problem_index)
+        database::problems::get_problem_by_id(&state.db, problem_id)
             .await
             .map_http()?
             .into(),
@@ -78,10 +79,15 @@ pub async fn get_contest_by_id(
 pub async fn get_contests(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
+    Ok(Json(get_all_user_contests(&state.db, -1).await.map_http()?))
+}
+
+pub async fn get_my_contests(
+    State(state): State<Arc<AppState>>,
+    Auth(auth): Auth,
+) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        database::contests::get_contests(&state.db)
-            .await
-            .map_http()?,
+        get_all_user_contests(&state.db, auth.id).await.map_http()?,
     ))
 }
 

@@ -14,8 +14,9 @@ use crate::{
         auth::{delete_my_account, login, register},
         contests::{
             create_contest, get_contest_by_id, get_contest_leaderboard, get_contest_problems,
-            get_contests, get_problem_by_id, update_contest,
+            get_contests, get_my_contests, get_problem_by_id, update_contest,
         },
+        problems::{get_my_problems, get_problems},
         submissions::{
             get_all_my_submissions, get_all_submissions, get_all_user_submissions,
             get_contest_my_submissions, get_contest_submissions, get_contest_user_submissions,
@@ -154,6 +155,8 @@ async fn main() {
             "/submissions/filter/problem/{problem_id}/user/{user_id}",
             get(get_problem_user_submissions),
         )
+        .route("/problems/my", get(get_my_problems))
+        .route("/contests/my", get(get_my_contests))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_user_is_at_least_admin,
@@ -175,6 +178,7 @@ async fn main() {
             "/submissions/filter/user/{user_id}",
             get(get_all_user_submissions),
         )
+        .route("/problems", get(get_problems))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_user_is_owner,

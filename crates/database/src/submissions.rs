@@ -58,7 +58,7 @@ pub async fn update_total_testing_result(
 
 /// Inserts a subgroup's testing result to `submissions_subgroups_results` table
 /// # Errors
-/// Returns an error if `submission_id` is invalid. `TODO`: return an error if `subgroup_index` is out of range
+/// Returns an error if `submission_id` is invalid.
 pub async fn insert_subgroup_testing_result(
     pool: &PgPool,
     submission_id: i64,
@@ -83,7 +83,7 @@ pub async fn insert_subgroup_testing_result(
 
 /// Updates testing result for a subgroup of the problem
 /// # Errors
-/// Returns an error if `submission_id` is invalid. `TODO`: return an error if `subgroup_index` is out of range
+/// Returns an error if `submission_id` is invalid.
 pub async fn update_subgroup_testing_result(
     pool: &PgPool,
     submission_id: i64,

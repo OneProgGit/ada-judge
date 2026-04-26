@@ -85,15 +85,24 @@ pub async fn get_contest_problems(
     .map_log(TotalVerdict::InvalidRequest)
 }
 
-/// Gets all contests starting with new ones
+/// Gets all user's contests. If `user_id` is -1, gets all contests.
 /// # Errors
-/// Returns an error if `contest_id` is invalid
-pub async fn get_contests(pool: &PgPool) -> Result<Vec<i64>, TotalVerdict> {
-    sqlx::query_as::<_, (i64,)>("select id from contests order by id desc")
-        .fetch_all(pool)
-        .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest)
+/// Returns an error if `user_id` is invalid
+pub async fn get_all_user_contests(pool: &PgPool, user_id: i64) -> Result<Vec<i64>, TotalVerdict> {
+    if user_id == -1 {
+        sqlx::query_as::<_, (i64,)>("select id from contests order by id desc")
+            .fetch_all(pool)
+            .await
+            .map(|rows| rows.iter().map(|(id,)| *id).collect())
+            .map_log(TotalVerdict::InvalidRequest)
+    } else {
+        sqlx::query_as::<_, (i64,)>("select id from contests where owner_id = $1 order by id desc")
+            .bind(user_id)
+            .fetch_all(pool)
+            .await
+            .map(|rows| rows.iter().map(|(id,)| *id).collect())
+            .map_log(TotalVerdict::InvalidRequest)
+    }
 }
 
 /// Gets a contest by given id

@@ -17,7 +17,7 @@ use ada_judge_public_models::{
 };
 use apalis::prelude::{BoxDynError, Data};
 use checker_runner::get_checker_result;
-use database::get_problem_by_id;
+use database::problems::get_problem_by_id;
 use database::tools::MapDbExt;
 use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;

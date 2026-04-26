@@ -5,8 +5,7 @@ create type admin_level_new as enum (
     'owner'
 );
 
-alter table users
-set admin_level = 'not_admin';
+update users set admin_level = 'not_admin';
 
 alter table users
 alter column admin_level type admin_level_new

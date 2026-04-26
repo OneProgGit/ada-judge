@@ -1,7 +1,7 @@
 use crate::middleware::contests::check_contest_started_and_not_ended_common;
+use crate::tools::is_allowed;
 use crate::{app_state::AppState, middleware::auth::Auth};
 use ada_judge_public_models::testing::get_language_file_extension;
-use ada_judge_public_models::users::AdminLevel;
 use ada_judge_public_models::{
     testing::{Submission, SubmissonRequest},
     verdicts::TotalVerdict,
@@ -75,8 +75,17 @@ pub async fn get_all_user_submissions(
 pub async fn get_contest_user_submissions(
     State(state): State<Arc<AppState>>,
     Path((contest_id, user_id)): Path<(i64, i64)>,
+    Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get contest user submissions");
+
+    let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     Ok(Json(
         database::submissions::get_contest_user_submissions(&state.db, user_id, contest_id)
             .await
@@ -87,8 +96,22 @@ pub async fn get_contest_user_submissions(
 pub async fn get_problem_user_submissions(
     State(state): State<Arc<AppState>>,
     Path((problem_id, user_id)): Path<(i64, i64)>,
+    Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get problem user submissions");
+
+    let problem = database::get_problem_by_id(&state.db, problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+    {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     Ok(Json(
         database::submissions::get_problem_user_submissions(&state.db, user_id, problem_id)
             .await
@@ -110,8 +133,17 @@ pub async fn get_all_submissions(
 pub async fn get_contest_submissions(
     State(state): State<Arc<AppState>>,
     Path(contest_id): Path<i64>,
+    Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get contest submissions");
+
+    let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     Ok(Json(
         database::submissions::get_contest_user_submissions(&state.db, -1, contest_id)
             .await
@@ -122,8 +154,22 @@ pub async fn get_contest_submissions(
 pub async fn get_problem_submissions(
     State(state): State<Arc<AppState>>,
     Path(problem_id): Path<i64>,
+    Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get problem submissions");
+
+    let problem = database::get_problem_by_id(&state.db, problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+    {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     Ok(Json(
         database::submissions::get_problem_user_submissions(&state.db, -1, problem_id)
             .await
@@ -142,9 +188,8 @@ pub async fn get_submission(
         .await
         .map_http()?
         .into();
-
-    if submission.user_id != auth.id && auth.admin_level != AdminLevel::Owner {
-        Err(StatusCode::BAD_REQUEST)
+    if !is_allowed(auth.id, Some(submission.user_id), &auth.admin_level) {
+        Err(StatusCode::FORBIDDEN)
     } else {
         Ok(Json(submission))
     }
@@ -199,15 +244,16 @@ pub async fn push_submission_to_queue(
         .await
         .map_http()?;
 
-    if let Err(e) = check_contest_started_and_not_ended_common(
+    if check_contest_started_and_not_ended_common(
         &state.db,
         auth.id,
         problem.contest_id,
         auth.admin_level,
     )
     .await
+    .is_err()
     {
-        return Err(e.status());
+        return Err(StatusCode::FORBIDDEN);
     }
 
     log::info!("Push to queue: {submission:?}");

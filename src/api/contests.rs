@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    app_state::AppState,
-    middleware::{auth::Auth, contests::check_contest_started_common},
-};
+use crate::{app_state::AppState, middleware::auth::Auth, tools::is_allowed};
 use ada_judge_public_models::{
     contests::{ContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,
@@ -14,6 +11,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
+use chrono::Utc;
 use tools::map::MapHttpExt;
 
 pub async fn get_contest_leaderboard(
@@ -61,12 +59,19 @@ pub async fn get_contest_by_id(
             .map_http()?
             .into();
 
-    if check_contest_started_common(&state.db, auth.id, contest_id, auth.admin_level)
-        .await
-        .is_err()
-    {
-        contest.statements_url = String::default();
+    let now = Utc::now();
+
+    if now < contest.starts_at {
+        if contest.owner_id.is_none() && auth.admin_level != AdminLevel::Owner {
+            contest.statements_url = String::default();
+        } else if let Some(owner_id) = contest.owner_id
+            && owner_id != auth.id
+            && auth.admin_level != AdminLevel::Owner
+        {
+            contest.statements_url = String::default();
+        }
     }
+
     Ok(Json(contest))
 }
 
@@ -115,13 +120,7 @@ pub async fn update_contest(
             .await
             .map_http()?;
 
-        if contest.owner_id.is_none() && auth.admin_level != AdminLevel::Owner {
-            return Err(StatusCode::FORBIDDEN);
-        }
-        if let Some(owner_id) = contest.owner_id
-            && owner_id != auth.id
-            && auth.admin_level != AdminLevel::Owner
-        {
+        if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
             return Err(StatusCode::FORBIDDEN);
         }
 

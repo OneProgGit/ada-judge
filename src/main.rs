@@ -56,6 +56,7 @@ mod app_state;
 mod crypt;
 mod jwt;
 mod middleware;
+mod tools;
 
 #[tokio::main]
 async fn main() {
@@ -137,6 +138,22 @@ async fn main() {
     let admin_routes = Router::new()
         .route("/contests/{contest_id}/update", patch(update_contest))
         .route("/contests/new", post(create_contest))
+        .route(
+            "/submissions/filter/contest/{contest_id}",
+            get(get_contest_submissions),
+        )
+        .route(
+            "/submissions/filter/problem/{problem_id}",
+            get(get_problem_submissions),
+        )
+        .route(
+            "/submissions/filter/contest/{contest_id}/user/{user_id}",
+            get(get_contest_user_submissions),
+        )
+        .route(
+            "/submissions/filter/problem/{problem_id}/user/{user_id}",
+            get(get_problem_user_submissions),
+        )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_user_is_at_least_admin,
@@ -155,24 +172,8 @@ async fn main() {
         )
         .route("/submissions", get(get_all_submissions))
         .route(
-            "/submissions/filter/contest/{contest_id}",
-            get(get_contest_submissions),
-        )
-        .route(
-            "/submissions/filter/problem/{problem_id}",
-            get(get_problem_submissions),
-        )
-        .route(
             "/submissions/filter/user/{user_id}",
             get(get_all_user_submissions),
-        )
-        .route(
-            "/submissions/filter/contest/{contest_id}/user/{user_id}",
-            get(get_contest_user_submissions),
-        )
-        .route(
-            "/submissions/filter/problem/{problem_id}/user/{user_id}",
-            get(get_problem_user_submissions),
         )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

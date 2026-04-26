@@ -36,7 +36,7 @@ resolver = "3"
 
 [workspace.dependencies]
 submissions-judger = { path = "crates/submissions-judger" }
-ada-judge-public-models = { path = "crates/ada-judge-public-models", features = ["db"] }
+ada-judge-public-models = { path = "crates/ada-judge-public-models", features = ["sqlx"] }
 models = { path = "crates/models" }
 tools = { path = "crates/tools" }
 database = { path = "crates/database" }

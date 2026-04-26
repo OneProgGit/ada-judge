@@ -10,6 +10,3 @@ serde.workspace = true
 chrono.workspace = true
 sqlx.workspace = true
 sqlx.optional = true
-
-[features]
-db = ["sqlx"]

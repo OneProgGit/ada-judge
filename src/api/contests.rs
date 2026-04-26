@@ -60,7 +60,11 @@ pub async fn get_contest_by_id(
             .await
             .map_http()?
             .into();
-    if let Err(_) = check_contest_started_common(&state.db, contest_id, auth.admin_level).await {
+
+    if check_contest_started_common(&state.db, auth.id, contest_id, auth.admin_level)
+        .await
+        .is_err()
+    {
         contest.statements_url = String::default();
     }
     Ok(Json(contest))
@@ -81,9 +85,7 @@ pub async fn create_contest(
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
 ) -> Result<Json<i64>, StatusCode> {
-    if auth.admin_level < AdminLevel::AdminII {
-        Err(StatusCode::FORBIDDEN)
-    } else if request.starts_at >= request.ends_at {
+    if request.starts_at >= request.ends_at {
         Err(StatusCode::BAD_REQUEST)
     } else {
         Ok(Json(
@@ -106,11 +108,23 @@ pub async fn update_contest(
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
 ) -> Result<(), StatusCode> {
-    if auth.admin_level < AdminLevel::AdminII {
-        Err(StatusCode::FORBIDDEN)
-    } else if request.starts_at >= request.ends_at {
+    if request.starts_at >= request.ends_at {
         Err(StatusCode::BAD_REQUEST)
     } else {
+        let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+            .await
+            .map_http()?;
+
+        if contest.owner_id.is_none() && auth.admin_level != AdminLevel::Owner {
+            return Err(StatusCode::FORBIDDEN);
+        }
+        if let Some(owner_id) = contest.owner_id
+            && owner_id != auth.id
+            && auth.admin_level != AdminLevel::Owner
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
         database::contests::update_contest(
             &state.db,
             contest_id,

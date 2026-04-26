@@ -30,7 +30,7 @@ pub async fn register(
     let password_hash = get_password_hash(&user.password).map_http()?;
 
     log::info!("Create user");
-    let user_id = database::auth::create_user(&state.db, &user.login, &password_hash)
+    let user_id = database::users::create_user(&state.db, &user.login, &password_hash)
         .await
         .map_http()?;
 
@@ -43,7 +43,7 @@ pub async fn login(
     Json(user): Json<LoginRequest>,
 ) -> Result<(StatusCode, Json<String>), StatusCode> {
     log::info!("Get expected user");
-    let expected_user = database::auth::get_user_by_login(&state.db, &user.login)
+    let expected_user = database::users::get_user_by_login(&state.db, &user.login)
         .await
         .map_http()?;
 
@@ -79,8 +79,7 @@ pub async fn login(
     ))
 }
 
-#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-pub async fn delete_account(
+pub async fn delete_my_account(
     State(state): State<Arc<AppState>>,
     Auth(auth): Auth,
     Json(request): Json<DeleteAccountRequest>,
@@ -99,7 +98,7 @@ pub async fn delete_account(
         log::error!("Invalid password");
         Err(StatusCode::BAD_REQUEST)
     } else {
-        database::auth::delete_user(&state.db, auth.id)
+        database::users::delete_user(&state.db, auth.id)
             .await
             .map_http()?;
         Ok(())

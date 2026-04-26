@@ -14,10 +14,10 @@ use ada_judge_public_models::verdicts::TotalVerdict;
 use models::problems::DatabaseProblemConfig;
 use sqlx::PgPool;
 
-pub mod auth;
 pub mod contests;
 pub mod submissions;
 pub mod tools;
+pub mod users;
 
 /// Get's problem's config from `problems` table by given id
 /// # Errors

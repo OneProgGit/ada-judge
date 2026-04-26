@@ -11,17 +11,24 @@
 
 use crate::{
     api::{
-        auth::{delete_account, login, register},
+        auth::{delete_my_account, login, register},
         contests::{
             create_contest, get_contest_by_id, get_contest_leaderboard, get_contest_problems,
             get_contests, get_problem_by_id, update_contest,
         },
         submissions::{
-            get_all_user_submisssions, get_contest_user_submissions, get_problem_user_submissions,
+            get_all_my_submissions, get_all_submissions, get_all_user_submissions,
+            get_contest_my_submissions, get_contest_submissions, get_contest_user_submissions,
+            get_problem_my_submissions, get_problem_submissions, get_problem_user_submissions,
+            get_submission,
         },
-        user_profiles::{get_private_user_profile, get_public_user_profile},
+        users::{
+            change_user_admin_level, delete_user_account, get_my_user_profile,
+            get_private_user_profile, get_public_user_profile, get_users,
+        },
     },
     middleware::{
+        admin::{check_user_is_at_least_admin, check_user_is_owner},
         auth::Auth,
         contests::{
             check_contest_ended, check_contest_started, check_contest_started_2_path_elements,
@@ -127,29 +134,75 @@ async fn main() {
             check_contest_ended,
         ));
 
-    let app = Router::new()
-        .route("/register", post(register))
-        .route("/login", post(login))
-        .route("/submissions/my", get(get_all_user_submisssions))
+    let admin_routes = Router::new()
+        .route("/contests/{contest_id}/update", patch(update_contest))
+        .route("/contests/new", post(create_contest))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            check_user_is_at_least_admin,
+        ));
+
+    let owner_routes = Router::new()
+        .route("/users", get(get_users))
+        .route("/users/{user_id}/private", get(get_private_user_profile))
         .route(
-            "/submissions/my/by_contest/{contest_id}",
+            "/users/{user_id}/delete_account",
+            delete(delete_user_account),
+        )
+        .route(
+            "/users/{user_id}/change_admin_level",
+            post(change_user_admin_level),
+        )
+        .route("/submissions", get(get_all_submissions))
+        .route(
+            "/submissions/filter/contest/{contest_id}",
+            get(get_contest_submissions),
+        )
+        .route(
+            "/submissions/filter/problem/{problem_id}",
+            get(get_problem_submissions),
+        )
+        .route(
+            "/submissions/filter/user/{user_id}",
+            get(get_all_user_submissions),
+        )
+        .route(
+            "/submissions/filter/contest/{contest_id}/user/{user_id}",
             get(get_contest_user_submissions),
         )
         .route(
-            "/submissions/my/by_problem/{problem_id}",
+            "/submissions/filter/problem/{problem_id}/user/{user_id}",
             get(get_problem_user_submissions),
         )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            check_user_is_owner,
+        ));
+
+    let app = Router::new()
+        .route("/register", post(register))
+        .route("/login", post(login))
+        .route("/submissions/{submission_id}", get(get_submission))
+        .route("/submissions/my", get(get_all_my_submissions))
+        .route(
+            "/submissions/my/filter/contest/{contest_id}",
+            get(get_contest_my_submissions),
+        )
+        .route(
+            "/submissions/my/filter/problem/{problem_id}",
+            get(get_problem_my_submissions),
+        )
         .route("/users/{user_id}", get(get_public_user_profile))
-        .route("/users/me", get(get_private_user_profile))
-        .route("/users/me/delete_account", delete(delete_account))
+        .route("/users/me", get(get_my_user_profile))
+        .route("/users/me/delete_account", delete(delete_my_account))
         .route("/contests", get(get_contests))
         .route("/contests/{contest_id}", get(get_contest_by_id))
-        .route("/contests/{contest_id}/update", patch(update_contest))
-        .route("/contests/new", post(create_contest))
         .merge(routes_avaible_after_start_of_contest_1_path_element)
         .merge(routes_avaible_after_start_of_contest_2_path_elements)
         .merge(routes_avaible_during_the_contest)
         .merge(routes_avaible_after_end_of_contest)
+        .merge(admin_routes)
+        .merge(owner_routes)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(Extension(Auth))
         .layer(cors)

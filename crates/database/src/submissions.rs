@@ -106,14 +106,14 @@ pub async fn update_subgroup_testing_result(
     Ok(())
 }
 
-/// Gets all user's submissions
+/// Gets user's submission by it's id.
 /// # Errors
-/// Returns an error if `user_id` is invalid
-pub async fn get_all_user_submissions(
+/// Returns an error if `submission_id` is invalid
+pub async fn get_submission(
     pool: &PgPool,
-    user_id: i64,
-) -> Result<Vec<DatabaseSubmission>, TotalVerdict> {
-    let submissions = sqlx::query_as(
+    submission_id: i64,
+) -> Result<DatabaseSubmission, TotalVerdict> {
+    let submission = sqlx::query_as(
         "select
                 c.id,
                 c.problem_id,
@@ -134,7 +134,7 @@ pub async fn get_all_user_submissions(
                 ) as subgroups_results
             from submissions c
             left join submissions_subgroups_results v on v.submission_id = c.id
-            where c.user_id = $1
+            where c.id = $1
             group by c.id,
                 c.problem_id,
                 c.user_id,
@@ -143,105 +143,99 @@ pub async fn get_all_user_submissions(
                 c.total_score,
                 c.created_at",
     )
-    .bind(user_id)
-    .fetch_all(pool)
+    .bind(submission_id)
+    .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
 
-    Ok(submissions)
+    Ok(submission)
 }
 
-/// Gets user's submissions for contest
+/// Gets all user's submissions. If `user_id` is -1, gets all submissions.
+/// # Errors
+/// Returns an error if `user_id` is invalid
+pub async fn get_all_user_submissions(
+    pool: &PgPool,
+    user_id: i64,
+) -> Result<Vec<i64>, TotalVerdict> {
+    if user_id == -1 {
+        sqlx::query_as::<_, (i64,)>("select id from submissions order by id desc")
+            .fetch_all(pool)
+            .await
+            .map(|rows| rows.iter().map(|(id,)| *id).collect())
+            .map_log(TotalVerdict::InvalidRequest)
+    } else {
+        sqlx::query_as::<_, (i64,)>(
+            "select id from submissions where user_id = $1 order by id desc",
+        )
+        .bind(user_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest)
+    }
+}
+
+/// Gets user's submissions for contest. If `user_id` is -1, gets all submissions for contest.
 /// # Errors
 /// Returns an error if `user_id` or `contest_id` is invalid
 pub async fn get_contest_user_submissions(
     pool: &PgPool,
     user_id: i64,
     contest_id: i64,
-) -> Result<Vec<DatabaseSubmission>, TotalVerdict> {
-    let submissions = sqlx::query_as(
-        "select
-                c.id,
-                c.problem_id,
-                c.user_id,
-                c.language,
-                c.total_verdict,
-                c.total_score,
-                c.created_at,
-                coalesce(
-                    json_agg(
-                        json_build_object(
-                            'subgroup_verdict', v.subgroup_verdict,
-                            'test', v.test,
-                            'score', v.score
-                        ) order by v.subgroup_index
-                    ) filter (where v.submission_id is not null),
-                    '[]'
-                ) as subgroups_results
-            from submissions c
-            left join submissions_subgroups_results v on v.submission_id = c.id
-            join problems p on p.id = c.problem_id
-            where c.user_id = $1 and p.contest_id = $2
-            group by c.id,
-                c.problem_id,
-                c.user_id,
-                c.language,
-                c.total_verdict,
-                c.total_score,
-                c.created_at",
-    )
-    .bind(user_id)
-    .bind(contest_id)
-    .fetch_all(pool)
-    .await
-    .map_log(TotalVerdict::InvalidRequest)?;
-
-    Ok(submissions)
+) -> Result<Vec<i64>, TotalVerdict> {
+    if user_id == -1 {
+        sqlx::query_as::<_, (i64,)>(
+            "select id from submissions c
+                join problems p on p.id = c.problem_id
+            where p.contest_id = $2 order by c.id desc",
+        )
+        .bind(contest_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest)
+    } else {
+        sqlx::query_as::<_, (i64,)>(
+            "select id from submissions c
+                join problems p on p.id = c.problem_id
+            where c.user_id = $1 and p.contest_id = $2 order by c.id desc",
+        )
+        .bind(user_id)
+        .bind(contest_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest)
+    }
 }
 
-/// Gets user's submissions for problem
+/// Gets user's submissions for problem. If `user_id` is -1, gets all submissions for problem.
 /// # Errors
 /// Returns an error if `user_id` or `problem_id` is invalid
 pub async fn get_problem_user_submissions(
     pool: &PgPool,
     user_id: i64,
     problem_id: i64,
-) -> Result<Vec<DatabaseSubmission>, TotalVerdict> {
-    let submissions = sqlx::query_as(
-        "select
-                c.id,
-                c.problem_id,
-                c.user_id,
-                c.language,
-                c.total_verdict,
-                c.total_score,
-                c.created_at,
-                coalesce(
-                    json_agg(
-                        json_build_object(
-                            'subgroup_verdict', v.subgroup_verdict,
-                            'test', v.test,
-                            'score', v.score
-                        ) order by v.subgroup_index
-                    ) filter (where v.submission_id is not null),
-                    '[]'
-                ) as subgroups_results
-            from submissions c
-            left join submissions_subgroups_results v on v.submission_id = c.id
-            where c.user_id = $1 and c.problem_id = $2
-            group by c.id,
-                c.problem_id,
-                c.user_id,
-                c.language,
-                c.total_verdict,
-                c.total_score,
-                c.created_at",
-    )
-    .bind(user_id)
-    .bind(problem_id)
-    .fetch_all(pool)
-    .await
-    .map_log(TotalVerdict::InvalidRequest)?;
-
-    Ok(submissions)
+) -> Result<Vec<i64>, TotalVerdict> {
+    if user_id == -1 {
+        sqlx::query_as::<_, (i64,)>(
+            "select id from submissions where problem_id = $2 order by id desc",
+        )
+        .bind(problem_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest)
+    } else {
+        sqlx::query_as::<_, (i64,)>(
+            "select id from submissions where user_id = $1 and problem_id = $2 order by id desc",
+        )
+        .bind(user_id)
+        .bind(problem_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest)
+    }
 }

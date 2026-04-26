@@ -1,9 +1,20 @@
 //! Database tools for auth
 
-use ada_judge_public_models::verdicts::TotalVerdict;
+use ada_judge_public_models::{users::AdminLevel, verdicts::TotalVerdict};
 use models::users::DatabaseUser;
 use sqlx::PgPool;
 use tools::map::MapLogExt;
+
+/// Gets all users' ids
+/// # Errors
+/// Returns an error in case of internal error
+pub async fn get_users(pool: &PgPool) -> Result<Vec<i64>, TotalVerdict> {
+    sqlx::query_as::<_, (i64,)>("select id from users order by id")
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest)
+}
 
 /// Creates a user with login and password hash and returns it's id
 /// # Errors
@@ -29,6 +40,24 @@ pub async fn create_user(
 /// Returns an error if the user with this id does not exist
 pub async fn delete_user(pool: &PgPool, id: i64) -> Result<(), TotalVerdict> {
     sqlx::query("delete from users where id = $1")
+        .bind(id)
+        .execute(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
+/// Changes user's admin level
+/// # Errors
+/// Returns an error if the user with this id does not exist
+pub async fn change_user_admin_level(
+    pool: &PgPool,
+    id: i64,
+    admin_level: &AdminLevel,
+) -> Result<(), TotalVerdict> {
+    sqlx::query("update users set admin_level = $1 where id = $2")
+        .bind(admin_level)
         .bind(id)
         .execute(pool)
         .await

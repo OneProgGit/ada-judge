@@ -51,13 +51,9 @@ pub enum AdminLevel {
     NotAdmin,
     /// Beta tester: just a status
     BetaTester,
-    /// Admin level I: TODO
-    AdminI,
-    /// Admin level II: can create contests and do things in contest in any time
-    AdminII,
-    /// Admin level III: TODO
-    AdminIII,
-    /// Owner: TODO
+    /// Admin level: can create public contests and edit them
+    Admin,
+    /// Owner: can manage users, edit and view any public contest
     Owner,
 }
 

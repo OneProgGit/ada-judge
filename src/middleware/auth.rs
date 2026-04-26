@@ -39,7 +39,7 @@ where
         let claims = decode_jwt(token, &secret).map_http()?;
 
         log::info!("Get user");
-        let user = database::auth::get_user_by_id(&state.db, claims.id)
+        let user = database::users::get_user_by_id(&state.db, claims.id)
             .await
             .map_http()?;
 

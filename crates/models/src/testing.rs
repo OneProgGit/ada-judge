@@ -46,17 +46,17 @@ pub struct DatabaseSubmission {
     pub subgroups_results: Json<Vec<SubgroupResult>>,
 }
 
-impl From<&DatabaseSubmission> for Submission {
-    fn from(value: &DatabaseSubmission) -> Self {
+impl From<DatabaseSubmission> for Submission {
+    fn from(value: DatabaseSubmission) -> Self {
         Self {
             id: value.id,
             problem_id: value.problem_id,
             user_id: value.user_id,
-            language: value.language.clone(),
-            total_verdict: value.total_verdict.clone(),
+            language: value.language,
+            total_verdict: value.total_verdict,
             total_score: value.total_score,
             created_at: value.created_at,
-            subgroups_results: value.subgroups_results.0.clone(),
+            subgroups_results: value.subgroups_results.0,
         }
     }
 }

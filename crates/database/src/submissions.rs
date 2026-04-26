@@ -188,7 +188,7 @@ pub async fn get_contest_user_submissions(
         sqlx::query_as::<_, (i64,)>(
             "select id from submissions c
                 join problems p on p.id = c.problem_id
-            where p.contest_id = $2 order by c.id desc",
+            where p.contest_id = $1 order by c.id desc",
         )
         .bind(contest_id)
         .fetch_all(pool)
@@ -220,7 +220,7 @@ pub async fn get_problem_user_submissions(
 ) -> Result<Vec<i64>, TotalVerdict> {
     if user_id == -1 {
         sqlx::query_as::<_, (i64,)>(
-            "select id from submissions where problem_id = $2 order by id desc",
+            "select id from submissions where problem_id = $1 order by id desc",
         )
         .bind(problem_id)
         .fetch_all(pool)

@@ -348,10 +348,6 @@ pub async fn retest_problem_submissions(
             .await
             .map_http()?;
         let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());
-        _ = fs::remove_dir(run_dir.join(problem.tests_path.clone()));
-        _ = fs::remove_dir(run_dir.join(problem.checker_path.clone()));
-        _ = fs::remove_dir(run_dir.join("stderr"));
-        _ = fs::remove_dir(run_dir.join("stdout"));
         let submission_task = SubmissionTask {
             problem_path: PathBuf::from("/problems").join(submission.problem_id.to_string()),
             problem_id: submission.problem_id,

@@ -21,7 +21,7 @@ use crate::{
             get_all_my_submissions, get_all_submissions, get_all_user_submissions,
             get_contest_my_submissions, get_contest_submissions, get_contest_user_submissions,
             get_problem_my_submissions, get_problem_submissions, get_problem_user_submissions,
-            get_submission,
+            get_submission, retest_problem_submissions,
         },
         users::{
             change_user_admin_level, delete_user_account, get_my_user_profile,
@@ -154,6 +154,10 @@ async fn main() {
         .route(
             "/submissions/filter/problem/{problem_id}/user/{user_id}",
             get(get_problem_user_submissions),
+        )
+        .route(
+            "/problems/{problem_id}/retest-submissions",
+            post(retest_problem_submissions),
         )
         .route("/problems/my", get(get_my_problems))
         .route("/contests/my", get(get_my_contests))

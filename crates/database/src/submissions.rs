@@ -239,3 +239,23 @@ pub async fn get_problem_user_submissions(
         .map_log(TotalVerdict::InvalidRequest)
     }
 }
+
+/// Deletes subgroups' submission results for all submissions for a problem
+/// # Errors
+/// Returns an error if `problem_id` is invalid
+pub async fn delete_subgroups_results_for_problem(
+    pool: &PgPool,
+    problem_id: i64,
+) -> Result<(), TotalVerdict> {
+    sqlx::query(
+        "delete from submissions_subgroups_results r
+            using submissions s
+            where r.submission_id = s.id
+                and s.problem_id = $1",
+    )
+    .bind(problem_id)
+    .execute(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+    Ok(())
+}

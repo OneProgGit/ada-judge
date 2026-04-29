@@ -316,3 +316,59 @@ pub async fn push_submission_to_queue(
 
     Ok(Json(submission_id))
 }
+
+pub async fn retest_problem_submissions(
+    State(state): State<Arc<AppState>>,
+    Auth(auth): Auth,
+    Path(problem_id): Path<i64>,
+) -> Result<(), StatusCode> {
+    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+    {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    database::submissions::delete_subgroups_results_for_problem(&state.db, problem_id)
+        .await
+        .map_http()?;
+
+    for submission_id in
+        database::submissions::get_problem_user_submissions(&state.db, -1, problem_id)
+            .await
+            .map_http()?
+    {
+        let submission = database::submissions::get_submission(&state.db, submission_id)
+            .await
+            .map_http()?;
+        let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());
+        _ = fs::remove_dir(run_dir.join(problem.tests_path.clone()));
+        _ = fs::remove_dir(run_dir.join(problem.checker_path.clone()));
+        _ = fs::remove_dir(run_dir.join("stderr"));
+        _ = fs::remove_dir(run_dir.join("stdout"));
+        let submission_task = SubmissionTask {
+            problem_path: PathBuf::from("/problems").join(submission.problem_id.to_string()),
+            problem_id: submission.problem_id,
+            id: submission_id,
+            run_dir,
+            language: submission.language,
+        };
+        state
+            .apalis_backend
+            .lock()
+            .await
+            .push(submission_task)
+            .await
+            .map_log(TotalVerdict::Bug)
+            .map_db(&state.db, submission_id)
+            .await
+            .map_http()?;
+    }
+    Ok(())
+}

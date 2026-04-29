@@ -1,0 +1,2 @@
+drop index if exists idx_submissions_subgroups_results_submission_id;
+drop index if exists idx_submissions_problem_id;

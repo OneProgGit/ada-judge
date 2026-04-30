@@ -28,33 +28,33 @@ pub async fn get_all_my_submissions(
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get all my submissions");
     Ok(Json(
-        database::submissions::get_all_user_submissions(&state.db, auth.id)
+        database::submissions::get_all_user_submissions(&state.db, Some(auth.id))
             .await
             .map_http()?,
     ))
 }
 
-pub async fn get_contest_my_submissions(
+pub async fn get_my_contest_submissions(
     State(state): State<Arc<AppState>>,
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get contest my submissions");
     Ok(Json(
-        database::submissions::get_contest_user_submissions(&state.db, auth.id, contest_id)
+        database::submissions::get_user_contest_submissions(&state.db, Some(auth.id), contest_id)
             .await
             .map_http()?,
     ))
 }
 
-pub async fn get_problem_my_submissions(
+pub async fn get_my_problem_submissions(
     State(state): State<Arc<AppState>>,
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get problem my submissions");
     Ok(Json(
-        database::submissions::get_problem_user_submissions(&state.db, auth.id, problem_id)
+        database::submissions::get_user_problem_submissions(&state.db, Some(auth.id), problem_id)
             .await
             .map_http()?,
     ))
@@ -66,13 +66,13 @@ pub async fn get_all_user_submissions(
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get all user submissions");
     Ok(Json(
-        database::submissions::get_all_user_submissions(&state.db, user_id)
+        database::submissions::get_all_user_submissions(&state.db, Some(user_id))
             .await
             .map_http()?,
     ))
 }
 
-pub async fn get_contest_user_submissions(
+pub async fn get_user_contest_submissions(
     State(state): State<Arc<AppState>>,
     Path((contest_id, user_id)): Path<(i64, i64)>,
     Auth(auth): Auth,
@@ -87,13 +87,13 @@ pub async fn get_contest_user_submissions(
     }
 
     Ok(Json(
-        database::submissions::get_contest_user_submissions(&state.db, user_id, contest_id)
+        database::submissions::get_user_contest_submissions(&state.db, Some(user_id), contest_id)
             .await
             .map_http()?,
     ))
 }
 
-pub async fn get_problem_user_submissions(
+pub async fn get_user_problem_submissions(
     State(state): State<Arc<AppState>>,
     Path((problem_id, user_id)): Path<(i64, i64)>,
     Auth(auth): Auth,
@@ -113,7 +113,7 @@ pub async fn get_problem_user_submissions(
     }
 
     Ok(Json(
-        database::submissions::get_problem_user_submissions(&state.db, user_id, problem_id)
+        database::submissions::get_user_problem_submissions(&state.db, Some(user_id), problem_id)
             .await
             .map_http()?,
     ))
@@ -124,7 +124,7 @@ pub async fn get_all_submissions(
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get all submissions");
     Ok(Json(
-        database::submissions::get_all_user_submissions(&state.db, -1)
+        database::submissions::get_all_user_submissions(&state.db, None)
             .await
             .map_http()?,
     ))
@@ -145,7 +145,7 @@ pub async fn get_contest_submissions(
     }
 
     Ok(Json(
-        database::submissions::get_contest_user_submissions(&state.db, -1, contest_id)
+        database::submissions::get_user_contest_submissions(&state.db, None, contest_id)
             .await
             .map_http()?,
     ))
@@ -171,7 +171,7 @@ pub async fn get_problem_submissions(
     }
 
     Ok(Json(
-        database::submissions::get_problem_user_submissions(&state.db, -1, problem_id)
+        database::submissions::get_user_problem_submissions(&state.db, None, problem_id)
             .await
             .map_http()?,
     ))
@@ -340,7 +340,7 @@ pub async fn retest_problem_submissions(
         .map_http()?;
 
     for submission_id in
-        database::submissions::get_problem_user_submissions(&state.db, -1, problem_id)
+        database::submissions::get_user_problem_submissions(&state.db, None, problem_id)
             .await
             .map_http()?
     {

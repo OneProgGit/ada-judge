@@ -19,9 +19,9 @@ use crate::{
         problems::{get_my_problems, get_problems},
         submissions::{
             get_all_my_submissions, get_all_submissions, get_all_user_submissions,
-            get_contest_my_submissions, get_contest_submissions, get_contest_user_submissions,
-            get_problem_my_submissions, get_problem_submissions, get_problem_user_submissions,
-            get_submission, retest_problem_submissions,
+            get_contest_submissions, get_my_contest_submissions, get_my_problem_submissions,
+            get_problem_submissions, get_submission, get_user_contest_submissions,
+            get_user_problem_submissions, retest_problem_submissions,
         },
         users::{
             change_user_admin_level, delete_user_account, get_my_user_profile,
@@ -149,11 +149,11 @@ async fn main() {
         )
         .route(
             "/submissions/filter/contest/{contest_id}/user/{user_id}",
-            get(get_contest_user_submissions),
+            get(get_user_contest_submissions),
         )
         .route(
             "/submissions/filter/problem/{problem_id}/user/{user_id}",
-            get(get_problem_user_submissions),
+            get(get_user_problem_submissions),
         )
         .route(
             "/problems/{problem_id}/retest-submissions",
@@ -195,11 +195,11 @@ async fn main() {
         .route("/submissions/my", get(get_all_my_submissions))
         .route(
             "/submissions/my/filter/contest/{contest_id}",
-            get(get_contest_my_submissions),
+            get(get_my_contest_submissions),
         )
         .route(
             "/submissions/my/filter/problem/{problem_id}",
-            get(get_problem_my_submissions),
+            get(get_my_problem_submissions),
         )
         .route("/users/{user_id}", get(get_public_user_profile))
         .route("/users/me", get(get_my_user_profile))

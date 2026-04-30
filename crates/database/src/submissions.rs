@@ -151,20 +151,14 @@ pub async fn get_submission(
     Ok(submission)
 }
 
-/// Gets all user's submissions. If `user_id` is -1, gets all submissions.
+/// Gets all user's submissions. If `user_id` is None, gets all submissions.
 /// # Errors
 /// Returns an error if `user_id` is invalid
 pub async fn get_all_user_submissions(
     pool: &PgPool,
-    user_id: i64,
+    user_id: Option<i64>,
 ) -> Result<Vec<i64>, TotalVerdict> {
-    if user_id == -1 {
-        sqlx::query_as::<_, (i64,)>("select id from submissions order by id desc")
-            .fetch_all(pool)
-            .await
-            .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TotalVerdict::InvalidRequest)
-    } else {
+    if let Some(user_id) = user_id {
         sqlx::query_as::<_, (i64,)>(
             "select id from submissions where user_id = $1 order by id desc",
         )
@@ -173,29 +167,24 @@ pub async fn get_all_user_submissions(
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
         .map_log(TotalVerdict::InvalidRequest)
+    } else {
+        sqlx::query_as::<_, (i64,)>("select id from submissions order by id desc")
+            .fetch_all(pool)
+            .await
+            .map(|rows| rows.iter().map(|(id,)| *id).collect())
+            .map_log(TotalVerdict::InvalidRequest)
     }
 }
 
-/// Gets user's submissions for contest. If `user_id` is -1, gets all submissions for contest.
+/// Gets user's submissions for contest. If `user_id` is None, gets all submissions for contest.
 /// # Errors
 /// Returns an error if `user_id` or `contest_id` is invalid
-pub async fn get_contest_user_submissions(
+pub async fn get_user_contest_submissions(
     pool: &PgPool,
-    user_id: i64,
+    user_id: Option<i64>,
     contest_id: i64,
 ) -> Result<Vec<i64>, TotalVerdict> {
-    if user_id == -1 {
-        sqlx::query_as::<_, (i64,)>(
-            "select c.id from submissions c
-                join problems p on p.id = c.problem_id
-            where p.contest_id = $1 order by c.id desc",
-        )
-        .bind(contest_id)
-        .fetch_all(pool)
-        .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest)
-    } else {
+    if let Some(user_id) = user_id {
         sqlx::query_as::<_, (i64,)>(
             "select c.id from submissions c
                 join problems p on p.id = c.problem_id
@@ -207,21 +196,33 @@ pub async fn get_contest_user_submissions(
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
         .map_log(TotalVerdict::InvalidRequest)
+    } else {
+        sqlx::query_as::<_, (i64,)>(
+            "select c.id from submissions c
+                join problems p on p.id = c.problem_id
+            where p.contest_id = $1 order by c.id desc",
+        )
+        .bind(contest_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest)
     }
 }
 
-/// Gets user's submissions for problem. If `user_id` is -1, gets all submissions for problem.
+/// Gets user's submissions for problem. If `user_id` is None, gets all submissions for problem.
 /// # Errors
 /// Returns an error if `user_id` or `problem_id` is invalid
-pub async fn get_problem_user_submissions(
+pub async fn get_user_problem_submissions(
     pool: &PgPool,
-    user_id: i64,
+    user_id: Option<i64>,
     problem_id: i64,
 ) -> Result<Vec<i64>, TotalVerdict> {
-    if user_id == -1 {
+    if let Some(user_id) = user_id {
         sqlx::query_as::<_, (i64,)>(
-            "select id from submissions where problem_id = $1 order by id desc",
+            "select id from submissions where user_id = $1 and problem_id = $2 order by id desc",
         )
+        .bind(user_id)
         .bind(problem_id)
         .fetch_all(pool)
         .await
@@ -229,9 +230,8 @@ pub async fn get_problem_user_submissions(
         .map_log(TotalVerdict::InvalidRequest)
     } else {
         sqlx::query_as::<_, (i64,)>(
-            "select id from submissions where user_id = $1 and problem_id = $2 order by id desc",
+            "select id from submissions where problem_id = $1 order by id desc",
         )
-        .bind(user_id)
         .bind(problem_id)
         .fetch_all(pool)
         .await

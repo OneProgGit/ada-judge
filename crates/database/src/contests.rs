@@ -128,7 +128,7 @@ pub async fn create_contest(
     name: &str,
     starts_at: &DateTime<Utc>,
     ends_at: &DateTime<Utc>,
-    statements_url: String,
+    statements_url: &str,
 ) -> Result<i64, TotalVerdict> {
     let contest_id = sqlx::query_scalar(
         "insert into contests (owner_id, name, starts_at, ends_at, statements_url) values ($1, $2, $3, $4, $5) returning id",
@@ -154,7 +154,7 @@ pub async fn update_contest(
     name: &str,
     starts_at: &DateTime<Utc>,
     ends_at: &DateTime<Utc>,
-    statements_url: String,
+    statements_url: &str,
 ) -> Result<(), TotalVerdict> {
     sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4 where id = $5")
         .bind(name)

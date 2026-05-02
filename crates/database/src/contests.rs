@@ -164,3 +164,16 @@ pub async fn update_contest(
 
     Ok(())
 }
+
+/// Deletes a contest by given id
+/// # Errors
+/// Returns an error if the contest with this id does not exist
+pub async fn delete_contest(pool: &PgPool, contest_id: i64) -> Result<(), TotalVerdict> {
+    sqlx::query("delete from contests where id = $1")
+        .bind(contest_id)
+        .execute(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}

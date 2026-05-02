@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
-use crate::{app_state::AppState, middleware::auth::Auth, tools::is_allowed};
+use crate::{
+    app_state::AppState, crypt::verify_password, middleware::auth::Auth, tools::is_allowed,
+};
 use ada_judge_public_models::{
-    contests::{ContestRequest, LeaderboardRow, PublicContestConfig},
+    contests::{ContestRequest, DeleteContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,
     users::AdminLevel,
 };
@@ -140,5 +142,39 @@ pub async fn update_contest(
         .await
         .map_http()?;
         Ok(())
+    }
+}
+
+pub async fn delete_contest(
+    State(state): State<Arc<AppState>>,
+    Path(contest_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<DeleteContestRequest>,
+) -> Result<(), StatusCode> {
+    if request.login != auth.login
+        || request.password != request.password_confirmation
+        || !request.deletion_confirmation
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    log::info!("Verify password");
+    let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
+
+    if !is_valid_password {
+        log::error!("Invalid password");
+        Err(StatusCode::BAD_REQUEST)
+    } else {
+        let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+            .await
+            .map_http()?;
+        if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+            Err(StatusCode::FORBIDDEN)
+        } else {
+            database::contests::delete_contest(&state.db, contest_id)
+                .await
+                .map_http()?;
+            Ok(())
+        }
     }
 }

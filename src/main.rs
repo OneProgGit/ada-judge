@@ -13,8 +13,8 @@ use crate::{
     api::{
         auth::{delete_my_account, login, register},
         contests::{
-            create_contest, get_contest_by_id, get_contest_leaderboard, get_contest_problems,
-            get_contests, get_my_contests, get_problem_by_id, update_contest,
+            create_contest, delete_contest, get_contest_by_id, get_contest_leaderboard,
+            get_contest_problems, get_contests, get_my_contests, get_problem_by_id, update_contest,
         },
         problems::{get_my_problems, get_problems},
         submissions::{
@@ -161,6 +161,7 @@ async fn main() {
         )
         .route("/problems/my", get(get_my_problems))
         .route("/contests/my", get(get_my_contests))
+        .route("/contests/{contest_id}/delete", delete(delete_contest))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_user_is_at_least_admin,

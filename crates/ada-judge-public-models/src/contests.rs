@@ -56,3 +56,16 @@ pub struct PublicContestConfig {
     /// Timestamp of contest ending
     pub ends_at: DateTime<Utc>,
 }
+
+/// Delete contest request called from frontend
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DeleteContestRequest {
+    /// Login
+    pub login: String,
+    /// Password
+    pub password: String,
+    /// Password confirmation
+    pub password_confirmation: String,
+    /// Deletion confirmation
+    pub deletion_confirmation: bool,
+}

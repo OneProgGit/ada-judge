@@ -128,14 +128,16 @@ pub async fn create_contest(
     name: &str,
     starts_at: &DateTime<Utc>,
     ends_at: &DateTime<Utc>,
+    statements_url: String,
 ) -> Result<i64, TotalVerdict> {
     let contest_id = sqlx::query_scalar(
-        "insert into contests (owner_id, name, starts_at, ends_at) values ($1, $2, $3, $4) returning id",
+        "insert into contests (owner_id, name, starts_at, ends_at, statements_url) values ($1, $2, $3, $4, $5) returning id",
     )
     .bind(owner_id)
     .bind(name)
     .bind(starts_at)
     .bind(ends_at)
+    .bind(statements_url)
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
@@ -152,11 +154,13 @@ pub async fn update_contest(
     name: &str,
     starts_at: &DateTime<Utc>,
     ends_at: &DateTime<Utc>,
+    statements_url: String,
 ) -> Result<(), TotalVerdict> {
-    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3 where id = $4")
+    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4 where id = $5")
         .bind(name)
         .bind(starts_at)
         .bind(ends_at)
+        .bind(statements_url)
         .bind(contest_id)
         .execute(pool)
         .await

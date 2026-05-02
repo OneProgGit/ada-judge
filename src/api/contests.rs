@@ -108,6 +108,7 @@ pub async fn create_contest(
                 &request.name,
                 &request.starts_at,
                 &request.ends_at,
+                &request.statements_url,
             )
             .await
             .map_http()?,
@@ -138,6 +139,7 @@ pub async fn update_contest(
             &request.name,
             &request.starts_at,
             &request.ends_at,
+            &request.statements_url,
         )
         .await
         .map_http()?;

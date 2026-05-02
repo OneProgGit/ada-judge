@@ -24,6 +24,8 @@ pub struct ContestRequest {
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending
     pub ends_at: DateTime<Utc>,
+    /// Statements url
+    pub statements_url: String,
 }
 
 /// Contest's config

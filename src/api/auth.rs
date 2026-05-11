@@ -7,11 +7,11 @@ use ada_judge_public_models::verdicts::TotalVerdict;
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
 use models::users::JwtClaims;
-use std::{env, sync::Arc};
+use std::env;
 use tools::map::{MapHttpExt, MapLogExt};
 
 pub async fn register(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Json(user): Json<RegisterRequest>,
 ) -> Result<(StatusCode, Json<i64>), StatusCode> {
     log::info!("Get master password");
@@ -39,7 +39,7 @@ pub async fn register(
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 pub async fn login(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Json(user): Json<LoginRequest>,
 ) -> Result<(StatusCode, Json<String>), StatusCode> {
     log::info!("Get expected user");
@@ -80,7 +80,7 @@ pub async fn login(
 }
 
 pub async fn delete_my_account(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     Json(request): Json<DeleteAccountRequest>,
 ) -> Result<(), StatusCode> {

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{app_state::AppState, middleware::auth::Auth};
 use ada_judge_public_models::users::AdminLevel;
 use axum::{
@@ -97,7 +95,7 @@ pub async fn check_contest_started_and_not_ended_common(
 
 pub async fn check_contest_started(
     Path(contest_id): Path<i64>,
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     req: Request,
     next: Next,
@@ -115,7 +113,7 @@ pub async fn check_contest_started(
 
 pub async fn check_contest_started_2_path_elements(
     Path((contest_id, _)): Path<(i64, i64)>,
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     req: Request,
     next: Next,
@@ -133,7 +131,7 @@ pub async fn check_contest_started_2_path_elements(
 
 pub async fn check_contest_started_and_not_ended(
     Path(contest_id): Path<i64>,
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     req: Request,
     next: Next,
@@ -152,7 +150,7 @@ pub async fn check_contest_started_and_not_ended(
 
 pub async fn check_contest_ended(
     Path(contest_id): Path<i64>,
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     req: Request,
     next: Next,

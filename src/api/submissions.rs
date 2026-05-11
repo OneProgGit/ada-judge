@@ -15,7 +15,7 @@ use axum::{
 };
 use database::tools::MapDbExt;
 use models::testing::SubmissionTask;
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
@@ -23,7 +23,7 @@ use tokio::{
 use tools::map::{MapHttpExt, MapLogExt};
 
 pub async fn get_all_my_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get all my submissions");
@@ -35,7 +35,7 @@ pub async fn get_all_my_submissions(
 }
 
 pub async fn get_my_contest_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
@@ -48,7 +48,7 @@ pub async fn get_my_contest_submissions(
 }
 
 pub async fn get_my_problem_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
@@ -61,7 +61,7 @@ pub async fn get_my_problem_submissions(
 }
 
 pub async fn get_all_user_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(user_id): Path<i64>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get all user submissions");
@@ -73,7 +73,7 @@ pub async fn get_all_user_submissions(
 }
 
 pub async fn get_user_contest_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path((contest_id, user_id)): Path<(i64, i64)>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
@@ -94,7 +94,7 @@ pub async fn get_user_contest_submissions(
 }
 
 pub async fn get_user_problem_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path((problem_id, user_id)): Path<(i64, i64)>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
@@ -120,7 +120,7 @@ pub async fn get_user_problem_submissions(
 }
 
 pub async fn get_all_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     log::info!("Get all submissions");
     Ok(Json(
@@ -131,7 +131,7 @@ pub async fn get_all_submissions(
 }
 
 pub async fn get_contest_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
@@ -152,7 +152,7 @@ pub async fn get_contest_submissions(
 }
 
 pub async fn get_problem_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
@@ -178,7 +178,7 @@ pub async fn get_problem_submissions(
 }
 
 pub async fn get_submission(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(submission_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Submission>, StatusCode> {
@@ -196,7 +196,7 @@ pub async fn get_submission(
 }
 
 pub async fn push_submission_to_queue(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     mut multipart: Multipart,
 ) -> Result<Json<i64>, StatusCode> {
@@ -318,7 +318,7 @@ pub async fn push_submission_to_queue(
 }
 
 pub async fn retest_problem_submissions(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
 ) -> Result<(), StatusCode> {

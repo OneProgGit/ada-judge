@@ -5,11 +5,10 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use std::sync::Arc;
 use tools::map::MapHttpExt;
 
 pub async fn get_public_user_profile(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(user_id): Path<i64>,
 ) -> Result<Json<PublicUserData>, StatusCode> {
     Ok(Json(
@@ -21,7 +20,7 @@ pub async fn get_public_user_profile(
 }
 
 pub async fn get_my_user_profile(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
 ) -> Result<Json<PrivateUserData>, StatusCode> {
     Ok(Json(
@@ -32,14 +31,14 @@ pub async fn get_my_user_profile(
     ))
 }
 
-pub async fn get_users(State(state): State<Arc<AppState>>) -> Result<Json<Vec<i64>>, StatusCode> {
+pub async fn get_users(State(state): State<AppState>) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
         database::users::get_users(&state.db).await.map_http()?,
     ))
 }
 
 pub async fn get_private_user_profile(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(user_id): Path<i64>,
 ) -> Result<Json<PrivateUserData>, StatusCode> {
     Ok(Json(
@@ -51,7 +50,7 @@ pub async fn get_private_user_profile(
 }
 
 pub async fn delete_user_account(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(user_id): Path<i64>,
 ) -> Result<(), StatusCode> {
     database::users::delete_user(&state.db, user_id)
@@ -61,7 +60,7 @@ pub async fn delete_user_account(
 }
 
 pub async fn change_user_admin_level(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(user_id): Path<i64>,
     Json(admin_level): Json<AdminLevel>,
 ) -> Result<(), StatusCode> {

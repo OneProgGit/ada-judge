@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::env;
 
 use ada_judge_public_models::verdicts::TotalVerdict;
 use axum::{
@@ -14,13 +14,13 @@ pub struct Auth(pub DatabaseUser);
 
 impl<S> FromRequestParts<S> for Auth
 where
-    Arc<AppState>: FromRef<S>,
+    AppState: FromRef<S>,
     S: Send + Sync,
 {
     type Rejection = StatusCode;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let state = Arc::from_ref(state);
+        let state = AppState::from_ref(state);
 
         log::info!("Get token");
 

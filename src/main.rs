@@ -83,10 +83,10 @@ async fn main() {
 
     let backend = RedisStorage::new(redis_pool);
 
-    let state = Arc::new(AppState {
+    let state = AppState {
         db: pg_pool.clone(),
-        apalis_backend: Mutex::new(backend.clone()),
-    });
+        apalis_backend: Arc::new(Mutex::new(backend.clone())),
+    };
 
     let cors = CorsLayer::new()
         .allow_origin(Any)

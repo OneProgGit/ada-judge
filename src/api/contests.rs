@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     app_state::AppState, crypt::verify_password, middleware::auth::Auth, tools::is_allowed,
 };
@@ -18,7 +16,7 @@ use database::contests::get_all_user_contests;
 use tools::map::MapHttpExt;
 
 pub async fn get_contest_leaderboard(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<Vec<LeaderboardRow>>, StatusCode> {
     Ok(Json(
@@ -29,7 +27,7 @@ pub async fn get_contest_leaderboard(
 }
 
 pub async fn get_contest_problems(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
@@ -40,7 +38,7 @@ pub async fn get_contest_problems(
 }
 
 pub async fn get_problem_by_id(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path((_, problem_id)): Path<(i64, i64)>,
 ) -> Result<Json<PublicProblemConfig>, StatusCode> {
     Ok(Json(
@@ -52,7 +50,7 @@ pub async fn get_problem_by_id(
 }
 
 pub async fn get_contest_by_id(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<PublicContestConfig>, StatusCode> {
@@ -78,14 +76,12 @@ pub async fn get_contest_by_id(
     Ok(Json(contest))
 }
 
-pub async fn get_contests(
-    State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<i64>>, StatusCode> {
+pub async fn get_contests(State(state): State<AppState>) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(get_all_user_contests(&state.db, -1).await.map_http()?))
 }
 
 pub async fn get_my_contests(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
@@ -94,7 +90,7 @@ pub async fn get_my_contests(
 }
 
 pub async fn create_contest(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
 ) -> Result<Json<i64>, StatusCode> {
@@ -117,7 +113,7 @@ pub async fn create_contest(
 }
 
 pub async fn update_contest(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
@@ -148,7 +144,7 @@ pub async fn update_contest(
 }
 
 pub async fn delete_contest(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<DeleteContestRequest>,

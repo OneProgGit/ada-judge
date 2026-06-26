@@ -19,7 +19,7 @@ serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
 ada-judge-public-models.workspace = true
-argon2 = "0.5.3"
+argon2 = { version = "0.5.3", features = ["std"] }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 tower-http = { version = "0.6.8", features = ["cors"] }
 

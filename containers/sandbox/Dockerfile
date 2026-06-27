@@ -1,4 +1,4 @@
-FROM debian:trixie-slim as sandbox
+FROM debian:trixie-slim AS sandbox
 
 # Install clang, go, rust & other required system packages
 RUN apt-get update && apt-get install -y \

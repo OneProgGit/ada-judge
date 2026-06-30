@@ -195,7 +195,7 @@ pub async fn get_submission(
     }
 }
 
-pub async fn push_submission_to_queue(
+pub async fn submit(
     State(state): State<AppState>,
     Auth(auth): Auth,
     mut multipart: Multipart,

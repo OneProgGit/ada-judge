@@ -38,7 +38,7 @@ use crate::{
     },
 };
 use apalis_redis::RedisStorage;
-use api::submissions::push_submission_to_queue;
+use api::submissions::submit;
 use app_state::AppState;
 use axum::{
     Extension, Router,
@@ -117,10 +117,7 @@ async fn main() {
         ));
 
     let routes_avaible_during_the_contest = Router::new()
-        .route(
-            "/contests/{contest_id}/push-submission-to-queue",
-            post(push_submission_to_queue),
-        )
+        .route("/contests/{contest_id}/submit", post(submit))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_contest_started_and_not_ended,

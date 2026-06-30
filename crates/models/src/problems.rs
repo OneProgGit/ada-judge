@@ -30,8 +30,6 @@ pub struct DatabaseProblemConfig {
     pub subgroups: Json<Vec<Subgroup>>,
     /// Created at timestamp
     pub created_at: DateTime<Utc>,
-    /// Is this problem interactive
-    pub is_interactive: bool,
 }
 
 impl From<DatabaseProblemConfig> for ProblemConfig {
@@ -46,7 +44,6 @@ impl From<DatabaseProblemConfig> for ProblemConfig {
             checker_path: value.checker_path,
             tests_path: value.tests_path,
             subgroups: value.subgroups.0,
-            is_interactive: value.is_interactive,
         }
     }
 }
@@ -62,7 +59,6 @@ impl From<DatabaseProblemConfig> for PublicProblemConfig {
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,
             subgroups: value.subgroups.0,
-            is_interactive: value.is_interactive,
         }
     }
 }

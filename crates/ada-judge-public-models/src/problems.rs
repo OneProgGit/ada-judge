@@ -23,8 +23,6 @@ pub struct ProblemConfig {
     pub tests_path: String,
     /// Testing subgroups
     pub subgroups: Vec<Subgroup>,
-    /// Is this problem interactive
-    pub is_interactive: bool,
 }
 
 /// Problem config visible for all users
@@ -47,8 +45,6 @@ pub struct PublicProblemConfig {
     pub memory_limit_mb: i32,
     /// Problem's subgroups
     pub subgroups: Vec<Subgroup>,
-    /// Is this problem interactive
-    pub is_interactive: bool,
 }
 
 /// Testing subgroup

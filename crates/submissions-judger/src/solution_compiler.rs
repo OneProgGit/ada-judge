@@ -60,7 +60,7 @@ pub async fn compile_solution(
             "--cpus",
             "0.5",
             "--pids-limit",
-            "32",
+            "128",
             "--cap-drop",
             "ALL",
             "-i",

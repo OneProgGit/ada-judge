@@ -16,7 +16,7 @@ use crate::{
             create_contest, delete_contest, get_contest_by_id, get_contest_leaderboard,
             get_contest_problems, get_contests, get_my_contests, get_problem_by_id, update_contest,
         },
-        problems::{get_my_problems, get_problems},
+        problems::{get_my_problems, get_problem_by_id_admin, get_problems},
         submissions::{
             get_all_my_submissions, get_all_submissions, get_all_user_submissions,
             get_contest_submissions, get_my_contest_submissions, get_my_problem_submissions,
@@ -157,6 +157,7 @@ async fn main() {
             post(retest_problem_submissions),
         )
         .route("/problems/my", get(get_my_problems))
+        .route("/problems/{problem_id}", get(get_problem_by_id_admin))
         .route("/contests/my", get(get_my_contests))
         .route("/contests/{contest_id}/delete", delete(delete_contest))
         .layer(axum::middleware::from_fn_with_state(

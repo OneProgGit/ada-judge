@@ -294,6 +294,11 @@ pub async fn submit(
         .map_db(&state.db, submission_id)
         .await
         .map_http()?;
+    run_file
+        .flush()
+        .await
+        .map_log(TotalVerdict::Bug)
+        .map_http()?;
 
     let submission_task = SubmissionTask {
         problem_path: PathBuf::from("/problems").join(submission.problem_id.to_string()),

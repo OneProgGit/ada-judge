@@ -9,7 +9,6 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![forbid(unsafe_code)]
 
-use ::tools::map::MapLogExt;
 use ada_judge_public_models::{
     problems::{ProblemConfig, Subgroup},
     testing::SubgroupResult,
@@ -23,8 +22,6 @@ use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;
 use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;
-use std::path::Path;
-use tokio::fs::read_to_string;
 
 mod checker_runner;
 mod constants;
@@ -80,16 +77,6 @@ async fn write_subgroup_result(
     }
     test_result.score = subgroup.score;
     Ok(())
-}
-
-/// TODO: move it to api
-#[allow(dead_code)]
-async fn load_config(problem_path: &Path) -> Result<ProblemConfig, TotalVerdict> {
-    let config_text = read_to_string(problem_path.join("config.toml"))
-        .await
-        .map_log(TotalVerdict::InvalidProblem)?;
-
-    toml::from_str::<ProblemConfig>(&config_text).map_log(TotalVerdict::InvalidProblem)
 }
 
 fn assert_subgroups_correctness(config: &ProblemConfig) -> Result<(), TotalVerdict> {

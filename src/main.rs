@@ -16,7 +16,7 @@ use crate::{
             create_contest, delete_contest, get_contest_by_id, get_contest_leaderboard,
             get_contest_problems, get_contests, get_my_contests, get_problem_by_id, update_contest,
         },
-        problems::{get_my_problems, get_problem_by_id_admin, get_problems},
+        problems::{create_problem, get_my_problems, get_problem_by_id_admin, get_problems},
         submissions::{
             get_all_my_submissions, get_all_submissions, get_all_user_submissions,
             get_contest_submissions, get_my_contest_submissions, get_my_problem_submissions,
@@ -136,6 +136,7 @@ async fn main() {
     let admin_routes = Router::new()
         .route("/contests/{contest_id}/update", patch(update_contest))
         .route("/contests/new", post(create_contest))
+        .route("/problems/new", post(create_problem))
         .route(
             "/submissions/filter/contest/{contest_id}",
             get(get_contest_submissions),

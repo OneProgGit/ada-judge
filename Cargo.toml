@@ -22,6 +22,9 @@ ada-judge-public-models.workspace = true
 argon2 = { version = "0.5.3", features = ["std"] }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 tower-http = { version = "0.6.8", features = ["cors"] }
+zip-extensions = "0.14.1"
+toml = "1.1.2+spec-1.1.0"
+uuid = { version = "1.23.4", features = ["v4"] }
 
 [workspace]
 members = [

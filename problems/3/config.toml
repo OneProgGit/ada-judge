@@ -5,7 +5,6 @@ time_limit_ms = 1000
 memory_limit_mb = 10
 checker_path = "checkers/linux-arm64"
 tests_path = "tests"
-is_interactive = false
 
 [[subgroups]]
 type = "sample"

@@ -197,6 +197,10 @@ pub async fn delete_problem(
             database::problems::delete_problem(&state.db, problem_id)
                 .await
                 .map_http()?;
+            fs::remove_dir_all(PathBuf::from(format!("/problems/{problem_id}")))
+                .await
+                .map_log(TotalVerdict::Bug)
+                .map_http()?;
             Ok(())
         }
     }

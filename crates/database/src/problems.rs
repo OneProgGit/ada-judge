@@ -140,3 +140,16 @@ pub async fn insert_problem_subgroup(
 
     Ok(problem_id)
 }
+
+/// Deletes a problem by given id
+/// # Errors
+/// Returns an error if the problem with this id does not exist
+pub async fn delete_problem(pool: &PgPool, problem_id: i64) -> Result<(), TotalVerdict> {
+    sqlx::query("delete from problems where id = $1")
+        .bind(problem_id)
+        .execute(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}

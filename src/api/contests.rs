@@ -2,7 +2,8 @@ use crate::{
     app_state::AppState, crypt::verify_password, middleware::auth::Auth, tools::is_allowed,
 };
 use ada_judge_public_models::{
-    contests::{ContestRequest, DeleteContestRequest, LeaderboardRow, PublicContestConfig},
+    DeletionRequest,
+    contests::{ContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,
     users::AdminLevel,
 };
@@ -147,7 +148,7 @@ pub async fn delete_contest(
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
-    Json(request): Json<DeleteContestRequest>,
+    Json(request): Json<DeletionRequest>,
 ) -> Result<(), StatusCode> {
     if request.login != auth.login
         || request.password != request.password_confirmation

@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
-use crate::{app_state::AppState, middleware::auth::Auth, tools::is_allowed};
+use crate::{
+    app_state::AppState, crypt::verify_password, middleware::auth::Auth, tools::is_allowed,
+};
 use ada_judge_public_models::{
+    DeletionRequest,
     problems::{ProblemConfig, PublicProblemConfig},
     verdicts::TotalVerdict,
 };
@@ -163,4 +166,38 @@ pub async fn create_problem(
     }
 
     Ok(Json(problem_id))
+}
+
+pub async fn delete_problem(
+    State(state): State<AppState>,
+    Path(problem_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<DeletionRequest>,
+) -> Result<(), StatusCode> {
+    if request.login != auth.login
+        || request.password != request.password_confirmation
+        || !request.deletion_confirmation
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    log::info!("Verify password");
+    let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
+
+    if !is_valid_password {
+        log::error!("Invalid password");
+        Err(StatusCode::BAD_REQUEST)
+    } else {
+        let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+            .await
+            .map_http()?;
+        if !is_allowed(auth.id, problem.owner_id, &auth.admin_level) {
+            Err(StatusCode::FORBIDDEN)
+        } else {
+            database::problems::delete_problem(&state.db, problem_id)
+                .await
+                .map_http()?;
+            Ok(())
+        }
+    }
 }

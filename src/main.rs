@@ -212,7 +212,7 @@ async fn main() {
         .merge(routes_avaible_after_end_of_contest)
         .merge(admin_routes)
         .merge(owner_routes)
-        .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(Extension(Auth))
         .layer(cors)
         .with_state(state);

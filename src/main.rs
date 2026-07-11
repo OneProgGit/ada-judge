@@ -178,7 +178,7 @@ async fn main() {
         )
         .route(
             "/users/{user_id}/change_admin_level",
-            post(change_user_admin_level),
+            patch(change_user_admin_level),
         )
         .route("/submissions", get(get_all_submissions))
         .route(

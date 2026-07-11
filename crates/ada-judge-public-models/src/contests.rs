@@ -26,6 +26,8 @@ pub struct ContestRequest {
     pub ends_at: DateTime<Utc>,
     /// Statements url
     pub statements_url: String,
+    /// Editorial url
+    pub editorial_url: String,
 }
 
 /// Contest's config
@@ -53,6 +55,8 @@ pub struct PublicContestConfig {
     pub name: String,
     /// Url to contest's statements
     pub statements_url: String,
+    /// Url to contest's editorial
+    pub editorial_url: String,
     /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending

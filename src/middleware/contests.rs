@@ -1,4 +1,4 @@
-use crate::{app_state::AppState, middleware::auth::Auth};
+use crate::{app_state::AppState, middleware::auth::Auth, tools::is_allowed};
 use ada_judge_public_models::users::AdminLevel;
 use axum::{
     extract::{Path, Request, State},
@@ -21,17 +21,8 @@ pub async fn check_contest_started_common(
 
     let now = Utc::now();
 
-    if now < contest.starts_at {
-        if contest.owner_id.is_none() && admin_level != AdminLevel::Owner {
-            Err(StatusCode::FORBIDDEN.into_response())
-        } else if let Some(owner_id) = contest.owner_id
-            && owner_id != user_id
-            && admin_level != AdminLevel::Owner
-        {
-            Err(StatusCode::FORBIDDEN.into_response())
-        } else {
-            Ok(())
-        }
+    if now < contest.starts_at && !is_allowed(user_id, contest.owner_id, &admin_level) {
+        Err(StatusCode::FORBIDDEN.into_response())
     } else {
         Ok(())
     }
@@ -49,17 +40,8 @@ pub async fn check_contest_ended_common(
 
     let now = Utc::now();
 
-    if now < contest.ends_at {
-        if contest.owner_id.is_none() && admin_level != AdminLevel::Owner {
-            Err(StatusCode::FORBIDDEN.into_response())
-        } else if let Some(owner_id) = contest.owner_id
-            && owner_id != user_id
-            && admin_level != AdminLevel::Owner
-        {
-            Err(StatusCode::FORBIDDEN.into_response())
-        } else {
-            Ok(())
-        }
+    if now < contest.ends_at && !is_allowed(user_id, contest.owner_id, &admin_level) {
+        Err(StatusCode::FORBIDDEN.into_response())
     } else {
         Ok(())
     }
@@ -77,17 +59,10 @@ pub async fn check_contest_started_and_not_ended_common(
 
     let now = Utc::now();
 
-    if now < contest.starts_at || now >= contest.ends_at {
-        if contest.owner_id.is_none() && admin_level != AdminLevel::Owner {
-            Err(StatusCode::FORBIDDEN.into_response())
-        } else if let Some(owner_id) = contest.owner_id
-            && owner_id != user_id
-            && admin_level != AdminLevel::Owner
-        {
-            Err(StatusCode::FORBIDDEN.into_response())
-        } else {
-            Ok(())
-        }
+    if (now < contest.starts_at || now >= contest.ends_at)
+        && !is_allowed(user_id, contest.owner_id, &admin_level)
+    {
+        Err(StatusCode::FORBIDDEN.into_response())
     } else {
         Ok(())
     }

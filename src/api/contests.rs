@@ -5,7 +5,6 @@ use ada_judge_public_models::{
     DeletionRequest,
     contests::{ContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,
-    users::AdminLevel,
 };
 use axum::{
     Json,
@@ -63,15 +62,11 @@ pub async fn get_contest_by_id(
 
     let now = Utc::now();
 
-    if now < contest.starts_at {
-        if contest.owner_id.is_none() && auth.admin_level != AdminLevel::Owner {
-            contest.statements_url = String::default();
-        } else if let Some(owner_id) = contest.owner_id
-            && owner_id != auth.id
-            && auth.admin_level != AdminLevel::Owner
-        {
-            contest.statements_url = String::default();
-        }
+    if now < contest.starts_at && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+        contest.statements_url = String::default();
+    }
+    if now < contest.ends_at && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+        contest.editorial_url = String::default();
     }
 
     Ok(Json(contest))
@@ -106,6 +101,7 @@ pub async fn create_contest(
                 &request.starts_at,
                 &request.ends_at,
                 &request.statements_url,
+                &request.editorial_url,
             )
             .await
             .map_http()?,
@@ -137,6 +133,7 @@ pub async fn update_contest(
             &request.starts_at,
             &request.ends_at,
             &request.statements_url,
+            &request.editorial_url,
         )
         .await
         .map_http()?;

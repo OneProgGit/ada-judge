@@ -14,6 +14,8 @@ pub struct DatabaseContestConfig {
     pub name: String,
     /// Url to contest's statements
     pub statements_url: String,
+    /// Url to contest's editorial
+    pub editorial_url: String,
     /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending
@@ -29,6 +31,7 @@ impl From<DatabaseContestConfig> for PublicContestConfig {
             owner_id: value.owner_id,
             name: value.name,
             statements_url: value.statements_url,
+            editorial_url: value.editorial_url,
             starts_at: value.starts_at,
             ends_at: value.ends_at,
         }

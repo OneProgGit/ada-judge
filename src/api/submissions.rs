@@ -7,6 +7,9 @@ use ada_judge_public_models::{
     verdicts::TotalVerdict,
 };
 use apalis::prelude::TaskSink;
+use axum::body::Body;
+use axum::http::header;
+use axum::response::IntoResponse;
 use axum::{
     Json,
     body::Bytes,
@@ -20,6 +23,7 @@ use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
 };
+use tokio_util::io::ReaderStream;
 use tools::map::{MapHttpExt, MapLogExt};
 
 pub async fn get_all_my_submissions(
@@ -192,6 +196,42 @@ pub async fn get_submission(
         Err(StatusCode::FORBIDDEN)
     } else {
         Ok(Json(submission))
+    }
+}
+
+pub async fn download_submission(
+    State(state): State<AppState>,
+    Path(submission_id): Path<i64>,
+    Auth(auth): Auth,
+) -> Result<impl IntoResponse, StatusCode> {
+    let submission: Submission = database::submissions::get_submission(&state.db, submission_id)
+        .await
+        .map_http()?
+        .into();
+    if !is_allowed(auth.id, Some(submission.user_id), &auth.admin_level) {
+        Err(StatusCode::FORBIDDEN)
+    } else {
+        let file_ext = get_language_file_extension(&submission.language);
+        let file_path = PathBuf::from(format!(
+            "/submissions_envs/{submission_id}/run.{}",
+            file_ext
+        ));
+        let file = File::open(&file_path)
+            .await
+            .map_log(TotalVerdict::Bug)
+            .map_http()?;
+        let stream = ReaderStream::new(file);
+        let body = Body::from_stream(stream);
+
+        let headers = [
+            (header::CONTENT_TYPE, "application/octet-stream".to_string()),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"solution.{file_ext}\""),
+            ),
+        ];
+
+        Ok((headers, body))
     }
 }
 

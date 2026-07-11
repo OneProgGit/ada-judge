@@ -12,8 +12,6 @@ pub struct RegisterRequest {
     pub password: String,
     /// Password confirmation
     pub password_confirmation: String,
-    /// Master password (only for now)
-    pub master_password: String,
 }
 
 /// Login request called from frontend

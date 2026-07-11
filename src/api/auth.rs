@@ -15,18 +15,6 @@ pub async fn register(
     State(state): State<AppState>,
     Json(user): Json<RegisterRequest>,
 ) -> Result<(StatusCode, Json<i64>), StatusCode> {
-    log::info!("Get master password");
-
-    let master_password = env::var("MASTER_PASSWORD")
-        .map_log(TotalVerdict::Bug)
-        .map_http()?;
-
-    log::info!("Check master password");
-    if user.master_password.trim() != master_password.trim() {
-        log::error!("Incorrect master password");
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
     log::info!("Get password hash");
     let password_hash = get_password_hash(&user.password).map_http()?;
 

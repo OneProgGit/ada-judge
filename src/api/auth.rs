@@ -2,7 +2,8 @@ use crate::crypt::get_password_hash;
 use crate::jwt::create_jwt;
 use crate::middleware::auth::Auth;
 use crate::{app_state::AppState, crypt::verify_password};
-use ada_judge_public_models::users::{DeleteAccountRequest, LoginRequest, RegisterRequest};
+use ada_judge_public_models::DeletionRequest;
+use ada_judge_public_models::users::{LoginRequest, RegisterRequest};
 use ada_judge_public_models::verdicts::TotalVerdict;
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
@@ -82,7 +83,7 @@ pub async fn login(
 pub async fn delete_my_account(
     State(state): State<AppState>,
     Auth(auth): Auth,
-    Json(request): Json<DeleteAccountRequest>,
+    Json(request): Json<DeletionRequest>,
 ) -> Result<(), StatusCode> {
     if request.login != auth.login
         || request.password != request.password_confirmation

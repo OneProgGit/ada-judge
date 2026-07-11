@@ -25,19 +25,6 @@ pub struct LoginRequest {
     pub password: String,
 }
 
-/// Delete account request called from frontend
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct DeleteAccountRequest {
-    /// Login
-    pub login: String,
-    /// Password
-    pub password: String,
-    /// Password confirmation
-    pub password_confirmation: String,
-    /// Deletion confirmation
-    pub deletion_confirmation: bool,
-}
-
 /// Admin level
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, PartialOrd, Ord)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::Type))]

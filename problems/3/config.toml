@@ -1,4 +1,5 @@
 name = "Сумма чисел III"
+type = "default"
 contest_id = 1
 problem_index = 2
 time_limit_ms = 1000

@@ -128,7 +128,7 @@ async fn get_single_test_verdict(
             }
 
             log::info!("Run checker, stage 2");
-            get_checker_result_run_twice(config, &tests_paths.output, &answer_path, tests_paths, 1)
+            get_checker_result_run_twice(config, &tests_paths.output, &answer_path, tests_paths, 2)
                 .await
         }
     }

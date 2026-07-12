@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 pub struct ProblemConfig {
     /// Problem's owner's user id (optional)
     pub owner_id: Option<i64>,
+    /// Problem's type
+    pub r#type: ProblemType,
     /// Problems's contest id
     pub contest_id: i64,
     /// Problem's index in contest
@@ -33,6 +35,8 @@ pub struct PublicProblemConfig {
     pub id: i64,
     /// Problem's owner id (optional)
     pub owner_id: Option<i64>,
+    /// Problem's type
+    pub r#type: ProblemType,
     /// Problems's contest id
     pub contest_id: i64,
     /// Problem's index in contest
@@ -45,6 +49,23 @@ pub struct PublicProblemConfig {
     pub memory_limit_mb: i32,
     /// Problem's subgroups
     pub subgroups: Vec<Subgroup>,
+}
+
+/// Problem's type
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
+#[cfg_attr(
+    feature = "sqlx",
+    sqlx(type_name = "problem_type", rename_all = "snake_case")
+)]
+#[serde(rename_all = "snake_case")]
+pub enum ProblemType {
+    /// Default problem
+    Default,
+    /// Interactive problem
+    Interactive,
+    /// Run-twice problem
+    RunTwice,
 }
 
 /// Testing subgroup

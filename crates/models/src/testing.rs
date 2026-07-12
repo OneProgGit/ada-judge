@@ -64,6 +64,8 @@ impl From<DatabaseSubmission> for Submission {
 /// Useful paths for testing
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TestsPaths {
+    /// Path to stdin
+    pub input: PathBuf,
     /// Path to stdout
     pub output: PathBuf,
     /// Path to solution binary
@@ -74,6 +76,8 @@ pub struct TestsPaths {
     pub checker: PathBuf,
     /// Path to the directory, which contains directories with tests inputs and outputs
     pub tests: PathBuf,
+    /// Path to the FIFO directory (for interactive problems)
+    pub fifo: PathBuf,
 }
 
 impl TestsPaths {
@@ -86,11 +90,13 @@ impl TestsPaths {
         lang: &Language,
     ) -> Self {
         Self {
+            input: run_path.join("stdin"),
             output: run_path.join("stdout"),
             solution: run_path.join("run"),
             solution_source: run_path.join(format!("run.{}", get_language_file_extension(lang))),
             checker: problem_path.join(config.checker_path.clone()),
             tests: problem_path.join(config.tests_path.clone()),
+            fifo: run_path.join("fifo"),
         }
     }
 }

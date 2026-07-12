@@ -1,6 +1,8 @@
 //! Problem's config structs
 
-use ada_judge_public_models::problems::{ProblemConfig, PublicProblemConfig, Subgroup};
+use ada_judge_public_models::problems::{
+    ProblemConfig, ProblemType, PublicProblemConfig, Subgroup,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
@@ -12,6 +14,8 @@ pub struct DatabaseProblemConfig {
     pub id: i64,
     /// Problem's owner id (optional)
     pub owner_id: Option<i64>,
+    /// Problem's type
+    pub r#type: ProblemType,
     /// Problems's contest id
     pub contest_id: i64,
     /// Problem's index in contest
@@ -36,6 +40,7 @@ impl From<DatabaseProblemConfig> for ProblemConfig {
     fn from(value: DatabaseProblemConfig) -> Self {
         Self {
             owner_id: value.owner_id,
+            r#type: value.r#type,
             contest_id: value.contest_id,
             problem_index: value.problem_index,
             name: value.name,
@@ -53,6 +58,7 @@ impl From<DatabaseProblemConfig> for PublicProblemConfig {
         Self {
             id: value.id,
             owner_id: value.owner_id,
+            r#type: value.r#type,
             contest_id: value.contest_id,
             problem_index: value.problem_index,
             name: value.name,

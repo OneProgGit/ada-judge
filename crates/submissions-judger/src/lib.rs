@@ -9,8 +9,9 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![forbid(unsafe_code)]
 
+use ::tools::map::MapLogExt;
 use ada_judge_public_models::{
-    problems::{ProblemConfig, Subgroup},
+    problems::{ProblemConfig, ProblemType, Subgroup},
     testing::SubgroupResult,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -22,9 +23,15 @@ use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;
 use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;
+use tokio::fs::File;
+
+use crate::{
+    checker_runner::get_checker_result_run_twice, interactive_runner::get_run_interactive_verdict,
+};
 
 mod checker_runner;
 mod constants;
+mod interactive_runner;
 mod solution_compiler;
 mod solution_runner;
 mod tools;
@@ -39,16 +46,81 @@ async fn get_single_test_verdict(
     let input_path = test_path.join("in");
     let answer_path = test_path.join("out");
 
-    log::info!("Run solution");
-    let solution_verdict = get_run_solution_verdict(config, &input_path, tests_paths).await?;
+    match config.r#type {
+        ProblemType::Default => {
+            log::info!("Run solution");
+            let solution_verdict =
+                get_run_solution_verdict(config, &input_path, tests_paths).await?;
 
-    if solution_verdict != SubgroupVerdict::Ok {
-        log::error!("Run result isn't OK");
-        return Ok(solution_verdict);
+            if solution_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(solution_verdict);
+            }
+
+            log::info!("Run checker");
+            get_checker_result(config, &input_path, &answer_path, tests_paths).await
+        }
+        ProblemType::Interactive => {
+            get_run_interactive_verdict(config, &answer_path, tests_paths).await
+        }
+        ProblemType::RunTwice => {
+            log::info!("Run checker, stage 0");
+            let checker_verdict = get_checker_result_run_twice(
+                config,
+                &tests_paths.input,
+                &answer_path,
+                tests_paths,
+                0,
+            )
+            .await?;
+
+            if checker_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(checker_verdict);
+            }
+
+            log::info!("Run solution, stage 0");
+            let solution_verdict =
+                get_run_solution_verdict(config, &tests_paths.input, tests_paths).await?;
+
+            if solution_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(solution_verdict);
+            }
+
+            _ = File::create(&tests_paths.input)
+                .await
+                .map_log(TotalVerdict::Bug)?;
+
+            log::info!("Run checker, stage 1");
+            let checker_verdict = get_checker_result_run_twice(
+                config,
+                &tests_paths.input,
+                &answer_path,
+                tests_paths,
+                1,
+            )
+            .await?;
+
+            if checker_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(checker_verdict);
+            }
+
+            log::info!("Run solution, stage 1");
+            let solution_verdict =
+                get_run_solution_verdict(config, &tests_paths.input, tests_paths).await?;
+
+            if solution_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(checker_verdict);
+            }
+
+            log::info!("Run checker, stage 2");
+            get_checker_result_run_twice(config, &tests_paths.input, &answer_path, tests_paths, 1)
+                .await
+        }
     }
-
-    log::info!("Run checker");
-    get_checker_result(config, &input_path, answer_path, tests_paths).await
 }
 
 async fn write_subgroup_result(

@@ -129,7 +129,7 @@ pub async fn get_checker_result_run_twice(
             ),
             "-v",
             &format!(
-                "{}:/sandbox/output:ro",
+                "{}:/sandbox/output",
                 convert_path_in_container_to_path_in_host(&tests_paths.input)?.display()
             ),
             "-v",

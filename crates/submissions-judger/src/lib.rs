@@ -67,7 +67,7 @@ async fn get_single_test_verdict(
             log::info!("Run checker, stage 0");
             let checker_verdict = get_checker_result_run_twice(
                 config,
-                &tests_paths.input,
+                &tests_paths.output,
                 &answer_path,
                 tests_paths,
                 0,
@@ -95,7 +95,7 @@ async fn get_single_test_verdict(
             log::info!("Run checker, stage 1");
             let checker_verdict = get_checker_result_run_twice(
                 config,
-                &tests_paths.input,
+                &tests_paths.output,
                 &answer_path,
                 tests_paths,
                 1,
@@ -117,7 +117,7 @@ async fn get_single_test_verdict(
             }
 
             log::info!("Run checker, stage 2");
-            get_checker_result_run_twice(config, &tests_paths.input, &answer_path, tests_paths, 1)
+            get_checker_result_run_twice(config, &tests_paths.output, &answer_path, tests_paths, 1)
                 .await
         }
     }

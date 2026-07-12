@@ -24,7 +24,9 @@ use uuid::Uuid;
 use zip_extensions::zip_extract::zip_extract;
 
 pub async fn get_problems(State(state): State<AppState>) -> Result<Json<Vec<i64>>, StatusCode> {
-    Ok(Json(get_all_user_problems(&state.db, -1).await.map_http()?))
+    Ok(Json(
+        get_all_user_problems(&state.db, None).await.map_http()?,
+    ))
 }
 
 pub async fn get_my_problems(
@@ -32,7 +34,9 @@ pub async fn get_my_problems(
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        get_all_user_problems(&state.db, auth.id).await.map_http()?,
+        get_all_user_problems(&state.db, Some(auth.id))
+            .await
+            .map_http()?,
     ))
 }
 

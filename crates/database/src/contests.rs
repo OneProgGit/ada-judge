@@ -88,20 +88,24 @@ pub async fn get_contest_problems(
 /// Gets all user's contests. If `user_id` is -1, gets all contests.
 /// # Errors
 /// Returns an error if `user_id` is invalid
-pub async fn get_all_user_contests(pool: &PgPool, user_id: i64) -> Result<Vec<i64>, TotalVerdict> {
-    if user_id == -1 {
-        sqlx::query_as::<_, (i64,)>("select id from contests order by id desc")
+pub async fn get_all_user_contests(
+    pool: &PgPool,
+    user_id: Option<i64>,
+) -> Result<Vec<i64>, TotalVerdict> {
+    match user_id {
+        None => sqlx::query_as::<_, (i64,)>("select id from contests order by id desc")
             .fetch_all(pool)
             .await
             .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TotalVerdict::InvalidRequest)
-    } else {
-        sqlx::query_as::<_, (i64,)>("select id from contests where owner_id = $1 order by id desc")
-            .bind(user_id)
-            .fetch_all(pool)
-            .await
-            .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TotalVerdict::InvalidRequest)
+            .map_log(TotalVerdict::InvalidRequest),
+        Some(user_id) => sqlx::query_as::<_, (i64,)>(
+            "select id from contests where owner_id = $1 order by id desc",
+        )
+        .bind(user_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest),
     }
 }
 

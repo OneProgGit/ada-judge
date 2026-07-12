@@ -73,7 +73,9 @@ pub async fn get_contest_by_id(
 }
 
 pub async fn get_contests(State(state): State<AppState>) -> Result<Json<Vec<i64>>, StatusCode> {
-    Ok(Json(get_all_user_contests(&state.db, -1).await.map_http()?))
+    Ok(Json(
+        get_all_user_contests(&state.db, None).await.map_http()?,
+    ))
 }
 
 pub async fn get_my_contests(
@@ -81,7 +83,9 @@ pub async fn get_my_contests(
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        get_all_user_contests(&state.db, auth.id).await.map_http()?,
+        get_all_user_contests(&state.db, Some(auth.id))
+            .await
+            .map_http()?,
     ))
 }
 

@@ -158,21 +158,20 @@ pub async fn get_all_user_submissions(
     pool: &PgPool,
     user_id: Option<i64>,
 ) -> Result<Vec<i64>, TotalVerdict> {
-    if let Some(user_id) = user_id {
-        sqlx::query_as::<_, (i64,)>(
+    match user_id {
+        None => sqlx::query_as::<_, (i64,)>("select id from submissions order by id desc")
+            .fetch_all(pool)
+            .await
+            .map(|rows| rows.iter().map(|(id,)| *id).collect())
+            .map_log(TotalVerdict::InvalidRequest),
+        Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from submissions where user_id = $1 order by id desc",
         )
         .bind(user_id)
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest)
-    } else {
-        sqlx::query_as::<_, (i64,)>("select id from submissions order by id desc")
-            .fetch_all(pool)
-            .await
-            .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TotalVerdict::InvalidRequest)
+        .map_log(TotalVerdict::InvalidRequest),
     }
 }
 
@@ -184,8 +183,18 @@ pub async fn get_user_contest_submissions(
     user_id: Option<i64>,
     contest_id: i64,
 ) -> Result<Vec<i64>, TotalVerdict> {
-    if let Some(user_id) = user_id {
-        sqlx::query_as::<_, (i64,)>(
+    match user_id {
+        None => sqlx::query_as::<_, (i64,)>(
+            "select c.id from submissions c
+                join problems p on p.id = c.problem_id
+            where p.contest_id = $1 order by c.id desc",
+        )
+        .bind(contest_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest),
+        Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select c.id from submissions c
                 join problems p on p.id = c.problem_id
             where c.user_id = $1 and p.contest_id = $2 order by c.id desc",
@@ -195,18 +204,7 @@ pub async fn get_user_contest_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest)
-    } else {
-        sqlx::query_as::<_, (i64,)>(
-            "select c.id from submissions c
-                join problems p on p.id = c.problem_id
-            where p.contest_id = $1 order by c.id desc",
-        )
-        .bind(contest_id)
-        .fetch_all(pool)
-        .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest)
+        .map_log(TotalVerdict::InvalidRequest),
     }
 }
 
@@ -218,8 +216,16 @@ pub async fn get_user_problem_submissions(
     user_id: Option<i64>,
     problem_id: i64,
 ) -> Result<Vec<i64>, TotalVerdict> {
-    if let Some(user_id) = user_id {
-        sqlx::query_as::<_, (i64,)>(
+    match user_id {
+        None => sqlx::query_as::<_, (i64,)>(
+            "select id from submissions where problem_id = $1 order by id desc",
+        )
+        .bind(problem_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest),
+        Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from submissions where user_id = $1 and problem_id = $2 order by id desc",
         )
         .bind(user_id)
@@ -227,16 +233,7 @@ pub async fn get_user_problem_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest)
-    } else {
-        sqlx::query_as::<_, (i64,)>(
-            "select id from submissions where problem_id = $1 order by id desc",
-        )
-        .bind(problem_id)
-        .fetch_all(pool)
-        .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest)
+        .map_log(TotalVerdict::InvalidRequest),
     }
 }
 

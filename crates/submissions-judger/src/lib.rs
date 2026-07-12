@@ -64,6 +64,17 @@ async fn get_single_test_verdict(
             get_run_interactive_verdict(config, &answer_path, tests_paths).await
         }
         ProblemType::RunTwice => {
+            {
+                log::info!("Create stdin file");
+                _ = File::create(tests_paths.input.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+                log::info!("Create stdout file");
+                _ = File::create(tests_paths.output.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+            }
+
             log::info!("Run checker, stage 0");
             let checker_verdict = get_checker_result_run_twice(
                 config,

@@ -4,7 +4,7 @@ contest_id = 1
 problem_index = 2
 time_limit_ms = 1000
 memory_limit_mb = 10
-checker_path = "checkers/linux-arm64"
+checker_path = "checker"
 tests_path = "tests"
 
 [[subgroups]]

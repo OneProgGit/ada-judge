@@ -1,6 +1,9 @@
 //! Database tools for problems
 
-use ada_judge_public_models::{problems::SubgroupType, verdicts::TotalVerdict};
+use ada_judge_public_models::{
+    problems::{ProblemType, SubgroupType},
+    verdicts::TotalVerdict,
+};
 use models::problems::DatabaseProblemConfig;
 use sqlx::PgPool;
 use tools::map::MapLogExt;
@@ -16,6 +19,7 @@ pub async fn get_problem_by_id(
         "select
                 c.id,
                 c.owner_id,
+                c.type,
                 c.contest_id,
                 c.problem_index,
                 c.name,
@@ -40,6 +44,7 @@ pub async fn get_problem_by_id(
             where c.id = $1
             group by c.id,
                 c.owner_id,
+                c.type,
                 c.contest_id,
                 c.problem_index,
                 c.name,
@@ -84,6 +89,7 @@ pub async fn get_all_user_problems(pool: &PgPool, user_id: i64) -> Result<Vec<i6
 pub async fn create_problem(
     pool: &PgPool,
     owner_id: i64,
+    r#type: ProblemType,
     contest_id: i64,
     problem_index: i64,
     name: &str,
@@ -93,11 +99,12 @@ pub async fn create_problem(
     tests_path: &str,
 ) -> Result<i64, TotalVerdict> {
     let problem_id = sqlx::query_scalar(
-        "insert into problems (owner_id, contest_id, problem_index,
+        "insert into problems (owner_id, type, contest_id, problem_index,
                                 name, time_limit_ms, memory_limit_mb,
-                                checker_path, tests_path) values ($1, $2, $3, $4, $5, $6, $7, $8) returning id",
+                                checker_path, tests_path) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id",
     )
     .bind(owner_id)
+    .bind(r#type)
     .bind(contest_id)
     .bind(problem_index)
     .bind(name)

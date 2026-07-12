@@ -134,6 +134,7 @@ pub async fn create_problem(
     let problem_id = database::problems::create_problem(
         &state.db,
         auth.id,
+        config.r#type,
         config.contest_id,
         config.problem_index,
         &config.name,

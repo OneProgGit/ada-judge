@@ -23,7 +23,7 @@ use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;
 use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;
-use tokio::fs::OpenOptions;
+use tokio::fs::{File, OpenOptions};
 
 use crate::{
     checker_runner::get_checker_result_run_twice, interactive_runner::get_run_interactive_verdict,
@@ -66,17 +66,11 @@ async fn get_single_test_verdict(
         ProblemType::RunTwice => {
             {
                 log::info!("Create stdin file");
-                _ = OpenOptions::new()
-                    .write(true)
-                    .truncate(true)
-                    .open(tests_paths.input.clone())
+                _ = File::create(tests_paths.input.clone())
                     .await
                     .map_log(TotalVerdict::InvalidProblem)?;
                 log::info!("Create stdout file");
-                _ = OpenOptions::new()
-                    .write(true)
-                    .truncate(true)
-                    .open(tests_paths.output.clone())
+                _ = File::create(tests_paths.output.clone())
                     .await
                     .map_log(TotalVerdict::InvalidProblem)?;
             }

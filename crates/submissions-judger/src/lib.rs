@@ -23,7 +23,7 @@ use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;
 use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;
-use tokio::fs::{File, OpenOptions};
+use tokio::fs::File;
 
 use crate::{
     checker_runner::get_checker_result_run_twice, interactive_runner::get_run_interactive_verdict,

@@ -66,7 +66,7 @@ pub async fn get_checker_result(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms * 2) / 1000.),
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",
@@ -90,7 +90,6 @@ pub async fn get_checker_result(
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_checker_result_run_twice(
     config: &ProblemConfig,
-    input_path: &Path,
     answer_path: &Path,
     tests_paths: &TestsPaths,
     stage: i32,
@@ -125,7 +124,7 @@ pub async fn get_checker_result_run_twice(
             "-v",
             &format!(
                 "{}:/sandbox/input:ro",
-                convert_path_in_container_to_path_in_host(input_path)?.display()
+                convert_path_in_container_to_path_in_host(&tests_paths.output)?.display()
             ),
             "-v",
             &format!(
@@ -143,7 +142,7 @@ pub async fn get_checker_result_run_twice(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms * 2) / 1000.),
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",

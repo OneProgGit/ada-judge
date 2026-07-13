@@ -23,7 +23,7 @@ use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;
 use solution_runner::get_run_solution_verdict;
 use sqlx::PgPool;
-use tokio::fs::File;
+use tokio::fs::OpenOptions;
 
 use crate::{
     checker_runner::get_checker_result_run_twice, interactive_runner::get_run_interactive_verdict,
@@ -66,24 +66,24 @@ async fn get_single_test_verdict(
         ProblemType::RunTwice => {
             {
                 log::info!("Create stdin file");
-                _ = File::create(tests_paths.input.clone())
+                _ = OpenOptions::new()
+                    .write(true)
+                    .truncate(true)
+                    .open(tests_paths.input.clone())
                     .await
                     .map_log(TotalVerdict::InvalidProblem)?;
                 log::info!("Create stdout file");
-                _ = File::create(tests_paths.output.clone())
+                _ = OpenOptions::new()
+                    .write(true)
+                    .truncate(true)
+                    .open(tests_paths.output.clone())
                     .await
                     .map_log(TotalVerdict::InvalidProblem)?;
             }
 
             log::info!("Run checker, stage 0");
-            let checker_verdict = get_checker_result_run_twice(
-                config,
-                &tests_paths.output,
-                &answer_path,
-                tests_paths,
-                0,
-            )
-            .await?;
+            let checker_verdict =
+                get_checker_result_run_twice(config, &answer_path, tests_paths, 0).await?;
 
             if checker_verdict != SubgroupVerdict::Ok {
                 log::error!("Run result isn't OK");
@@ -99,23 +99,33 @@ async fn get_single_test_verdict(
                 return Ok(solution_verdict);
             }
 
-            _ = File::create(&tests_paths.input)
-                .await
-                .map_log(TotalVerdict::Bug)?;
+            {
+                log::info!("Truncate stdin file");
+                _ = OpenOptions::new()
+                    .write(true)
+                    .truncate(true)
+                    .open(tests_paths.input.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+            }
 
             log::info!("Run checker, stage 1");
-            let checker_verdict = get_checker_result_run_twice(
-                config,
-                &tests_paths.output,
-                &answer_path,
-                tests_paths,
-                1,
-            )
-            .await?;
+            let checker_verdict =
+                get_checker_result_run_twice(config, &answer_path, tests_paths, 1).await?;
 
             if checker_verdict != SubgroupVerdict::Ok {
                 log::error!("Run result isn't OK");
                 return Ok(checker_verdict);
+            }
+
+            {
+                log::info!("Truncate stdout file");
+                _ = OpenOptions::new()
+                    .write(true)
+                    .truncate(true)
+                    .open(tests_paths.output.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
             }
 
             log::info!("Run solution, stage 1");
@@ -124,12 +134,11 @@ async fn get_single_test_verdict(
 
             if solution_verdict != SubgroupVerdict::Ok {
                 log::error!("Run result isn't OK");
-                return Ok(checker_verdict);
+                return Ok(solution_verdict);
             }
 
             log::info!("Run checker, stage 2");
-            get_checker_result_run_twice(config, &tests_paths.output, &answer_path, tests_paths, 2)
-                .await
+            get_checker_result_run_twice(config, &answer_path, tests_paths, 2).await
         }
     }
 }

@@ -95,10 +95,7 @@ async fn get_single_test_verdict(
 
             {
                 log::info!("Truncate stdin file");
-                _ = OpenOptions::new()
-                    .write(true)
-                    .truncate(true)
-                    .open(tests_paths.input.clone())
+                _ = File::create(tests_paths.input.clone())
                     .await
                     .map_log(TotalVerdict::InvalidProblem)?;
             }
@@ -114,10 +111,7 @@ async fn get_single_test_verdict(
 
             {
                 log::info!("Truncate stdout file");
-                _ = OpenOptions::new()
-                    .write(true)
-                    .truncate(true)
-                    .open(tests_paths.output.clone())
+                _ = File::create(tests_paths.output.clone())
                     .await
                     .map_log(TotalVerdict::InvalidProblem)?;
             }

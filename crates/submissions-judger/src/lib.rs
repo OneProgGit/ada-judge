@@ -350,8 +350,13 @@ pub async fn test_submission(
             for test_id in &subgroup.tests {
                 let test_id = *test_id;
                 log::info!("Insert a test's testing result");
-                database::submissions::insert_test_testing_result(&pool, submission_id, test_id)
-                    .await?;
+                database::submissions::insert_test_testing_result(
+                    &pool,
+                    submission_id,
+                    test_id,
+                    if per_test { Some(0) } else { None },
+                )
+                .await?;
 
                 let test_result = TestResult {
                     test_verdict: SubgroupVerdict::Skipped,

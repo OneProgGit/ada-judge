@@ -155,7 +155,7 @@ pub async fn insert_problem_subgroup(
         .map_log(TotalVerdict::InvalidRequest)?;
 
         Ok(())
-    } else if let Some(score_per_test) = score {
+    } else if let Some(score_per_test) = score_per_test {
         sqlx::query(
             "insert into problems_subgroups (problem_id, subgroup_index,
                                             type, tests, score_per_test, depends_on) values ($1, $2, $3, $4, $5, $6)",

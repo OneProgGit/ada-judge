@@ -1,0 +1,2 @@
+drop table submissions_tests_results;
+drop index if exists idx_submissions_tests_results_submission_id;

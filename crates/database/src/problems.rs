@@ -34,6 +34,7 @@ pub async fn get_problem_by_id(
                             'type', v.type,
                             'tests', v.tests,
                             'score', v.score,
+                            'score_per_test', v.score_per_test,
                             'depends_on', v.depends_on
                         ) order by v.subgroup_index
                     ) filter (where v.problem_id is not null),
@@ -132,24 +133,47 @@ pub async fn insert_problem_subgroup(
     subgroup_index: usize,
     r#type: &SubgroupType,
     tests: &Vec<i32>,
-    score: i32,
+    score: Option<i32>,
+    score_per_test: Option<i32>,
     depends_on: &Vec<usize>,
-) -> Result<i64, TotalVerdict> {
-    sqlx::query(
-        "insert into problems_subgroups (problem_id, subgroup_index,
-                                        type, tests, score, depends_on) values ($1, $2, $3, $4, $5, $6)",
-    )
-    .bind(problem_id)
-    .bind(subgroup_index as i64)
-    .bind(r#type)
-    .bind(tests)
-    .bind(score)
-    .bind(depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
-    .execute(pool)
-    .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+) -> Result<(), TotalVerdict> {
+    if score.is_some() == score_per_test.is_some() {
+        return Err(TotalVerdict::InvalidProblem);
+    } else if let Some(score) = score {
+        sqlx::query(
+            "insert into problems_subgroups (problem_id, subgroup_index,
+                                            type, tests, score, depends_on) values ($1, $2, $3, $4, $5, $6)",
+        )
+        .bind(problem_id)
+        .bind(subgroup_index as i64)
+        .bind(r#type)
+        .bind(tests)
+        .bind(score)
+        .bind(depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
+        .execute(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
 
-    Ok(problem_id)
+        Ok(())
+    } else if let Some(score_per_test) = score {
+        sqlx::query(
+            "insert into problems_subgroups (problem_id, subgroup_index,
+                                            type, tests, score_per_test, depends_on) values ($1, $2, $3, $4, $5, $6)",
+        )
+        .bind(problem_id)
+        .bind(subgroup_index as i64)
+        .bind(r#type)
+        .bind(tests)
+        .bind(score_per_test)
+        .bind(depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
+        .execute(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+        Ok(())
+    } else {
+        unreachable!()
+    }
 }
 
 /// Deletes a problem by given id

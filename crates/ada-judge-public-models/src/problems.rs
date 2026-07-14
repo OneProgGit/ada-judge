@@ -77,7 +77,9 @@ pub struct Subgroup {
     /// Array of tests' indexes of the subgroup
     pub tests: Vec<i32>,
     /// Maximum score which can be obtained from the subgroup
-    pub score: i32,
+    pub score: Option<i32>,
+    /// Maximum score which can be obtained from the each of subgroup's tests
+    pub score_per_test: Option<i32>,
     /// Indexes of the subgroups, all of them must have `Ok` verdict to test on this subgroup.
     /// Also, they must be less than index of this subgroup
     pub depends_on: Vec<usize>,

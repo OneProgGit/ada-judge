@@ -56,7 +56,7 @@ pub struct TotalResult {
     pub total_score: i32,
 }
 
-/// Subgroup result, including verdict, test of that verdict, score and checker's message
+/// Subgroup result, including verdict, test of that verdict and score
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct SubgroupResult {
@@ -65,6 +65,16 @@ pub struct SubgroupResult {
     /// Last tested test
     pub test: i32,
     /// Score for the subgroup
+    pub score: i32,
+}
+
+/// Test result, including verdict and score
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
+pub struct TestResult {
+    /// Tests's verdict
+    pub test_verdict: SubgroupVerdict,
+    /// Score for the test
     pub score: i32,
 }
 
@@ -86,6 +96,8 @@ pub struct Submission {
     pub total_score: i32,
     /// Created at timestamp
     pub created_at: DateTime<Utc>,
-    /// Subgroup's results
+    /// Subgroups' results
     pub subgroups_results: Vec<SubgroupResult>,
+    /// Tests' results
+    pub tests_results: Vec<TestResult>,
 }

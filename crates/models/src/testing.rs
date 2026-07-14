@@ -2,7 +2,7 @@
 
 use ada_judge_public_models::{
     problems::ProblemConfig,
-    testing::{Language, SubgroupResult, Submission, get_language_file_extension},
+    testing::{Language, SubgroupResult, Submission, TestResult, get_language_file_extension},
     verdicts::TotalVerdict,
 };
 use chrono::{DateTime, Utc};
@@ -42,8 +42,10 @@ pub struct DatabaseSubmission {
     pub total_score: i32,
     /// Created at timestamp
     pub created_at: DateTime<Utc>,
-    /// Subgroup's results
+    /// Subgroups' results
     pub subgroups_results: Json<Vec<SubgroupResult>>,
+    /// Tests' results
+    pub tests_results: Json<Vec<TestResult>>,
 }
 
 impl From<DatabaseSubmission> for Submission {
@@ -57,6 +59,7 @@ impl From<DatabaseSubmission> for Submission {
             total_score: value.total_score,
             created_at: value.created_at,
             subgroups_results: value.subgroups_results.0,
+            tests_results: value.tests_results.0,
         }
     }
 }

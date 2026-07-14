@@ -1,7 +1,7 @@
 //! Database tools for submissions
 
 use ada_judge_public_models::{
-    testing::{Language, SubgroupResult},
+    testing::{Language, SubgroupResult, TestResult},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use models::testing::DatabaseSubmission;
@@ -56,7 +56,7 @@ pub async fn update_total_testing_result(
     Ok(())
 }
 
-/// Inserts a subgroup's testing result to `submissions_subgroups_results` table
+/// Inserts a subgroup's testing result into `submissions_subgroups_results` table
 /// # Errors
 /// Returns an error if `submission_id` is invalid.
 pub async fn insert_subgroup_testing_result(
@@ -73,10 +73,32 @@ pub async fn insert_subgroup_testing_result(
         .bind(SubgroupVerdict::Testing)
         .bind(0)
         .bind(0)
-        .bind("")
         .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
+/// Inserts a test's testing result into `submissions_tests_results` table
+/// # Errors
+/// Returns an error if `submission_id` is invalid.
+pub async fn insert_test_testing_result(
+    pool: &PgPool,
+    submission_id: i64,
+    test: i32,
+) -> Result<(), TotalVerdict> {
+    sqlx::query(
+        "insert into submissions_tests_results (test, submission_id, test_verdict, score)
+            values ($1, $2, $3, $4)",
+    )
+    .bind(test)
+    .bind(submission_id)
+    .bind(SubgroupVerdict::Testing)
+    .bind(0)
+    .execute(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -99,6 +121,30 @@ pub async fn update_subgroup_testing_result(
     .bind(subgroup_result.score)
     .bind(submission_id)
     .bind(subgroup_index)
+    .execute(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
+/// Updates testing result for a test of the problem
+/// # Errors
+/// Returns an error if `submission_id` is invalid.
+pub async fn update_test_testing_result(
+    pool: &PgPool,
+    submission_id: i64,
+    test: i32,
+    test_result: &TestResult,
+) -> Result<(), TotalVerdict> {
+    sqlx::query(
+        "update submissions_tests_results set test_verdict = $1, score = $2
+            where submission_id = $3 and test = $4",
+    )
+    .bind(&test_result.test_verdict)
+    .bind(test_result.score)
+    .bind(submission_id)
+    .bind(test)
     .execute(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
@@ -131,9 +177,19 @@ pub async fn get_submission(
                         ) order by v.subgroup_index
                     ) filter (where v.submission_id is not null),
                     '[]'
-                ) as subgroups_results
+                ) as subgroups_results,
+                coalesce(
+                    json_agg(
+                        json_build_object(
+                            'test_verdict', u.test_verdict,
+                            'score', u.score
+                        ) order by u.test
+                    ) filter (where u.submission_id is not null),
+                    '[]'
+                ) as tests_results
             from submissions c
             left join submissions_subgroups_results v on v.submission_id = c.id
+            left join submissions_tests_results u on u.submission_id = c.id
             where c.id = $1
             group by c.id,
                 c.problem_id,

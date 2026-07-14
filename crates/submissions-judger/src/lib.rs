@@ -12,7 +12,7 @@
 use ::tools::map::MapLogExt;
 use ada_judge_public_models::{
     problems::{ProblemConfig, ProblemType, Subgroup},
-    testing::SubgroupResult,
+    testing::{SubgroupResult, TestResult},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
 use apalis::prelude::{BoxDynError, Data};
@@ -132,30 +132,60 @@ async fn get_single_test_verdict(
 }
 
 async fn write_subgroup_result(
-    test_result: &mut SubgroupResult,
+    pool: &PgPool,
+    submission_id: i64,
+    subgroup_result: &mut SubgroupResult,
     subgroup: &Subgroup,
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
 ) -> Result<(), TotalVerdict> {
+    let mut score = 0;
+    let per_test = subgroup.score_per_test.is_some();
     for test_id in &subgroup.tests {
         let test_id = *test_id;
         log::info!("Run test #{test_id}");
 
-        test_result.test = test_id;
-        let subgroup_verdict = get_single_test_verdict(config, tests_paths, test_id).await?;
+        log::info!("Insert a test's testing result");
+        database::submissions::insert_test_testing_result(&pool, submission_id, test_id).await?;
 
-        test_result.subgroup_verdict = subgroup_verdict;
-        test_result.test = test_id;
+        subgroup_result.test = test_id;
+        let test_verdict = get_single_test_verdict(config, tests_paths, test_id).await?;
 
-        if test_result.subgroup_verdict != SubgroupVerdict::Ok {
+        subgroup_result.subgroup_verdict = test_verdict.clone();
+        subgroup_result.test = test_id;
+
+        log::info!("Update test's testing result record");
+        let test_result = TestResult {
+            test_verdict,
+            score: if per_test {
+                subgroup.score_per_test.unwrap()
+            } else {
+                0
+            },
+        };
+        database::submissions::update_test_testing_result(
+            &pool,
+            submission_id,
+            test_id,
+            &test_result,
+        )
+        .await?;
+
+        if subgroup_result.subgroup_verdict != SubgroupVerdict::Ok && !per_test {
             log::error!(
                 "Verdict {} isn't OK, skip testing",
-                test_result.subgroup_verdict
+                subgroup_result.subgroup_verdict
             );
             return Ok(());
+        } else if per_test && subgroup_result.subgroup_verdict == SubgroupVerdict::Ok {
+            score += subgroup.score_per_test.unwrap();
         }
     }
-    test_result.score = subgroup.score;
+    if per_test {
+        subgroup_result.score = score;
+    } else {
+        subgroup_result.score = subgroup.score.ok_or(TotalVerdict::Bug)?;
+    }
     Ok(())
 }
 
@@ -167,6 +197,12 @@ fn assert_subgroups_correctness(config: &ProblemConfig) -> Result<(), TotalVerdi
                 log::error!("Subgroup depends on a subgroup that has index less than it's");
                 return Err(TotalVerdict::InvalidProblem);
             }
+        }
+        if subgroup.score.is_some() == subgroup.score_per_test.is_some() {
+            log::error!(
+                "Subgroup does have both `score` and `score_per_test` or doesn't have neither `score` nor `score_per_test`"
+            );
+            return Err(TotalVerdict::InvalidProblem);
         }
     }
     Ok(())
@@ -267,10 +303,17 @@ pub async fn test_submission(
         log::info!("Check if subgroup needs to be tested on");
         if does_subgroup_need_to_be_tested_on(subgroup, &subgroups_results) {
             log::info!("Test solution on tests");
-            write_subgroup_result(&mut subgroup_result, subgroup, &config, &tests_paths)
-                .await
-                .map_db(&pool, submission_id)
-                .await?;
+            write_subgroup_result(
+                &pool,
+                submission_id,
+                &mut subgroup_result,
+                subgroup,
+                &config,
+                &tests_paths,
+            )
+            .await
+            .map_db(&pool, submission_id)
+            .await?;
         } else {
             log::info!("Subgroup doesn't need to be tested, skip testing");
             subgroup_result.subgroup_verdict = SubgroupVerdict::Skipped;

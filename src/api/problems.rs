@@ -164,6 +164,7 @@ pub async fn create_problem(
             &subgroup.r#type,
             &subgroup.tests,
             subgroup.score,
+            subgroup.score_per_test,
             &subgroup.depends_on,
         )
         .await

@@ -75,7 +75,7 @@ pub struct TestResult {
     /// Tests's verdict
     pub test_verdict: SubgroupVerdict,
     /// Score for the test
-    pub score: i32,
+    pub score: Option<i32>,
 }
 
 /// Submission data

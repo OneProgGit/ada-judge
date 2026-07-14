@@ -141,12 +141,31 @@ async fn write_subgroup_result(
 ) -> Result<(), TotalVerdict> {
     let mut score = 0;
     let per_test = subgroup.score_per_test.is_some();
+    let mut ok = true;
     for test_id in &subgroup.tests {
         let test_id = *test_id;
         log::info!("Run test #{test_id}");
 
         log::info!("Insert a test's testing result");
         database::submissions::insert_test_testing_result(&pool, submission_id, test_id).await?;
+
+        if !ok {
+            log::info!("Update test's testing result record");
+            let test_result = TestResult {
+                test_verdict: SubgroupVerdict::Skipped,
+                score: if per_test { Some(0) } else { None },
+            };
+
+            database::submissions::update_test_testing_result(
+                &pool,
+                submission_id,
+                test_id,
+                &test_result,
+            )
+            .await?;
+
+            continue;
+        }
 
         subgroup_result.test = test_id;
         let test_verdict = get_single_test_verdict(config, tests_paths, test_id).await?;
@@ -157,10 +176,12 @@ async fn write_subgroup_result(
         log::info!("Update test's testing result record");
         let test_result = TestResult {
             test_verdict,
-            score: if per_test {
-                subgroup.score_per_test.unwrap()
+            score: if subgroup_result.subgroup_verdict == SubgroupVerdict::Ok {
+                subgroup.score_per_test
+            } else if per_test {
+                Some(0)
             } else {
-                0
+                None
             },
         };
         database::submissions::update_test_testing_result(
@@ -176,15 +197,17 @@ async fn write_subgroup_result(
                 "Verdict {} isn't OK, skip testing",
                 subgroup_result.subgroup_verdict
             );
-            return Ok(());
+            ok = false;
         } else if per_test && subgroup_result.subgroup_verdict == SubgroupVerdict::Ok {
             score += subgroup.score_per_test.unwrap();
         }
     }
-    if per_test {
-        subgroup_result.score = score;
-    } else {
-        subgroup_result.score = subgroup.score.ok_or(TotalVerdict::Bug)?;
+    if ok {
+        if per_test {
+            subgroup_result.score = score;
+        } else {
+            subgroup_result.score = subgroup.score.ok_or(TotalVerdict::Bug)?;
+        }
     }
     Ok(())
 }

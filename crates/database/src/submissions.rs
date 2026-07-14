@@ -168,36 +168,31 @@ pub async fn get_submission(
                 c.total_verdict,
                 c.total_score,
                 c.created_at,
-                coalesce(
-                    json_agg(
-                        json_build_object(
-                            'subgroup_verdict', v.subgroup_verdict,
-                            'test', v.test,
-                            'score', v.score
-                        ) order by v.subgroup_index
-                    ) filter (where v.submission_id is not null),
-                    '[]'
-                ) as subgroups_results,
-                coalesce(
-                    json_agg(
-                        json_build_object(
-                            'test_verdict', u.test_verdict,
-                            'score', u.score
-                        ) order by u.test
-                    ) filter (where u.submission_id is not null),
-                    '[]'
-                ) as tests_results
+                coalesce(s.subgroups_results, '[]') as subgroups_results,
+                coalesce(t.tests_results, '[]') as tests_results
             from submissions c
-            left join submissions_subgroups_results v on v.submission_id = c.id
-            left join submissions_tests_results u on u.submission_id = c.id
-            where c.id = $1
-            group by c.id,
-                c.problem_id,
-                c.user_id,
-                c.language,
-                c.total_verdict,
-                c.total_score,
-                c.created_at",
+            left join lateral (
+                select json_agg(
+                    json_build_object(
+                        'subgroup_verdict', subgroup_verdict,
+                        'test', test,
+                        'score', score
+                    ) order by subgroup_index
+                ) as subgroups_results
+                from submissions_subgroups_results
+                where submission_id = c.id
+            ) s on true
+            left join lateral (
+                select json_agg(
+                    json_build_object(
+                        'test_verdict', test_verdict,
+                        'score', score
+                    ) order by test
+                ) as tests_results
+                from submissions_tests_results
+                where submission_id = c.id
+            ) t on true
+            where c.id = $1",
     )
     .bind(submission_id)
     .fetch_one(pool)
@@ -302,6 +297,26 @@ pub async fn delete_subgroups_results_for_problem(
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
         "delete from submissions_subgroups_results r
+            using submissions s
+            where r.submission_id = s.id
+                and s.problem_id = $1",
+    )
+    .bind(problem_id)
+    .execute(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+    Ok(())
+}
+
+/// Deletes tests' submission results for all submissions for a problem
+/// # Errors
+/// Returns an error if `problem_id` is invalid
+pub async fn delete_tests_results_for_problem(
+    pool: &PgPool,
+    problem_id: i64,
+) -> Result<(), TotalVerdict> {
+    sqlx::query(
+        "delete from submissions_tests_results r
             using submissions s
             where r.submission_id = s.id
                 and s.problem_id = $1",

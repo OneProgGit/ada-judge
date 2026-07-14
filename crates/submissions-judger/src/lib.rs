@@ -340,6 +340,26 @@ pub async fn test_submission(
         } else {
             log::info!("Subgroup doesn't need to be tested, skip testing");
             subgroup_result.subgroup_verdict = SubgroupVerdict::Skipped;
+            let per_test = subgroup.score_per_test.is_some();
+            for test_id in &subgroup.tests {
+                let test_id = *test_id;
+                log::info!("Insert a test's testing result");
+                database::submissions::insert_test_testing_result(&pool, submission_id, test_id)
+                    .await?;
+
+                let test_result = TestResult {
+                    test_verdict: SubgroupVerdict::Skipped,
+                    score: if per_test { Some(0) } else { None },
+                };
+
+                database::submissions::update_test_testing_result(
+                    &pool,
+                    submission_id,
+                    test_id,
+                    &test_result,
+                )
+                .await?;
+            }
         }
 
         total_score += subgroup_result.score;

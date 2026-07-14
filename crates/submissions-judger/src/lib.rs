@@ -147,7 +147,13 @@ async fn write_subgroup_result(
         log::info!("Run test #{test_id}");
 
         log::info!("Insert a test's testing result");
-        database::submissions::insert_test_testing_result(&pool, submission_id, test_id).await?;
+        database::submissions::insert_test_testing_result(
+            &pool,
+            submission_id,
+            test_id,
+            if per_test { Some(0) } else { None },
+        )
+        .await?;
 
         if !ok {
             log::info!("Update test's testing result record");

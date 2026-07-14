@@ -87,6 +87,7 @@ pub async fn insert_test_testing_result(
     pool: &PgPool,
     submission_id: i64,
     test: i32,
+    score: Option<i32>,
 ) -> Result<(), TotalVerdict> {
     sqlx::query(
         "insert into submissions_tests_results (test, submission_id, test_verdict, score)
@@ -95,7 +96,7 @@ pub async fn insert_test_testing_result(
     .bind(test)
     .bind(submission_id)
     .bind(SubgroupVerdict::Testing)
-    .bind(0)
+    .bind(score)
     .execute(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;

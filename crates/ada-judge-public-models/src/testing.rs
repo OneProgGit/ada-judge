@@ -21,6 +21,8 @@ pub enum Language {
     Go,
     /// rustc compiler
     Rust,
+    /// pyinstaller compiler
+    Python,
     /// Unknown language
     Unknown,
 }
@@ -33,6 +35,7 @@ pub const fn get_language_file_extension(language: &Language) -> &'static str {
         Language::Clangpp => "cpp",
         Language::Go => "go",
         Language::Rust => "rs",
+        Language::Python => "py",
         Language::Unknown => "!!",
     }
 }

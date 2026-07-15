@@ -22,6 +22,7 @@ pub async fn compile_solution(
         Language::Clangpp => "clang++",
         Language::Go => "go",
         Language::Rust => "rustc",
+        Language::Python => "pyinstaller",
         Language::Unknown => return Err(TotalVerdict::InvalidRequest),
     };
     let solution_source_path = PathBuf::from("env")
@@ -103,6 +104,13 @@ pub async fn compile_solution(
                 "lto",
                 "-o",
                 &solution_path,
+            ],
+            Language::Python => vec![
+                compile_cmd,
+                "--onefile",
+                "-n",
+                &solution_path,
+                &solution_source_path,
             ],
             Language::Unknown => unreachable!(),
         })

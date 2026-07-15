@@ -396,32 +396,12 @@ pub async fn retest_problem_submissions(
         let submission = database::submissions::get_submission(&state.db, submission_id)
             .await
             .map_http()?;
-        let request_id = Uuid::new_v4();
-        let run_dir_path = PathBuf::from("/submissions_envs").join(submission_id.to_string());
-        let new_run_dir_path =
-            PathBuf::from("/submissions_envs").join(format!("{submission_id}-retest-{request_id}"));
-        fs::create_dir_all(&new_run_dir_path)
-            .await
-            .map_log(TotalVerdict::Bug)
-            .map_http()?;
-        fs::copy(
-            run_dir_path.join(format!(
-                "run.{}",
-                get_language_file_extension(&submission.language)
-            )),
-            new_run_dir_path.join(format!(
-                "run.{}",
-                get_language_file_extension(&submission.language)
-            )),
-        )
-        .await
-        .map_log(TotalVerdict::Bug)
-        .map_http()?;
+        let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());
         let submission_task = SubmissionTask {
             problem_path: PathBuf::from("/problems").join(submission.problem_id.to_string()),
             problem_id: submission.problem_id,
             id: submission_id,
-            run_dir: new_run_dir_path,
+            run_dir,
             language: submission.language,
         };
         state

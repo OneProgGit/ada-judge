@@ -25,7 +25,6 @@ use tokio::{
 };
 use tokio_util::io::ReaderStream;
 use tools::map::{MapHttpExt, MapLogExt};
-use uuid::Uuid;
 
 pub async fn get_all_my_submissions(
     State(state): State<AppState>,

@@ -48,9 +48,6 @@ pub async fn compile_solution(
         .to_string_lossy()
         .to_string();
 
-    let uid = nix::unistd::Uid::current().as_raw();
-    let gid = nix::unistd::Gid::current().as_raw();
-
     let mut compile_cmd = Command::new("docker")
         .args([
             "run",
@@ -67,8 +64,6 @@ pub async fn compile_solution(
             "-i",
             "--security-opt",
             "no-new-privileges",
-            "--user",
-            &format!("{}:{}", uid, gid),
             "-v",
             &format!(
                 "{}:/sandbox/env",
@@ -109,7 +104,13 @@ pub async fn compile_solution(
                 compile_cmd,
                 "--onefile",
                 "-n",
-                &solution_path,
+                "run",
+                "--distpath",
+                "/sandbox/env",
+                "--workpath",
+                "/sandbox/build",
+                "--specpath",
+                "/sandbox/build",
                 &solution_source_path,
             ],
             Language::Unknown => unreachable!(),

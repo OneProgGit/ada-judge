@@ -10,12 +10,10 @@ RUN apt-get update && apt-get install -y \
     golang-go rustc python3 python3-pip python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python3 -m pip install --no-cache-dir --break-system-packages pyinstaller
+
 RUN useradd -m runner
 RUN mkdir -p /sandbox && chown runner:runner /sandbox
 
 USER runner
 WORKDIR /sandbox
-
-ENV PATH="/home/runner/.local/bin:${PATH}"
-RUN pip3 install --no-cache-dir --break-system-packages pyinstaller && \
-    if [ -f requirements.txt ]; then pip3 install --no-cache-dir --break-system-packages -r requirements.txt; fi

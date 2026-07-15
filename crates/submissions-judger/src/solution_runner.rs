@@ -48,6 +48,8 @@ pub async fn get_run_solution_verdict(
             "-i",
             "--security-opt",
             "no-new-privileges",
+            "--tmpfs",
+            "/tmp:rw,exec,size=64m,mode=1777",
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",

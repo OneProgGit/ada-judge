@@ -17,4 +17,3 @@ log.workspace = true
 database.workspace = true
 pretty-logging.workspace = true
 ada-judge-public-models.workspace = true
-nix = { version = "0.31.3", features = ["user"] }

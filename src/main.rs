@@ -106,7 +106,8 @@ async fn main() {
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_contest_started,
-        ));
+        ))
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let routes_avaible_after_start_of_contest_2_path_elements = Router::new()
         .route(
@@ -116,14 +117,16 @@ async fn main() {
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_contest_started_2_path_elements,
-        ));
+        ))
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let routes_avaible_during_the_contest = Router::new()
         .route("/contests/{contest_id}/submit", post(submit))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_contest_started_and_not_ended,
-        ));
+        ))
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let routes_avaible_after_end_of_contest = Router::new()
         .route(
@@ -133,12 +136,12 @@ async fn main() {
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_contest_ended,
-        ));
+        ))
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let admin_routes = Router::new()
         .route("/contests/{contest_id}/update", patch(update_contest))
         .route("/contests/new", post(create_contest))
-        .route("/problems/new", post(create_problem))
         .route(
             "/submissions/filter/contest/{contest_id}",
             get(get_contest_submissions),
@@ -167,7 +170,16 @@ async fn main() {
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_user_is_at_least_admin,
-        ));
+        ))
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
+
+    let create_problem_route = Router::new()
+        .route("/problems/new", post(create_problem))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            check_user_is_at_least_admin,
+        ))
+        .layer(DefaultBodyLimit::max(1024 * 1024 * 1024));
 
     let owner_routes = Router::new()
         .route("/users", get(get_users))
@@ -189,9 +201,10 @@ async fn main() {
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_user_is_owner,
-        ));
+        ))
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
-    let app = Router::new()
+    let default_routes = Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
         .route("/submissions/{submission_id}", get(get_submission))
@@ -213,13 +226,17 @@ async fn main() {
         .route("/users/me/delete_account", delete(delete_my_account))
         .route("/contests", get(get_contests))
         .route("/contests/{contest_id}", get(get_contest_by_id))
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
+
+    let app = Router::new()
+        .merge(default_routes)
         .merge(routes_avaible_after_start_of_contest_1_path_element)
         .merge(routes_avaible_after_start_of_contest_2_path_elements)
         .merge(routes_avaible_during_the_contest)
         .merge(routes_avaible_after_end_of_contest)
         .merge(admin_routes)
+        .merge(create_problem_route)
         .merge(owner_routes)
-        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(Extension(Auth))
         .layer(cors)
         .with_state(state);

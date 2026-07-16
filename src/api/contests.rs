@@ -117,7 +117,7 @@ pub async fn create_contest(
                 &request.ends_at,
                 &request.statements_url,
                 &request.editorial_url,
-                &request.hidden,
+                request.hidden,
             )
             .await
             .map_http()?,
@@ -150,7 +150,7 @@ pub async fn update_contest(
             &request.ends_at,
             &request.statements_url,
             &request.editorial_url,
-            &request.hidden,
+            request.hidden,
         )
         .await
         .map_http()?;

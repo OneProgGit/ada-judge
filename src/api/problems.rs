@@ -128,8 +128,15 @@ pub async fn create_problem(
         .map_http()?;
 
     log::info!("Insert problem to database");
-
-    let config = load_problem_config(&problem_path).await.map_http()?;
+    let config = match load_problem_config(&problem_path).await {
+        Err(e) => {
+            std::fs::remove_dir_all(&problem_path)
+                .map_log(TotalVerdict::Bug)
+                .map_http()?;
+            return Err(e).map_http();
+        }
+        Ok(config) => config,
+    };
     match config.owner_id {
         None => return Err(StatusCode::BAD_REQUEST),
         Some(owner_id) if owner_id != auth.id => return Err(StatusCode::FORBIDDEN),

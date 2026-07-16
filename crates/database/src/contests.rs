@@ -195,8 +195,8 @@ pub async fn update_contest(
         .bind(ends_at)
         .bind(statements_url)
         .bind(editorial_url)
-        .bind(contest_id)
         .bind(hidden)
+        .bind(contest_id)
         .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;

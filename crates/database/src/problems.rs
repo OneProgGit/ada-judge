@@ -64,7 +64,7 @@ pub async fn get_problem_by_id(
     Ok(config)
 }
 
-/// Gets all user's problems. If `user_id` is -1, gets all problems.
+/// Gets all user's problems. If `user_id` is None, gets all problems.
 /// # Errors
 /// Returns an error if `user_id` is invalid
 pub async fn get_all_user_problems(

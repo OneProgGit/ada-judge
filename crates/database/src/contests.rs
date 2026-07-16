@@ -85,20 +85,43 @@ pub async fn get_contest_problems(
     .map_log(TotalVerdict::InvalidRequest)
 }
 
-/// Gets all user's contests. If `user_id` is -1, gets all contests.
+/// Get contests' mode
+pub enum GetContestsMode {
+    /// Only user's
+    User,
+    /// All, but not hidden ones
+    All,
+    /// All
+    AllIncludeHidden,
+}
+
+/// Gets all user's contests.
 /// # Errors
 /// Returns an error if `user_id` is invalid
 pub async fn get_all_user_contests(
     pool: &PgPool,
-    user_id: Option<i64>,
+    user_id: i64,
+    mode: GetContestsMode,
 ) -> Result<Vec<i64>, TotalVerdict> {
-    match user_id {
-        None => sqlx::query_as::<_, (i64,)>("select id from contests order by id desc")
-            .fetch_all(pool)
-            .await
-            .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TotalVerdict::InvalidRequest),
-        Some(user_id) => sqlx::query_as::<_, (i64,)>(
+    match mode {
+        GetContestsMode::AllIncludeHidden => {
+            sqlx::query_as::<_, (i64,)>("select id from contests order by id desc")
+                .fetch_all(pool)
+                .await
+                .map(|rows| rows.iter().map(|(id,)| *id).collect())
+                .map_log(TotalVerdict::InvalidRequest)
+        }
+
+        GetContestsMode::All => sqlx::query_as::<_, (i64,)>(
+            "select id from contests where not hidden or owner_id = $1 order by id desc",
+        )
+        .bind(user_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest),
+
+        GetContestsMode::User => sqlx::query_as::<_, (i64,)>(
             "select id from contests where owner_id = $1 order by id desc",
         )
         .bind(user_id)
@@ -134,9 +157,10 @@ pub async fn create_contest(
     ends_at: &DateTime<Utc>,
     statements_url: &str,
     editorial_url: &str,
+    hidden: bool,
 ) -> Result<i64, TotalVerdict> {
     let contest_id = sqlx::query_scalar(
-        "insert into contests (owner_id, name, starts_at, ends_at, statements_url, editorial_url) values ($1, $2, $3, $4, $5, $6) returning id",
+        "insert into contests (owner_id, name, starts_at, ends_at, statements_url, editorial_url, hidden) values ($1, $2, $3, $4, $5, $6, $7) returning id",
     )
     .bind(owner_id)
     .bind(name)
@@ -144,6 +168,7 @@ pub async fn create_contest(
     .bind(ends_at)
     .bind(statements_url)
     .bind(editorial_url)
+    .bind(hidden)
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
@@ -162,14 +187,16 @@ pub async fn update_contest(
     ends_at: &DateTime<Utc>,
     statements_url: &str,
     editorial_url: &str,
+    hidden: bool,
 ) -> Result<(), TotalVerdict> {
-    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4, editorial_url = $5 where id = $6")
+    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4, editorial_url = $5, hidden = $6 where id = $7")
         .bind(name)
         .bind(starts_at)
         .bind(ends_at)
         .bind(statements_url)
         .bind(editorial_url)
         .bind(contest_id)
+        .bind(hidden)
         .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;

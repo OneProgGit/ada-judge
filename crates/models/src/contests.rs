@@ -22,6 +22,8 @@ pub struct DatabaseContestConfig {
     pub ends_at: DateTime<Utc>,
     /// Timestamp of contest creating
     pub created_at: DateTime<Utc>,
+    /// Is contest hidden
+    pub hidden: bool,
 }
 
 impl From<DatabaseContestConfig> for PublicContestConfig {
@@ -34,6 +36,7 @@ impl From<DatabaseContestConfig> for PublicContestConfig {
             editorial_url: value.editorial_url,
             starts_at: value.starts_at,
             ends_at: value.ends_at,
+            hidden: value.hidden,
         }
     }
 }

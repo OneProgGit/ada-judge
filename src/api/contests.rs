@@ -5,6 +5,7 @@ use ada_judge_public_models::{
     DeletionRequest,
     contests::{ContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,
+    users::AdminLevel,
 };
 use axum::{
     Json,
@@ -12,7 +13,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::Utc;
-use database::contests::get_all_user_contests;
+use database::contests::{GetContestsMode, get_all_user_contests};
 use tools::map::MapHttpExt;
 
 pub async fn get_contest_leaderboard(
@@ -72,9 +73,19 @@ pub async fn get_contest_by_id(
     Ok(Json(contest))
 }
 
-pub async fn get_contests(State(state): State<AppState>) -> Result<Json<Vec<i64>>, StatusCode> {
+pub async fn get_contests(
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+) -> Result<Json<Vec<i64>>, StatusCode> {
+    let mode = if auth.admin_level == AdminLevel::Owner {
+        GetContestsMode::AllIncludeHidden
+    } else {
+        GetContestsMode::All
+    };
     Ok(Json(
-        get_all_user_contests(&state.db, None).await.map_http()?,
+        get_all_user_contests(&state.db, auth.id, mode)
+            .await
+            .map_http()?,
     ))
 }
 
@@ -83,7 +94,7 @@ pub async fn get_my_contests(
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        get_all_user_contests(&state.db, Some(auth.id))
+        get_all_user_contests(&state.db, auth.id, GetContestsMode::User)
             .await
             .map_http()?,
     ))
@@ -106,6 +117,7 @@ pub async fn create_contest(
                 &request.ends_at,
                 &request.statements_url,
                 &request.editorial_url,
+                &request.hidden,
             )
             .await
             .map_http()?,
@@ -138,6 +150,7 @@ pub async fn update_contest(
             &request.ends_at,
             &request.statements_url,
             &request.editorial_url,
+            &request.hidden,
         )
         .await
         .map_http()?;

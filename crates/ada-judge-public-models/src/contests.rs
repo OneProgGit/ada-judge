@@ -28,6 +28,8 @@ pub struct ContestRequest {
     pub statements_url: String,
     /// Editorial url
     pub editorial_url: String,
+    /// Is contest hidden
+    pub hidden: bool,
 }
 
 /// Contest's config
@@ -42,6 +44,8 @@ pub struct ContestConfig {
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending
     pub ends_at: DateTime<Utc>,
+    /// Is contest hidden
+    pub hidden: bool,
 }
 
 /// Contest config visible to all users
@@ -61,4 +65,6 @@ pub struct PublicContestConfig {
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending
     pub ends_at: DateTime<Utc>,
+    /// Is contest hidden
+    pub hidden: bool,
 }

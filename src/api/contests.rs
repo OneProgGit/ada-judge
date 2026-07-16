@@ -55,6 +55,8 @@ pub async fn get_contest_by_id(
     Auth(auth): Auth,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<PublicContestConfig>, StatusCode> {
+    log::info!("Get contest #{contest_id}");
+
     let mut contest: PublicContestConfig =
         database::contests::get_contest_by_id(&state.db, contest_id)
             .await

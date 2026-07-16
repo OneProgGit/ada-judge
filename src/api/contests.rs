@@ -63,6 +63,10 @@ pub async fn get_contest_by_id(
             .map_http()?
             .into();
 
+    if contest.hidden && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     let now = Utc::now();
 
     if now < contest.starts_at && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {

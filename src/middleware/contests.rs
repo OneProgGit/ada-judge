@@ -21,7 +21,9 @@ pub async fn check_contest_started_common(
 
     let now = Utc::now();
 
-    if now < contest.starts_at && !is_allowed(user_id, contest.owner_id, &admin_level) {
+    if (now < contest.starts_at || contest.hidden)
+        && !is_allowed(user_id, contest.owner_id, &admin_level)
+    {
         Err(StatusCode::FORBIDDEN.into_response())
     } else {
         Ok(())
@@ -40,7 +42,9 @@ pub async fn check_contest_ended_common(
 
     let now = Utc::now();
 
-    if now < contest.ends_at && !is_allowed(user_id, contest.owner_id, &admin_level) {
+    if (now < contest.ends_at || contest.hidden)
+        && !is_allowed(user_id, contest.owner_id, &admin_level)
+    {
         Err(StatusCode::FORBIDDEN.into_response())
     } else {
         Ok(())
@@ -59,7 +63,7 @@ pub async fn check_contest_started_and_not_ended_common(
 
     let now = Utc::now();
 
-    if (now < contest.starts_at || now >= contest.ends_at)
+    if (now < contest.starts_at || now >= contest.ends_at || contest.hidden)
         && !is_allowed(user_id, contest.owner_id, &admin_level)
     {
         Err(StatusCode::FORBIDDEN.into_response())

@@ -224,7 +224,6 @@ async fn main() {
         .merge(default_routes)
         .merge(routes_avaible_after_start_of_contest_1_path_element)
         .merge(routes_avaible_after_start_of_contest_2_path_elements)
-        .merge(routes_avaible_during_the_contest)
         .merge(routes_avaible_after_end_of_contest)
         .merge(admin_routes)
         .merge(create_problem_route)

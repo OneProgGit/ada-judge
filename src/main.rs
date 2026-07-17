@@ -35,7 +35,6 @@ use crate::{
         auth::Auth,
         contests::{
             check_contest_ended, check_contest_started, check_contest_started_2_path_elements,
-            check_contest_started_and_not_ended,
         },
     },
 };
@@ -117,14 +116,6 @@ async fn main() {
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_contest_started_2_path_elements,
-        ))
-        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
-
-    let routes_avaible_during_the_contest = Router::new()
-        .route("/contests/{contest_id}/submit", post(submit))
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            check_contest_started_and_not_ended,
         ))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
@@ -226,6 +217,7 @@ async fn main() {
         .route("/users/me/delete_account", delete(delete_my_account))
         .route("/contests", get(get_contests))
         .route("/contests/{contest_id}", get(get_contest_by_id))
+        .route("/contests/{contest_id}/submit", post(submit))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let app = Router::new()

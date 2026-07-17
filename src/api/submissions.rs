@@ -1,5 +1,4 @@
-use crate::middleware::contests::check_contest_started_and_not_ended_common;
-use crate::tools::is_allowed;
+use crate::tools::{check_contest_started_and_not_ended, is_allowed};
 use crate::{app_state::AppState, middleware::auth::Auth};
 use ada_judge_public_models::testing::get_language_file_extension;
 use ada_judge_public_models::{
@@ -294,14 +293,14 @@ pub async fn submit(
         .await
         .map_http()?;
 
-    if check_contest_started_and_not_ended_common(
+    if !check_contest_started_and_not_ended(
         &state.db,
         auth.id,
         problem.contest_id,
+        problem.id,
         auth.admin_level,
     )
     .await
-    .is_err()
     {
         return Err(StatusCode::FORBIDDEN);
     }

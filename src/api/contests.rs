@@ -20,6 +20,7 @@ pub async fn get_contest_leaderboard(
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<Vec<LeaderboardRow>>, StatusCode> {
+    log::info!("Get leaderboard for contest #{contest_id}");
     Ok(Json(
         database::contests::get_contest_leaderboard(&state.db, contest_id)
             .await

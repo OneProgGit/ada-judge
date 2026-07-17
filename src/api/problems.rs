@@ -146,6 +146,7 @@ pub async fn create_problem(
         &state.db,
         auth.id,
         config.r#type,
+        config.merge_subgroups,
         config.contest_id,
         config.problem_index,
         &config.name,

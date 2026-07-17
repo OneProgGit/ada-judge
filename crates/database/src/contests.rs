@@ -55,7 +55,7 @@ pub async fn get_contest_leaderboard(
                 select
                     user_id,
                     problem_id,
-                    sum(best_score) as total_score
+                    sum(best_score)::int as total_score
                 from merge_subgroups_best_raw
                 group by user_id, problem_id
             ),

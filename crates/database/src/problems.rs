@@ -20,6 +20,7 @@ pub async fn get_problem_by_id(
                 c.id,
                 c.owner_id,
                 c.type,
+                c.merge_subgroups,
                 c.contest_id,
                 c.problem_index,
                 c.name,
@@ -46,6 +47,7 @@ pub async fn get_problem_by_id(
             group by c.id,
                 c.owner_id,
                 c.type,
+                c.merge_subgroups,
                 c.contest_id,
                 c.problem_index,
                 c.name,
@@ -95,6 +97,7 @@ pub async fn create_problem(
     pool: &PgPool,
     owner_id: i64,
     r#type: ProblemType,
+    merge_subgroups: bool,
     contest_id: i64,
     problem_index: i64,
     name: &str,
@@ -104,12 +107,13 @@ pub async fn create_problem(
     tests_path: &str,
 ) -> Result<i64, TotalVerdict> {
     let problem_id = sqlx::query_scalar(
-        "insert into problems (owner_id, type, contest_id, problem_index,
+        "insert into problems (owner_id, type, merge_subgroups, contest_id, problem_index,
                                 name, time_limit_ms, memory_limit_mb,
-                                checker_path, tests_path) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id",
+                                checker_path, tests_path) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning id",
     )
     .bind(owner_id)
     .bind(r#type)
+    .bind(merge_subgroups)
     .bind(contest_id)
     .bind(problem_index)
     .bind(name)

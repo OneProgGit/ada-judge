@@ -24,6 +24,8 @@ pub struct DatabaseContestConfig {
     pub created_at: DateTime<Utc>,
     /// Is contest hidden
     pub hidden: bool,
+    /// Is upsolving opened
+    pub upsolving_opened: bool,
 }
 
 impl From<DatabaseContestConfig> for PublicContestConfig {
@@ -37,6 +39,7 @@ impl From<DatabaseContestConfig> for PublicContestConfig {
             starts_at: value.starts_at,
             ends_at: value.ends_at,
             hidden: value.hidden,
+            upsolving_opened: value.upsolving_opened,
         }
     }
 }

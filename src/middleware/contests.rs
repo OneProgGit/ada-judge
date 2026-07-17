@@ -64,6 +64,7 @@ pub async fn check_contest_started_and_not_ended_common(
     let now = Utc::now();
 
     if (now < contest.starts_at || now >= contest.ends_at || contest.hidden)
+        && !contest.upsolving_opened
         && !is_allowed(user_id, contest.owner_id, &admin_level)
     {
         Err(StatusCode::FORBIDDEN.into_response())

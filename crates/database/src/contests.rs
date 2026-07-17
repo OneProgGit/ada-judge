@@ -27,7 +27,8 @@ pub async fn get_contest_leaderboard(
                     ) as rn
                 from submissions s
                 join problems p on p.id = s.problem_id
-                where p.contest_id = $1
+                join contests c on c.id = p.contest_id
+                where p.contest_id = $1 and s.created_at between c.starts_at and c.ends_at
             ),
             best as (
                 select user_id, problem_id, total_score
@@ -38,7 +39,8 @@ pub async fn get_contest_leaderboard(
                 select distinct user_id
                 from submissions s
                 join problems p on p.id = s.problem_id
-                where p.contest_id = $1
+                join contests c on c.id = p.contest_id
+                where p.contest_id = $1 and s.created_at between c.starts_at and c.ends_at
             ),
             contest_problems as (
                 select id, problem_index
@@ -158,9 +160,10 @@ pub async fn create_contest(
     statements_url: &str,
     editorial_url: &str,
     hidden: bool,
+    upsolving_opened: bool,
 ) -> Result<i64, TotalVerdict> {
     let contest_id = sqlx::query_scalar(
-        "insert into contests (owner_id, name, starts_at, ends_at, statements_url, editorial_url, hidden) values ($1, $2, $3, $4, $5, $6, $7) returning id",
+        "insert into contests (owner_id, name, starts_at, ends_at, statements_url, editorial_url, hidden, upsolving_opened) values ($1, $2, $3, $4, $5, $6, $7, $8) returning id",
     )
     .bind(owner_id)
     .bind(name)
@@ -169,6 +172,7 @@ pub async fn create_contest(
     .bind(statements_url)
     .bind(editorial_url)
     .bind(hidden)
+    .bind(upsolving_opened)
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
@@ -188,14 +192,16 @@ pub async fn update_contest(
     statements_url: &str,
     editorial_url: &str,
     hidden: bool,
+    upsolving_opened: bool,
 ) -> Result<(), TotalVerdict> {
-    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4, editorial_url = $5, hidden = $6 where id = $7")
+    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4, editorial_url = $5, hidden = $6, upsolving_opened = $7 where id = $8")
         .bind(name)
         .bind(starts_at)
         .bind(ends_at)
         .bind(statements_url)
         .bind(editorial_url)
         .bind(hidden)
+        .bind(upsolving_opened)
         .bind(contest_id)
         .execute(pool)
         .await

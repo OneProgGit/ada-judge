@@ -30,22 +30,8 @@ pub struct ContestRequest {
     pub editorial_url: String,
     /// Is contest hidden
     pub hidden: bool,
-}
-
-/// Contest's config
-pub struct ContestConfig {
-    /// Contest's owner's user id (optional)
-    pub owner_id: Option<i64>,
-    /// Contest's name
-    pub name: String,
-    /// Url to contest's statements
-    pub statements_url: String,
-    /// Timestamp of contest beginning
-    pub starts_at: DateTime<Utc>,
-    /// Timestamp of contest ending
-    pub ends_at: DateTime<Utc>,
-    /// Is contest hidden
-    pub hidden: bool,
+    /// Is upsolving opened
+    pub upsolving_opened: bool,
 }
 
 /// Contest config visible to all users
@@ -67,4 +53,6 @@ pub struct PublicContestConfig {
     pub ends_at: DateTime<Utc>,
     /// Is contest hidden
     pub hidden: bool,
+    /// Is upsolving opened
+    pub upsolving_opened: bool,
 }

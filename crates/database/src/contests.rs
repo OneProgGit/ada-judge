@@ -16,7 +16,7 @@ pub async fn get_contest_leaderboard(
     contest_id: i64,
 ) -> Result<Vec<LeaderboardRow>, TotalVerdict> {
     let leaderboard = sqlx::query_as(
-        "with ranked as (
+        "with default_ranked as (
                 select
                     s.user_id,
                     s.problem_id,
@@ -28,19 +28,49 @@ pub async fn get_contest_leaderboard(
                 from submissions s
                 join problems p on p.id = s.problem_id
                 join contests c on c.id = p.contest_id
-                where p.contest_id = $1 and s.created_at between c.starts_at and c.ends_at
+                where p.contest_id = $1 and not p.merge_subgroups
+                    and s.created_at between c.starts_at and c.ends_at
+            ),
+            default_best as (
+                select user_id, problem_id, total_score
+                from default_ranked
+                where rn = 1
+            ),
+            merge_subgroups_best_raw as (
+                select
+                    s.user_id,
+                    s.problem_id,
+                    ssr.subgroup_index,
+                    max(ssr.score) as best_score
+                from submissions s
+                join submissions_subgroups_results ssr on ssr.submission_id = s.id
+                join problems p on p.id = s.problem_id
+                join contests c on c.id = p.contest_id
+                where p.contest_id = $1
+                    and p.merge_subgroups
+                    and s.created_at between c.starts_at and c.ends_at
+                group by s.user_id, s.problem_id, ssr.subgroup_index
+            ),
+            merge_subgroups_best as (
+                select
+                    user_id,
+                    problem_id,
+                    sum(best_score) as total_score
+                from merge_subgroups_best_raw
+                group by user_id, problem_id
             ),
             best as (
-                select user_id, problem_id, total_score
-                from ranked
-                where rn = 1
+                select * from default_best
+                union all
+                select * from merge_subgroups_best
             ),
             users as (
                 select distinct user_id
                 from submissions s
                 join problems p on p.id = s.problem_id
                 join contests c on c.id = p.contest_id
-                where p.contest_id = $1 and s.created_at between c.starts_at and c.ends_at
+                where p.contest_id = $1
+                    and s.created_at between c.starts_at and c.ends_at
             ),
             contest_problems as (
                 select id, problem_index

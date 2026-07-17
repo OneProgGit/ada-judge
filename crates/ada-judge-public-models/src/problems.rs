@@ -9,6 +9,8 @@ pub struct ProblemConfig {
     pub owner_id: Option<i64>,
     /// Problem's type
     pub r#type: ProblemType,
+    /// Merge subgroups
+    pub merge_subgroups: bool,
     /// Problems's contest id
     pub contest_id: i64,
     /// Problem's index in contest
@@ -37,6 +39,8 @@ pub struct PublicProblemConfig {
     pub owner_id: Option<i64>,
     /// Problem's type
     pub r#type: ProblemType,
+    /// Merge subgroups
+    pub merge_subgroups: bool,
     /// Problems's contest id
     pub contest_id: i64,
     /// Problem's index in contest
@@ -86,7 +90,7 @@ pub struct Subgroup {
 }
 
 /// Subgroup's type
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
     feature = "sqlx",

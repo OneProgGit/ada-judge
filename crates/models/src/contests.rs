@@ -26,6 +26,8 @@ pub struct DatabaseContestConfig {
     pub hidden: bool,
     /// Is upsolving opened
     pub upsolving_opened: bool,
+    /// Hide solutions' files
+    pub hide_solutions: bool,
 }
 
 impl From<DatabaseContestConfig> for PublicContestConfig {
@@ -40,6 +42,7 @@ impl From<DatabaseContestConfig> for PublicContestConfig {
             ends_at: value.ends_at,
             hidden: value.hidden,
             upsolving_opened: value.upsolving_opened,
+            hide_solutions: value.hide_solutions,
         }
     }
 }

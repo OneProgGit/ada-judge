@@ -1,5 +1,6 @@
 name = "Сумма чисел II"
 type = "default"
+merge_subgroups = false
 contest_id = 1
 problem_index = 1
 time_limit_ms = 1000

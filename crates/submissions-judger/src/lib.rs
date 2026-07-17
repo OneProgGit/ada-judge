@@ -11,7 +11,7 @@
 
 use ::tools::map::MapLogExt;
 use ada_judge_public_models::{
-    problems::{ProblemConfig, ProblemType, Subgroup},
+    problems::{ProblemConfig, ProblemType, Subgroup, SubgroupType},
     testing::{SubgroupResult, TestResult},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };
@@ -208,7 +208,7 @@ async fn write_subgroup_result(
             score += subgroup.score_per_test.unwrap();
         }
     }
-    if ok {
+    if ok && subgroup.r#type != SubgroupType::Sample {
         if per_test {
             subgroup_result.score = score;
         } else {

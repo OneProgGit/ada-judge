@@ -16,6 +16,8 @@ pub struct DatabaseProblemConfig {
     pub owner_id: Option<i64>,
     /// Problem's type
     pub r#type: ProblemType,
+    /// Merge subgroups
+    pub merge_subgroups: bool,
     /// Problems's contest id
     pub contest_id: i64,
     /// Problem's index in contest
@@ -41,6 +43,7 @@ impl From<DatabaseProblemConfig> for ProblemConfig {
         Self {
             owner_id: value.owner_id,
             r#type: value.r#type,
+            merge_subgroups: value.merge_subgroups,
             contest_id: value.contest_id,
             problem_index: value.problem_index,
             name: value.name,
@@ -59,6 +62,7 @@ impl From<DatabaseProblemConfig> for PublicProblemConfig {
             id: value.id,
             owner_id: value.owner_id,
             r#type: value.r#type,
+            merge_subgroups: value.merge_subgroups,
             contest_id: value.contest_id,
             problem_index: value.problem_index,
             name: value.name,

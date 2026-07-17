@@ -55,4 +55,6 @@ pub struct PublicContestConfig {
     pub hidden: bool,
     /// Is upsolving opened
     pub upsolving_opened: bool,
+    /// Hide solutions' files
+    pub hide_solutions: bool,
 }

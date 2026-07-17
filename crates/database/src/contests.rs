@@ -191,9 +191,10 @@ pub async fn create_contest(
     editorial_url: &str,
     hidden: bool,
     upsolving_opened: bool,
+    hide_solutions: bool,
 ) -> Result<i64, TotalVerdict> {
     let contest_id = sqlx::query_scalar(
-        "insert into contests (owner_id, name, starts_at, ends_at, statements_url, editorial_url, hidden, upsolving_opened) values ($1, $2, $3, $4, $5, $6, $7, $8) returning id",
+        "insert into contests (owner_id, name, starts_at, ends_at, statements_url, editorial_url, hidden, upsolving_opened, hide_solutions) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id",
     )
     .bind(owner_id)
     .bind(name)
@@ -203,6 +204,7 @@ pub async fn create_contest(
     .bind(editorial_url)
     .bind(hidden)
     .bind(upsolving_opened)
+    .bind(hide_solutions)
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
@@ -223,8 +225,9 @@ pub async fn update_contest(
     editorial_url: &str,
     hidden: bool,
     upsolving_opened: bool,
+    hide_solutions: bool,
 ) -> Result<(), TotalVerdict> {
-    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4, editorial_url = $5, hidden = $6, upsolving_opened = $7 where id = $8")
+    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4, editorial_url = $5, hidden = $6, upsolving_opened = $7, hide_solutions = $8 where id = $9")
         .bind(name)
         .bind(starts_at)
         .bind(ends_at)
@@ -232,6 +235,7 @@ pub async fn update_contest(
         .bind(editorial_url)
         .bind(hidden)
         .bind(upsolving_opened)
+        .bind(hide_solutions)
         .bind(contest_id)
         .execute(pool)
         .await

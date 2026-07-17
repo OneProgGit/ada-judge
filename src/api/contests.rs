@@ -125,6 +125,7 @@ pub async fn create_contest(
                 &request.editorial_url,
                 request.hidden,
                 request.upsolving_opened,
+                request.hide_solutions,
             )
             .await
             .map_http()?,
@@ -159,6 +160,7 @@ pub async fn update_contest(
             &request.editorial_url,
             request.hidden,
             request.upsolving_opened,
+            request.hide_solutions,
         )
         .await
         .map_http()?;

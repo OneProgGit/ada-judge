@@ -1,6 +1,6 @@
 [package]
 name = "ada-judge-public-models"
-version = "0.9.5"
+version = "0.9.6"
 description = "Public (shared) models of ada-judge for using in frontends"
 license = "MIT"
 edition = "2024"

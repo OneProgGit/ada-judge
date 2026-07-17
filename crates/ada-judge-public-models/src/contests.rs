@@ -32,6 +32,8 @@ pub struct ContestRequest {
     pub hidden: bool,
     /// Is upsolving opened
     pub upsolving_opened: bool,
+    /// Hide solutions' files
+    pub hide_solutions: bool,
 }
 
 /// Contest config visible to all users

@@ -208,7 +208,17 @@ pub async fn download_submission(
         .await
         .map_http()?
         .into();
-    if !is_allowed(auth.id, Some(submission.user_id), &auth.admin_level) {
+    let problem = database::problems::get_problem_by_id(&state.db, submission.problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+
+    if (!is_allowed(auth.id, Some(submission.user_id), &auth.admin_level) || contest.hide_solutions)
+        && !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+    {
         Err(StatusCode::FORBIDDEN)
     } else {
         let file_ext = get_language_file_extension(&submission.language);

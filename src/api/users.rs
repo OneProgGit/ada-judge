@@ -1,5 +1,8 @@
-use crate::{app_state::AppState, middleware::auth::Auth};
-use ada_judge_public_models::users::{AdminLevel, PrivateUserData, PublicUserData};
+use crate::{app_state::AppState, crypt::verify_password, middleware::auth::Auth};
+use ada_judge_public_models::{
+    DeletionRequest,
+    users::{AdminLevel, PrivateUserData, PublicUserData},
+};
 use axum::{
     Json,
     extract::{Path, State},
@@ -52,11 +55,28 @@ pub async fn get_private_user_profile(
 pub async fn delete_user_account(
     State(state): State<AppState>,
     Path(user_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<DeletionRequest>,
 ) -> Result<(), StatusCode> {
-    database::users::delete_user(&state.db, user_id)
-        .await
-        .map_http()?;
-    Ok(())
+    if request.login != auth.login
+        || request.password != request.password_confirmation
+        || !request.deletion_confirmation
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    log::info!("Verify password");
+    let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
+
+    if !is_valid_password {
+        log::error!("Invalid password");
+        Err(StatusCode::BAD_REQUEST)
+    } else {
+        database::users::delete_user(&state.db, user_id)
+            .await
+            .map_http()?;
+        Ok(())
+    }
 }
 
 pub async fn change_user_admin_level(

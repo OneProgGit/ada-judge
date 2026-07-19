@@ -26,7 +26,8 @@ use sqlx::PgPool;
 use tokio::fs::File;
 
 use crate::{
-    checker_runner::get_checker_result_run_twice, interactive_runner::get_run_interactive_verdict,
+    checker_runner::{get_checker_result_interactive_run_twice, get_checker_result_run_twice},
+    interactive_runner::{get_run_interactive_verdict, get_run_interactive_verdict_run_twice},
 };
 
 mod checker_runner;
@@ -48,6 +49,17 @@ async fn get_single_test_verdict(
 
     match config.r#type {
         ProblemType::Default => {
+            {
+                log::info!("Create stdin file");
+                _ = File::create(tests_paths.input.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+                log::info!("Create stdout file");
+                _ = File::create(tests_paths.output.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+            }
+
             log::info!("Run solution");
             let solution_verdict =
                 get_run_solution_verdict(config, &input_path, tests_paths).await?;
@@ -127,6 +139,137 @@ async fn get_single_test_verdict(
 
             log::info!("Run checker, stage 2");
             get_checker_result_run_twice(config, &answer_path, tests_paths, 2).await
+        }
+        ProblemType::RunTwiceInteractive => {
+            {
+                log::info!("Create stdin file");
+                _ = File::create(tests_paths.input.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+            }
+
+            log::info!("Run interactive, stage 0");
+            let checker_verdict = get_run_interactive_verdict_run_twice(
+                config,
+                &answer_path,
+                &tests_paths.input,
+                tests_paths,
+                0,
+            )
+            .await?;
+
+            if checker_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(checker_verdict);
+            }
+
+            log::info!("Run interactive, stage 1");
+            get_run_interactive_verdict_run_twice(
+                config,
+                &answer_path,
+                &tests_paths.input,
+                tests_paths,
+                1,
+            )
+            .await
+        }
+        ProblemType::RunTwiceFirstInteractive => {
+            {
+                log::info!("Create stdin file");
+                _ = File::create(tests_paths.input.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+                log::info!("Create stdout file");
+                _ = File::create(tests_paths.output.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+            }
+
+            log::info!("Run interactive, stage 0");
+            let checker_verdict = get_run_interactive_verdict_run_twice(
+                config,
+                &answer_path,
+                &tests_paths.input,
+                tests_paths,
+                0,
+            )
+            .await?;
+
+            if checker_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(checker_verdict);
+            }
+
+            log::info!("Run solution, stage 1");
+            let solution_verdict =
+                get_run_solution_verdict(config, &tests_paths.input, tests_paths).await?;
+
+            if solution_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(solution_verdict);
+            }
+
+            log::info!("Run checker, stage 1");
+            get_checker_result_interactive_run_twice(
+                config,
+                &answer_path,
+                &tests_paths.input,
+                tests_paths,
+                1,
+            )
+            .await
+        }
+        ProblemType::RunTwiceSecondInteractive => {
+            {
+                log::info!("Create stdin file");
+                _ = File::create(tests_paths.input.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+                log::info!("Create stdout file");
+                _ = File::create(tests_paths.output.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+            }
+
+            log::info!("Run checker, stage 0");
+            let checker_verdict = get_checker_result_interactive_run_twice(
+                config,
+                &answer_path,
+                &tests_paths.output,
+                tests_paths,
+                0,
+            )
+            .await?;
+
+            if checker_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(checker_verdict);
+            }
+
+            {
+                log::info!("Truncate stdout file");
+                _ = File::create(tests_paths.output.clone())
+                    .await
+                    .map_log(TotalVerdict::InvalidProblem)?;
+            }
+
+            let solution_verdict =
+                get_run_solution_verdict(config, &tests_paths.input, tests_paths).await?;
+
+            if solution_verdict != SubgroupVerdict::Ok {
+                log::error!("Run result isn't OK");
+                return Ok(solution_verdict);
+            }
+
+            log::info!("Run interactive, stage 1");
+            get_run_interactive_verdict_run_twice(
+                config,
+                &answer_path,
+                &tests_paths.output,
+                tests_paths,
+                0,
+            )
+            .await
         }
     }
 }

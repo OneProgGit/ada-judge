@@ -70,6 +70,12 @@ pub enum ProblemType {
     Interactive,
     /// Run-twice problem
     RunTwice,
+    /// Run-twice problem, where both runs are interactive
+    RunTwiceInteractive,
+    /// Run-twice problem, where the first run is interactive, and the second run is a default one
+    RunTwiceFirstInteractive,
+    /// Run-twice problem, where the first run is a default one, and the second run is interactive
+    RunTwiceSecondInteractive,
 }
 
 /// Testing subgroup

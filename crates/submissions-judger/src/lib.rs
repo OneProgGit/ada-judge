@@ -267,7 +267,7 @@ async fn get_single_test_verdict(
                 &answer_path,
                 &tests_paths.output,
                 tests_paths,
-                0,
+                1,
             )
             .await
         }

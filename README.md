@@ -11,7 +11,7 @@
 
 # Key features
 - Built with 🦀 Rust: a blazingly fast and safe programming language
-- Easy: problems are configured with TOML using [CLI](https://codeberg.org/oneprog/ada-judge-cli) and uploaded with [GUI](https://codeberg.org/oneprog/ada-judge-app)
+- Easy: problems are configured with TOML using [CLI](https://codeberg.org/oneprog/ada-judge-cli) and uploaded using [GUI](https://codeberg.org/oneprog/ada-judge-app)
 - Powerful: supports different problems' types, including interactive and run-twice, subgroups' merging and per-test scoring
 - Permissive license: licensed under the MIT license
 

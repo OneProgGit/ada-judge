@@ -7,7 +7,7 @@
 > Note: all AI-made PR's are banned from
 > this project.
 
-`ada-judge` is a complete new competitive programming contests manager and solutions judger.
+`ada-judge` is a fundamentally new competitive programming contests manager and solutions judger.
 
 # Key features
 - Built with 🦀 Rust: a blazingly fast and safe programming language

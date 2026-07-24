@@ -328,3 +328,21 @@ pub async fn delete_tests_results_for_problem(
     .map_log(TotalVerdict::InvalidRequest)?;
     Ok(())
 }
+
+/// Sets `Pending` verdict for all submissions for a problem
+/// # Errors
+/// Returns an error if `problem_id` is invalid
+pub async fn set_all_submissions_pending_for_problem(
+    pool: &PgPool,
+    problem_id: i64,
+) -> Result<(), TotalVerdict> {
+    sqlx::query(
+        "update submissions set total_verdict = 'pending'
+            where problem_id = $1",
+    )
+    .bind(problem_id)
+    .execute(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+    Ok(())
+}

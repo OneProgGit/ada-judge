@@ -395,6 +395,9 @@ pub async fn retest_problem_submissions(
     database::submissions::delete_tests_results_for_problem(&state.db, problem_id)
         .await
         .map_http()?;
+    database::submissions::set_all_submissions_pending_for_problem(&state.db, problem_id)
+        .await
+        .map_http()?;
 
     for submission_id in
         database::submissions::get_user_problem_submissions(&state.db, None, problem_id)

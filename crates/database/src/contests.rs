@@ -187,21 +187,25 @@ pub async fn create_contest(
     name: &str,
     starts_at: &DateTime<Utc>,
     ends_at: &DateTime<Utc>,
-    statements_url: &str,
-    editorial_url: &str,
+    statements_url_ru: &str,
+    editorial_url_ru: &str,
+    statements_url_en: &str,
+    editorial_url_en: &str,
     hidden: bool,
     upsolving_opened: bool,
     hide_solutions: bool,
 ) -> Result<i64, TotalVerdict> {
     let contest_id = sqlx::query_scalar(
-        "insert into contests (owner_id, name, starts_at, ends_at, statements_url, editorial_url, hidden, upsolving_opened, hide_solutions) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id",
+        "insert into contests (owner_id, name, starts_at, ends_at, statements_url_ru, editorial_url_ru, statements_url_en, editorial_url_en, hidden, upsolving_opened, hide_solutions) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id",
     )
     .bind(owner_id)
     .bind(name)
     .bind(starts_at)
     .bind(ends_at)
-    .bind(statements_url)
-    .bind(editorial_url)
+    .bind(statements_url_ru)
+    .bind(editorial_url_ru)
+    .bind(statements_url_en)
+    .bind(editorial_url_en)
     .bind(hidden)
     .bind(upsolving_opened)
     .bind(hide_solutions)
@@ -221,18 +225,22 @@ pub async fn update_contest(
     name: &str,
     starts_at: &DateTime<Utc>,
     ends_at: &DateTime<Utc>,
-    statements_url: &str,
-    editorial_url: &str,
+    statements_url_ru: &str,
+    editorial_url_ru: &str,
+    statements_url_en: &str,
+    editorial_url_en: &str,
     hidden: bool,
     upsolving_opened: bool,
     hide_solutions: bool,
 ) -> Result<(), TotalVerdict> {
-    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url = $4, editorial_url = $5, hidden = $6, upsolving_opened = $7, hide_solutions = $8 where id = $9")
+    sqlx::query("update contests set name = $1, starts_at = $2, ends_at = $3, statements_url_ru = $4, editorial_url_ru = $5, statements_url_en = $6, editorial_url_en = $7, hidden = $8, upsolving_opened = $9, hide_solutions = $10 where id = $11")
         .bind(name)
         .bind(starts_at)
         .bind(ends_at)
-        .bind(statements_url)
-        .bind(editorial_url)
+        .bind(statements_url_ru)
+        .bind(editorial_url_ru)
+        .bind(statements_url_en)
+        .bind(editorial_url_en)
         .bind(hidden)
         .bind(upsolving_opened)
         .bind(hide_solutions)

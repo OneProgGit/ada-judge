@@ -12,10 +12,14 @@ pub struct DatabaseContestConfig {
     pub owner_id: Option<i64>,
     /// Contest's name
     pub name: String,
-    /// Url to contest's statements
-    pub statements_url: String,
-    /// Url to contest's editorial
-    pub editorial_url: String,
+    /// Statements url (ru)
+    pub statements_url_ru: String,
+    /// Editorial url (ru)
+    pub editorial_url_ru: String,
+    /// Statements url (en)
+    pub statements_url_en: String,
+    /// Editorial url (en)
+    pub editorial_url_en: String,
     /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending
@@ -36,8 +40,10 @@ impl From<DatabaseContestConfig> for PublicContestConfig {
             id: value.id,
             owner_id: value.owner_id,
             name: value.name,
-            statements_url: value.statements_url,
-            editorial_url: value.editorial_url,
+            statements_url_ru: value.statements_url_ru,
+            editorial_url_ru: value.editorial_url_ru,
+            statements_url_en: value.statements_url_en,
+            editorial_url_en: value.editorial_url_en,
             starts_at: value.starts_at,
             ends_at: value.ends_at,
             hidden: value.hidden,

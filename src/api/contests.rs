@@ -71,10 +71,12 @@ pub async fn get_contest_by_id(
     let now = Utc::now();
 
     if now < contest.starts_at && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
-        contest.statements_url = String::default();
+        contest.statements_url_ru = String::default();
+        contest.statements_url_en = String::default();
     }
     if now < contest.ends_at && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
-        contest.editorial_url = String::default();
+        contest.editorial_url_ru = String::default();
+        contest.editorial_url_en = String::default();
     }
 
     Ok(Json(contest))
@@ -122,8 +124,10 @@ pub async fn create_contest(
                 &request.name,
                 &request.starts_at,
                 &request.ends_at,
-                &request.statements_url,
-                &request.editorial_url,
+                &request.statements_url_ru,
+                &request.editorial_url_ru,
+                &request.statements_url_en,
+                &request.editorial_url_en,
                 request.hidden,
                 request.upsolving_opened,
                 request.hide_solutions,
@@ -157,8 +161,10 @@ pub async fn update_contest(
             &request.name,
             &request.starts_at,
             &request.ends_at,
-            &request.statements_url,
-            &request.editorial_url,
+            &request.statements_url_ru,
+            &request.editorial_url_ru,
+            &request.statements_url_en,
+            &request.editorial_url_en,
             request.hidden,
             request.upsolving_opened,
             request.hide_solutions,

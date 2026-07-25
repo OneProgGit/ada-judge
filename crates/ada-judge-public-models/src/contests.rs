@@ -24,10 +24,14 @@ pub struct ContestRequest {
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending
     pub ends_at: DateTime<Utc>,
-    /// Statements url
-    pub statements_url: String,
-    /// Editorial url
-    pub editorial_url: String,
+    /// Statements url (ru)
+    pub statements_url_ru: String,
+    /// Editorial url (ru)
+    pub editorial_url_ru: String,
+    /// Statements url (en)
+    pub statements_url_en: String,
+    /// Editorial url (en)
+    pub editorial_url_en: String,
     /// Is contest hidden
     pub hidden: bool,
     /// Is upsolving opened
@@ -45,10 +49,14 @@ pub struct PublicContestConfig {
     pub owner_id: Option<i64>,
     /// Contest's name
     pub name: String,
-    /// Url to contest's statements
-    pub statements_url: String,
-    /// Url to contest's editorial
-    pub editorial_url: String,
+    /// Statements url (ru)
+    pub statements_url_ru: String,
+    /// Editorial url (ru)
+    pub editorial_url_ru: String,
+    /// Statements url (en)
+    pub statements_url_en: String,
+    /// Editorial url (en)
+    pub editorial_url_en: String,
     /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending

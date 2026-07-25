@@ -10,8 +10,10 @@ pub struct DatabaseContestConfig {
     pub id: i64,
     /// Contest's owner's user id (optional)
     pub owner_id: Option<i64>,
-    /// Contest's name
-    pub name: String,
+    /// Contest's name (ru)
+    pub name_ru: String,
+    /// Contest's name (en)
+    pub name_en: String,
     /// Statements url (ru)
     pub statements_url_ru: String,
     /// Editorial url (ru)
@@ -39,7 +41,8 @@ impl From<DatabaseContestConfig> for PublicContestConfig {
         Self {
             id: value.id,
             owner_id: value.owner_id,
-            name: value.name,
+            name_ru: value.name_ru,
+            name_en: value.name_en,
             statements_url_ru: value.statements_url_ru,
             editorial_url_ru: value.editorial_url_ru,
             statements_url_en: value.statements_url_en,

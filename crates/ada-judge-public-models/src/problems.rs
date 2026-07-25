@@ -15,8 +15,10 @@ pub struct ProblemConfig {
     pub contest_id: i64,
     /// Problem's index in contest
     pub problem_index: i64,
-    /// Problem's name or title
-    pub name: String,
+    /// Problem's name (ru)
+    pub name_ru: String,
+    /// Problem's name (en)
+    pub name_en: String,
     /// Testing time limit in milliseconds
     pub time_limit_ms: i32,
     /// Testing memory limit in megabytes
@@ -45,8 +47,10 @@ pub struct PublicProblemConfig {
     pub contest_id: i64,
     /// Problem's index in contest
     pub problem_index: i64,
-    /// Problem's name or title
-    pub name: String,
+    /// Problem's name (ru)
+    pub name_ru: String,
+    /// Problem's name (en)
+    pub name_en: String,
     /// Testing time limit in milliseconds
     pub time_limit_ms: i32,
     /// Testing memory limit in megabytes

@@ -121,7 +121,8 @@ pub async fn create_contest(
             database::contests::create_contest(
                 &state.db,
                 auth.id,
-                &request.name,
+                &request.name_ru,
+                &request.name_en,
                 &request.starts_at,
                 &request.ends_at,
                 &request.statements_url_ru,
@@ -158,7 +159,8 @@ pub async fn update_contest(
         database::contests::update_contest(
             &state.db,
             contest_id,
-            &request.name,
+            &request.name_ru,
+            &request.name_en,
             &request.starts_at,
             &request.ends_at,
             &request.statements_url_ru,

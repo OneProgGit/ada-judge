@@ -22,8 +22,10 @@ pub struct DatabaseProblemConfig {
     pub contest_id: i64,
     /// Problem's index in contest
     pub problem_index: i64,
-    /// Problem's name or title
-    pub name: String,
+    /// Problem's name (ru)
+    pub name_ru: String,
+    /// Problem's name (en)
+    pub name_en: String,
     /// Testing time limit in milliseconds
     pub time_limit_ms: i32,
     /// Testing memory limit in megabytes
@@ -46,7 +48,8 @@ impl From<DatabaseProblemConfig> for ProblemConfig {
             merge_subgroups: value.merge_subgroups,
             contest_id: value.contest_id,
             problem_index: value.problem_index,
-            name: value.name,
+            name_ru: value.name_ru,
+            name_en: value.name_en,
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,
             checker_path: value.checker_path,
@@ -65,7 +68,8 @@ impl From<DatabaseProblemConfig> for PublicProblemConfig {
             merge_subgroups: value.merge_subgroups,
             contest_id: value.contest_id,
             problem_index: value.problem_index,
-            name: value.name,
+            name_ru: value.name_ru,
+            name_en: value.name_en,
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,
             subgroups: value.subgroups.0,

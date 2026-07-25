@@ -18,8 +18,10 @@ pub struct LeaderboardRow {
 /// Request for creating/updating a contest
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ContestRequest {
-    /// Contest's name
-    pub name: String,
+    /// Contest's name (ru)
+    pub name_ru: String,
+    /// Contest's name (en)
+    pub name_en: String,
     /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
     /// Timestamp of contest ending
@@ -47,8 +49,10 @@ pub struct PublicContestConfig {
     pub id: i64,
     /// Contest's owner's user id (optional)
     pub owner_id: Option<i64>,
-    /// Contest's name
-    pub name: String,
+    /// Contest's name (ru)
+    pub name_ru: String,
+    /// Contest's name (en)
+    pub name_en: String,
     /// Statements url (ru)
     pub statements_url_ru: String,
     /// Editorial url (ru)

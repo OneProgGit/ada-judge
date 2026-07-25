@@ -23,7 +23,8 @@ pub async fn get_problem_by_id(
                 c.merge_subgroups,
                 c.contest_id,
                 c.problem_index,
-                c.name,
+                c.name_ru,
+                c.name_en,
                 c.time_limit_ms,
                 c.memory_limit_mb,
                 c.checker_path,
@@ -50,7 +51,8 @@ pub async fn get_problem_by_id(
                 c.merge_subgroups,
                 c.contest_id,
                 c.problem_index,
-                c.name,
+                c.name_ru,
+                c.name_en,
                 c.time_limit_ms,
                 c.memory_limit_mb,
                 c.checker_path,
@@ -100,7 +102,8 @@ pub async fn create_problem(
     merge_subgroups: bool,
     contest_id: i64,
     problem_index: i64,
-    name: &str,
+    name_ru: &str,
+    name_en: &str,
     time_limit_ms: i32,
     memory_limit_mb: i32,
     checker_path: &str,
@@ -108,15 +111,16 @@ pub async fn create_problem(
 ) -> Result<i64, TotalVerdict> {
     let problem_id = sqlx::query_scalar(
         "insert into problems (owner_id, type, merge_subgroups, contest_id, problem_index,
-                                name, time_limit_ms, memory_limit_mb,
-                                checker_path, tests_path) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning id",
+                                name_ru, name_en, time_limit_ms, memory_limit_mb,
+                                checker_path, tests_path) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id",
     )
     .bind(owner_id)
     .bind(r#type)
     .bind(merge_subgroups)
     .bind(contest_id)
     .bind(problem_index)
-    .bind(name)
+    .bind(name_ru)
+    .bind(name_en)
     .bind(time_limit_ms)
     .bind(memory_limit_mb)
     .bind(checker_path)

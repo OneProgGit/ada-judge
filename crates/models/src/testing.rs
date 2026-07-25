@@ -1,6 +1,6 @@
 //! Structs used for testings
 
-use ada_judge_public_models::{
+use aj_models::{
     problems::ProblemConfig,
     testing::{Language, SubgroupResult, Submission, TestResult, get_language_file_extension},
     verdicts::TotalVerdict,

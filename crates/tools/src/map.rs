@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use ada_judge_public_models::verdicts::TotalVerdict;
+use aj_models::verdicts::TotalVerdict;
 use axum::http::StatusCode;
 
 /// Extension for logging an error in `Result<T, E>`

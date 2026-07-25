@@ -9,4 +9,4 @@ apalis-redis.workspace = true
 serde.workspace = true
 tokio.workspace = true
 chrono.workspace = true
-ada-judge-public-models.workspace = true
+aj-models.workspace = true

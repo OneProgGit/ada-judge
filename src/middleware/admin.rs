@@ -1,5 +1,5 @@
 use crate::middleware::auth::Auth;
-use ada_judge_public_models::users::AdminLevel;
+use aj_models::users::AdminLevel;
 use axum::{
     extract::Request,
     http::StatusCode,

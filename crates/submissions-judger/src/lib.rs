@@ -10,7 +10,7 @@
 #![forbid(unsafe_code)]
 
 use ::tools::map::MapLogExt;
-use ada_judge_public_models::{
+use aj_models::{
     problems::{ProblemConfig, ProblemType, Subgroup, SubgroupType},
     testing::{SubgroupResult, TestResult},
     verdicts::{SubgroupVerdict, TotalVerdict},

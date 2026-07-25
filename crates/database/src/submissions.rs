@@ -1,6 +1,6 @@
 //! Database tools for submissions
 
-use ada_judge_public_models::{
+use aj_models::{
     testing::{Language, SubgroupResult, TestResult},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };

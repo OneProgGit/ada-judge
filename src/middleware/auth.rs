@@ -1,6 +1,6 @@
 use std::env;
 
-use ada_judge_public_models::verdicts::TotalVerdict;
+use aj_models::verdicts::TotalVerdict;
 use axum::{
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},

@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use ada_judge_public_models::{testing::Language, verdicts::TotalVerdict};
+use aj_models::{testing::Language, verdicts::TotalVerdict};
 use models::testing::{SubmissionTask, TestsPaths};
 use tokio::process::Command;
 use tools::map::MapLogExt;

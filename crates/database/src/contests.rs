@@ -1,6 +1,6 @@
 //! Database tools for contests
 
-use ada_judge_public_models::{contests::LeaderboardRow, verdicts::TotalVerdict};
+use aj_models::{contests::LeaderboardRow, verdicts::TotalVerdict};
 use models::contests::DatabaseContestConfig;
 use sqlx::{
     PgPool,

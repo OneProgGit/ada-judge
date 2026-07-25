@@ -1,8 +1,6 @@
 //! Problem's config structs
 
-use ada_judge_public_models::problems::{
-    ProblemConfig, ProblemType, PublicProblemConfig, Subgroup,
-};
+use aj_models::problems::{ProblemConfig, ProblemType, PublicProblemConfig, Subgroup};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;

@@ -1,7 +1,7 @@
 use crate::{
     app_state::AppState, crypt::verify_password, middleware::auth::Auth, tools::is_allowed,
 };
-use ada_judge_public_models::{
+use aj_models::{
     DeletionRequest,
     contests::{ContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,

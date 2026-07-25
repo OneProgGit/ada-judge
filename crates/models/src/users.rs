@@ -1,6 +1,6 @@
 //! Structs for users
 
-use ada_judge_public_models::users::{AdminLevel, PrivateUserData, PublicUserData};
+use aj_models::users::{AdminLevel, PrivateUserData, PublicUserData};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

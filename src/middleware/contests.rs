@@ -1,5 +1,5 @@
 use crate::{app_state::AppState, middleware::auth::Auth, tools::is_allowed};
-use ada_judge_public_models::users::AdminLevel;
+use aj_models::users::AdminLevel;
 use axum::{
     extract::{Path, Request, State},
     http::StatusCode,

@@ -1,6 +1,6 @@
 //! Contests' config structs
 
-use ada_judge_public_models::contests::PublicContestConfig;
+use aj_models::contests::PublicContestConfig;
 use chrono::{DateTime, Utc};
 
 /// Contest's config for database

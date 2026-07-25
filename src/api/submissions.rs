@@ -1,7 +1,7 @@
 use crate::tools::{check_contest_started_and_not_ended, is_allowed};
 use crate::{app_state::AppState, middleware::auth::Auth};
-use ada_judge_public_models::testing::get_language_file_extension;
-use ada_judge_public_models::{
+use aj_models::testing::get_language_file_extension;
+use aj_models::{
     testing::{Submission, SubmissonRequest},
     verdicts::TotalVerdict,
 };

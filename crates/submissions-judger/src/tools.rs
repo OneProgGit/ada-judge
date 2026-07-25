@@ -1,4 +1,4 @@
-use ada_judge_public_models::verdicts::TotalVerdict;
+use aj_models::verdicts::TotalVerdict;
 use std::{
     env,
     path::{Path, PathBuf},

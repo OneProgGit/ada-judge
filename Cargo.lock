@@ -6,7 +6,7 @@ version = 4
 name = "ada-judge"
 version = "0.6.1"
 dependencies = [
- "ada-judge-public-models",
+ "aj-models",
  "apalis",
  "apalis-redis",
  "argon2",
@@ -27,15 +27,6 @@ dependencies = [
  "tower-http",
  "uuid",
  "zip-extensions",
-]
-
-[[package]]
-name = "ada-judge-public-models"
-version = "0.9.9"
-dependencies = [
- "chrono",
- "serde",
- "sqlx",
 ]
 
 [[package]]
@@ -62,6 +53,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "aj-models"
+version = "0.9.9"
+dependencies = [
+ "chrono",
+ "serde",
+ "sqlx",
 ]
 
 [[package]]
@@ -598,7 +598,7 @@ dependencies = [
 name = "database"
 version = "0.0.0"
 dependencies = [
- "ada-judge-public-models",
+ "aj-models",
  "log",
  "models",
  "sqlx",
@@ -1399,7 +1399,7 @@ dependencies = [
 name = "models"
 version = "0.0.0"
 dependencies = [
- "ada-judge-public-models",
+ "aj-models",
  "apalis-redis",
  "chrono",
  "serde",
@@ -2171,7 +2171,7 @@ dependencies = [
 name = "submissions-judger"
 version = "0.0.0"
 dependencies = [
- "ada-judge-public-models",
+ "aj-models",
  "apalis",
  "apalis-redis",
  "database",
@@ -2248,7 +2248,7 @@ dependencies = [
 name = "tests"
 version = "0.0.0"
 dependencies = [
- "ada-judge-public-models",
+ "aj-models",
  "apalis",
  "axum",
  "log",
@@ -2431,7 +2431,7 @@ checksum = "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
 name = "tools"
 version = "0.0.0"
 dependencies = [
- "ada-judge-public-models",
+ "aj-models",
  "axum",
  "log",
  "models",

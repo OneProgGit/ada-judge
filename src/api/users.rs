@@ -1,5 +1,5 @@
 use crate::{app_state::AppState, crypt::verify_password, middleware::auth::Auth};
-use ada_judge_public_models::{
+use aj_models::{
     DeletionRequest,
     users::{AdminLevel, PrivateUserData, PublicUserData},
 };

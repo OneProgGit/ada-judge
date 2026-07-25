@@ -18,7 +18,7 @@ log.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
-ada-judge-public-models.workspace = true
+aj-models.workspace = true
 argon2 = { version = "0.5.3", features = ["std"] }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 tower-http = { version = "0.7.0", features = ["cors"] }
@@ -30,7 +30,7 @@ tokio-util = { version = "0.7.18", features = ["io"] }
 [workspace]
 members = [
     "crates/submissions-judger",
-    "crates/ada-judge-public-models",
+    "crates/aj-models",
     "crates/models",
     "crates/tools",
     "crates/database",
@@ -40,7 +40,7 @@ resolver = "3"
 
 [workspace.dependencies]
 submissions-judger = { path = "crates/submissions-judger" }
-ada-judge-public-models = { path = "crates/ada-judge-public-models", features = ["sqlx"] }
+aj-models = { path = "crates/aj-models", features = ["sqlx"] }
 models = { path = "crates/models" }
 tools = { path = "crates/tools" }
 database = { path = "crates/database" }

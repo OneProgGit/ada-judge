@@ -20,4 +20,4 @@ path = "tests.rs"
 
 [dependencies]
 tempfile = "3.27.0"
-ada-judge-public-models.workspace = true
+aj-models.workspace = true

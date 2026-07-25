@@ -1,6 +1,6 @@
 //! Database tools for problems
 
-use ada_judge_public_models::{
+use aj_models::{
     problems::{ProblemType, SubgroupType},
     verdicts::TotalVerdict,
 };

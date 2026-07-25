@@ -1,4 +1,4 @@
-use ada_judge_public_models::verdicts::TotalVerdict;
+use aj_models::verdicts::TotalVerdict;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use models::users::JwtClaims;
 use tools::map::MapLogExt;

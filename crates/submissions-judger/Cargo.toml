@@ -16,4 +16,4 @@ serde_json.workspace = true
 log.workspace = true
 database.workspace = true
 pretty-logging.workspace = true
-ada-judge-public-models.workspace = true
+aj-models.workspace = true

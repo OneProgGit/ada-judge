@@ -1,4 +1,4 @@
-use ada_judge_public_models::users::AdminLevel;
+use aj_models::users::AdminLevel;
 use chrono::Utc;
 use sqlx::PgPool;
 

@@ -4,7 +4,7 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 
-use ada_judge_public_models::{
+use aj_models::{
     testing::{Language, SubgroupResult, TotalResult, get_language_file_extension},
     verdicts::{SubgroupVerdict, TotalVerdict},
 };

@@ -2,7 +2,7 @@ use crate::{
     constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA, VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
     tools::convert_path_in_container_to_path_in_host,
 };
-use ada_judge_public_models::{
+use aj_models::{
     problems::ProblemConfig,
     verdicts::{SubgroupVerdict, TotalVerdict},
 };

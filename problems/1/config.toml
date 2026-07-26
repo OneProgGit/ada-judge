@@ -5,7 +5,7 @@ merge_subgroups = false
 contest_id = 1
 problem_index = 0
 time_limit_ms = 1000
-memory_limit_mb = 10
+memory_limit_mb = 256
 checker_path = "checker"
 tests_path = "tests"
 

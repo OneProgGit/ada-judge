@@ -1,4 +1,5 @@
-name = "Сумма чисел III"
+name_ru = "Сумма чисел III"
+name_en = "Sum of numbers III"
 type = "default"
 merge_subgroups = false
 contest_id = 1

@@ -51,8 +51,6 @@ docker compose build
 docker compose up -d
 ```
 
-Then, you can run test suite with `cargo test` to make sure that everything was installed properly. 
-
 Now, you can start using `ada-judge`! 
 
 `TODO`: «`ada-judge Book`»

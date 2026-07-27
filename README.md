@@ -52,5 +52,3 @@ docker compose up -d
 ```
 
 Now, you can start using `ada-judge`! 
-
-`TODO`: «`ada-judge Book`»

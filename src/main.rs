@@ -256,7 +256,10 @@ async fn main() {
             "/problems/{problem_id}/questions/my",
             get(get_my_problem_questions),
         )
-        .route("/problems/{question_id}", get(get_problem_question_by_id))
+        .route(
+            "/problems/questions/{question_id}",
+            get(get_problem_question_by_id),
+        )
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let app = Router::new()

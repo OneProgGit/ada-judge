@@ -342,3 +342,17 @@ pub async fn get_contest_post_by_id(
         .await
         .map_log(TotalVerdict::InvalidRequest)
 }
+
+/// Gets a contest's posts
+/// # Errors
+/// Returns an error if `contest_id` is invalid
+pub async fn get_contest_posts(pool: &PgPool, contest_id: i64) -> Result<Vec<i64>, TotalVerdict> {
+    sqlx::query_as::<_, (i64,)>(
+        "select id from contests_posts where contest_id = $1 order by id desc",
+    )
+    .bind(contest_id)
+    .fetch_all(pool)
+    .await
+    .map(|rows| rows.iter().map(|(id,)| *id).collect())
+    .map_log(TotalVerdict::InvalidRequest)
+}

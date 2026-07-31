@@ -3,7 +3,9 @@ use crate::{
 };
 use aj_models::{
     DeletionRequest,
-    contests::{ContestPostRequest, ContestRequest, LeaderboardRow, PublicContestConfig},
+    contests::{
+        ContestPost, ContestPostRequest, ContestRequest, LeaderboardRow, PublicContestConfig,
+    },
     problems::PublicProblemConfig,
     users::AdminLevel,
 };
@@ -287,4 +289,37 @@ pub async fn delete_contest_post(
             Ok(())
         }
     }
+}
+
+pub async fn get_contest_post_by_id(
+    State(state): State<AppState>,
+    Path(post_id): Path<i64>,
+) -> Result<Json<ContestPost>, StatusCode> {
+    log::info!("Get post #{post_id}");
+
+    Ok(Json(
+        database::contests::get_contest_post_by_id(&state.db, post_id)
+            .await
+            .map_http()?,
+    ))
+}
+
+pub async fn get_contest_posts(
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+    Path(contest_id): Path<i64>,
+) -> Result<Json<Vec<i64>>, StatusCode> {
+    let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+        .await
+        .map_http()?;
+
+    if contest.hidden && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    Ok(Json(
+        database::contests::get_contest_posts(&state.db, contest_id)
+            .await
+            .map_http()?,
+    ))
 }

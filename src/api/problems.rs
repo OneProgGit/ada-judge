@@ -5,7 +5,7 @@ use crate::{
 };
 use aj_models::{
     DeletionRequest,
-    problems::{ProblemConfig, PublicProblemConfig},
+    problems::{ProblemConfig, ProblemQuestion, ProblemQuestionRequest, PublicProblemConfig},
     verdicts::TotalVerdict,
 };
 use axum::{
@@ -219,4 +219,145 @@ pub async fn delete_problem(
             Ok(())
         }
     }
+}
+
+pub async fn create_problem_question(
+    State(state): State<AppState>,
+    Path(problem_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<ProblemQuestionRequest>,
+) -> Result<Json<i64>, StatusCode> {
+    Ok(Json(
+        database::problems::create_problem_question(
+            &state.db,
+            auth.id,
+            problem_id,
+            &request.title,
+            &request.text,
+        )
+        .await
+        .map_http()?,
+    ))
+}
+
+pub async fn answer_problem_question(
+    State(state): State<AppState>,
+    Path(question_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<String>,
+) -> Result<(), StatusCode> {
+    let question = database::problems::get_problem_question_by_id(&state.db, question_id)
+        .await
+        .map_http()?;
+    let problem = database::problems::get_problem_by_id(&state.db, question.problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+    {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    database::problems::update_problem_question_answer(&state.db, question_id, &request)
+        .await
+        .map_http()?;
+
+    Ok(())
+}
+
+pub async fn delete_problem_question(
+    State(state): State<AppState>,
+    Path(question_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<DeletionRequest>,
+) -> Result<(), StatusCode> {
+    if request.login != auth.login
+        || request.password != request.password_confirmation
+        || !request.deletion_confirmation
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    log::info!("Verify password");
+    let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
+
+    if !is_valid_password {
+        log::error!("Invalid password");
+        Err(StatusCode::BAD_REQUEST)
+    } else {
+        let question = database::problems::get_problem_question_by_id(&state.db, question_id)
+            .await
+            .map_http()?;
+        if !is_allowed(auth.id, Some(question.owner_id), &auth.admin_level) {
+            Err(StatusCode::FORBIDDEN)
+        } else {
+            database::problems::delete_problem_question(&state.db, question_id)
+                .await
+                .map_http()?;
+            Ok(())
+        }
+    }
+}
+
+pub async fn get_problem_question_by_id(
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+    Path(question_id): Path<i64>,
+) -> Result<Json<ProblemQuestion>, StatusCode> {
+    log::info!("Get question #{question_id}");
+
+    let question = database::problems::get_problem_question_by_id(&state.db, question_id)
+        .await
+        .map_http()?;
+    let problem = database::problems::get_problem_by_id(&state.db, question.problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+    {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    Ok(Json(question))
+}
+
+pub async fn get_all_problem_questions(
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+    Path(problem_id): Path<i64>,
+) -> Result<Json<Vec<i64>>, StatusCode> {
+    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+    {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    Ok(Json(
+        database::problems::get_all_user_problem_questions(&state.db, None, problem_id)
+            .await
+            .map_http()?,
+    ))
+}
+
+pub async fn get_my_problem_questions(
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+    Path(problem_id): Path<i64>,
+) -> Result<Json<Vec<i64>>, StatusCode> {
+    Ok(Json(
+        database::problems::get_all_user_problem_questions(&state.db, Some(auth.id), problem_id)
+            .await
+            .map_http()?,
+    ))
 }

@@ -14,11 +14,14 @@ use crate::{
         auth::{delete_my_account, login, register},
         contests::{
             create_contest, create_contest_post, delete_contest, delete_contest_post,
-            get_contest_by_id, get_contest_leaderboard, get_contest_problems, get_contests,
-            get_my_contests, get_problem_by_id, update_contest, update_contest_post,
+            get_contest_by_id, get_contest_leaderboard, get_contest_post_by_id, get_contest_posts,
+            get_contest_problems, get_contests, get_my_contests, get_problem_by_id, update_contest,
+            update_contest_post,
         },
         problems::{
-            create_problem, delete_problem, get_my_problems, get_problem_by_id_admin, get_problems,
+            answer_problem_question, create_problem, create_problem_question, delete_problem,
+            delete_problem_question, get_all_problem_questions, get_my_problem_questions,
+            get_my_problems, get_problem_by_id_admin, get_problem_question_by_id, get_problems,
         },
         submissions::{
             download_submission, get_all_my_submissions, get_all_submissions,
@@ -165,11 +168,21 @@ async fn main() {
         )
         .route(
             "/contests/posts/{post_id}/update",
-            post(update_contest_post),
+            patch(update_contest_post),
         )
         .route(
             "/contests/posts/{post_id}/delete",
-            post(delete_contest_post),
+            delete(delete_contest_post),
+        )
+        .route("/contests/posts", get(get_contest_posts))
+        .route("/contests/posts/{post_id}", get(get_contest_post_by_id))
+        .route(
+            "/problems/questions/{question_id}/answer",
+            patch(answer_problem_question),
+        )
+        .route(
+            "/problems/{problem_id}/questions",
+            get(get_all_problem_questions),
         )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
@@ -231,6 +244,19 @@ async fn main() {
         .route("/contests", get(get_contests))
         .route("/contests/{contest_id}", get(get_contest_by_id))
         .route("/contests/{contest_id}/submit", post(submit))
+        .route(
+            "/problems/{problem_id}/questions/new",
+            post(create_problem_question),
+        )
+        .route(
+            "/problems/questions/{question_id}/delete",
+            delete(delete_problem_question),
+        )
+        .route(
+            "/problems/{problem_id}/questions/my",
+            get(get_my_problem_questions),
+        )
+        .route("/problems/{question_id}", get(get_problem_question_by_id))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let app = Router::new()

@@ -1,7 +1,7 @@
 //! Database tools for problems
 
 use aj_models::{
-    problems::{ProblemType, SubgroupType},
+    problems::{ProblemQuestion, ProblemType, SubgroupType},
     verdicts::TotalVerdict,
 };
 use models::problems::DatabaseProblemConfig;
@@ -195,4 +195,102 @@ pub async fn delete_problem(pool: &PgPool, problem_id: i64) -> Result<(), TotalV
         .map_log(TotalVerdict::InvalidRequest)?;
 
     Ok(())
+}
+
+/// Creates a question for a problem by given question data
+/// # Errors
+/// Returns an error if `owner_id` is invalid
+pub async fn create_problem_question(
+    pool: &PgPool,
+    owner_id: i64,
+    problem_id: i64,
+    title: &str,
+    text: &str,
+) -> Result<i64, TotalVerdict> {
+    let post_id = sqlx::query_scalar(
+        "insert into contests_posts (owner_id, problem_id, title, text) values ($1, $2, $3, $4) returning id",
+    )
+    .bind(owner_id)
+    .bind(problem_id)
+    .bind(title)
+    .bind(text)
+    .fetch_one(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(post_id)
+}
+
+/// Updates a question's answer
+/// # Errors
+/// Returns an error if `question_id` is invalid
+pub async fn update_problem_question_answer(
+    pool: &PgPool,
+    question_id: i64,
+    answer: &str,
+) -> Result<(), TotalVerdict> {
+    sqlx::query("update problems_questions set answer = $1 where id = $2")
+        .bind(answer)
+        .bind(question_id)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
+/// Deletes a problem's question
+/// # Errors
+/// Returns an error if `question_id` is invalid
+pub async fn delete_problem_question(pool: &PgPool, question_id: i64) -> Result<(), TotalVerdict> {
+    sqlx::query("delete from problems_questions where id = $1")
+        .bind(question_id)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
+/// Gets a problem's question by given id
+/// # Errors
+/// Returns an error if `question_id` is invalid
+pub async fn get_problem_question_by_id(
+    pool: &PgPool,
+    question_id: i64,
+) -> Result<ProblemQuestion, TotalVerdict> {
+    sqlx::query_as("select * from problems_questions where id = $1")
+        .bind(question_id)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)
+}
+
+/// Gets all user's problem's questions. If `user_id` is None, gets all problem's questions.
+/// # Errors
+/// Returns an error if `user_id` or `problem_id` is invalid
+pub async fn get_all_user_problem_questions(
+    pool: &PgPool,
+    user_id: Option<i64>,
+    problem_id: i64,
+) -> Result<Vec<i64>, TotalVerdict> {
+    match user_id {
+        None => sqlx::query_as::<_, (i64,)>(
+            "select id from problems_questions where problem_id = $1 order by id desc",
+        )
+        .bind(problem_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest),
+        Some(user_id) => sqlx::query_as::<_, (i64,)>(
+            "select id from problems_questions where user_id = $1 and problem_id = $2 order by id desc",
+        )
+        .bind(user_id)
+        .bind(problem_id)
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|(id,)| *id).collect())
+        .map_log(TotalVerdict::InvalidRequest),
+    }
 }

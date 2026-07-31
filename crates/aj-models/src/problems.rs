@@ -127,7 +127,8 @@ pub struct ProblemQuestionRequest {
 }
 
 /// Request for creating a question for a problem
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct ProblemQuestion {
     /// Owner's id
     pub owner_id: i64,
@@ -137,7 +138,7 @@ pub struct ProblemQuestion {
     pub title: String,
     /// Question's text
     pub text: String,
-    /// Answer
+    /// Answer for a question
     pub answer: String,
     /// Created at
     pub created_at: DateTime<Utc>,

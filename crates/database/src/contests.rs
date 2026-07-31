@@ -1,6 +1,9 @@
 //! Database tools for contests
 
-use aj_models::{contests::LeaderboardRow, verdicts::TotalVerdict};
+use aj_models::{
+    contests::{ContestPost, LeaderboardRow},
+    verdicts::TotalVerdict,
+};
 use models::contests::DatabaseContestConfig;
 use sqlx::{
     PgPool,
@@ -267,4 +270,75 @@ pub async fn delete_contest(pool: &PgPool, contest_id: i64) -> Result<(), TotalV
         .map_log(TotalVerdict::InvalidRequest)?;
 
     Ok(())
+}
+
+/// Creates a post in contest by given post data
+/// # Errors
+/// Returns an error if `owner_id` is invalid
+pub async fn create_contest_post(
+    pool: &PgPool,
+    owner_id: i64,
+    contest_id: i64,
+    title: &str,
+    text: &str,
+) -> Result<i64, TotalVerdict> {
+    let post_id = sqlx::query_scalar(
+        "insert into contests_posts (owner_id, contest_id, title, text) values ($1, $2, $3, $4) returning id",
+    )
+    .bind(owner_id)
+    .bind(contest_id)
+    .bind(title)
+    .bind(text)
+    .fetch_one(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(post_id)
+}
+
+/// Updates a post in contest by given post data
+/// # Errors
+/// Returns an error if `post_id` is invalid
+pub async fn update_contest_post(
+    pool: &PgPool,
+    post_id: i64,
+    title: &str,
+    text: &str,
+) -> Result<(), TotalVerdict> {
+    sqlx::query("update contests_posts set title = $1, text = $2 where id = $3")
+        .bind(title)
+        .bind(text)
+        .bind(post_id)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
+/// Deletes a post from contest
+/// # Errors
+/// Returns an error if `post_id` is invalid
+pub async fn delete_contest_post(pool: &PgPool, post_id: i64) -> Result<(), TotalVerdict> {
+    sqlx::query("delete from contests_posts where id = $1")
+        .bind(post_id)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
+/// Gets a contest's post by given id
+/// # Errors
+/// Returns an error if `post_id` is invalid
+pub async fn get_contest_post_by_id(
+    pool: &PgPool,
+    post_id: i64,
+) -> Result<ContestPost, TotalVerdict> {
+    sqlx::query_as("select * from contests_posts where id = $1")
+        .bind(post_id)
+        .fetch_one(pool)
+        .await
+        .map_log(TotalVerdict::InvalidRequest)
 }

@@ -3,7 +3,7 @@ use crate::{
 };
 use aj_models::{
     DeletionRequest,
-    contests::{ContestRequest, LeaderboardRow, PublicContestConfig},
+    contests::{ContestPostRequest, ContestRequest, LeaderboardRow, PublicContestConfig},
     problems::PublicProblemConfig,
     users::AdminLevel,
 };
@@ -204,6 +204,84 @@ pub async fn delete_contest(
             Err(StatusCode::FORBIDDEN)
         } else {
             database::contests::delete_contest(&state.db, contest_id)
+                .await
+                .map_http()?;
+            Ok(())
+        }
+    }
+}
+
+pub async fn create_contest_post(
+    State(state): State<AppState>,
+    Path(contest_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<ContestPostRequest>,
+) -> Result<Json<i64>, StatusCode> {
+    let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(Json(
+        database::contests::create_contest_post(
+            &state.db,
+            auth.id,
+            contest_id,
+            &request.title,
+            &request.text,
+        )
+        .await
+        .map_http()?,
+    ))
+}
+
+pub async fn update_contest_post(
+    State(state): State<AppState>,
+    Path(post_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<ContestPostRequest>,
+) -> Result<(), StatusCode> {
+    let post = database::contests::get_contest_post_by_id(&state.db, post_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    database::contests::update_contest_post(&state.db, post_id, &request.title, &request.text)
+        .await
+        .map_http()?;
+
+    Ok(())
+}
+
+pub async fn delete_contest_post(
+    State(state): State<AppState>,
+    Path(post_id): Path<i64>,
+    Auth(auth): Auth,
+    Json(request): Json<DeletionRequest>,
+) -> Result<(), StatusCode> {
+    if request.login != auth.login
+        || request.password != request.password_confirmation
+        || !request.deletion_confirmation
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    log::info!("Verify password");
+    let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
+
+    if !is_valid_password {
+        log::error!("Invalid password");
+        Err(StatusCode::BAD_REQUEST)
+    } else {
+        let post = database::contests::get_contest_post_by_id(&state.db, post_id)
+            .await
+            .map_http()?;
+        if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
+            Err(StatusCode::FORBIDDEN)
+        } else {
+            database::contests::delete_contest_post(&state.db, post_id)
                 .await
                 .map_http()?;
             Ok(())

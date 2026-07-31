@@ -72,3 +72,30 @@ pub struct PublicContestConfig {
     /// Hide solutions' files
     pub hide_solutions: bool,
 }
+
+/// Request for creating/updating a post in contest
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ContestPostRequest {
+    /// Post's title
+    pub title: String,
+    /// Post's text
+    pub text: String,
+    /// Created at
+    pub created_at: DateTime<Utc>,
+}
+
+/// Request for creating a post in contest
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
+pub struct ContestPost {
+    /// Owner's id
+    pub owner_id: i64,
+    /// Contest's id
+    pub contest_id: i64,
+    /// Post's title
+    pub title: String,
+    /// Post's text
+    pub text: String,
+    /// Created at
+    pub created_at: DateTime<Utc>,
+}

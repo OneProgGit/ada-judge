@@ -1,5 +1,6 @@
 //! Structs for problems
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Problem's config
@@ -112,4 +113,32 @@ pub enum SubgroupType {
     Sample,
     /// Count score for this subgroup
     Main,
+}
+
+/// Request for creating/updating a question for a problem
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ProblemQuestionRequest {
+    /// Question's title
+    pub title: String,
+    /// Question's text
+    pub text: String,
+    /// Created at
+    pub created_at: DateTime<Utc>,
+}
+
+/// Request for creating a question for a problem
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ProblemQuestion {
+    /// Owner's id
+    pub owner_id: i64,
+    /// Problem's id
+    pub problem_id: i64,
+    /// Question's title
+    pub title: String,
+    /// Question's text
+    pub text: String,
+    /// Answer
+    pub answer: String,
+    /// Created at
+    pub created_at: DateTime<Utc>,
 }

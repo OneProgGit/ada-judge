@@ -174,7 +174,7 @@ async fn main() {
             "/contests/posts/{post_id}/delete",
             delete(delete_contest_post),
         )
-        .route("/contests/posts", get(get_contest_posts))
+        .route("/contests/{contest_id}/posts", get(get_contest_posts))
         .route("/contests/posts/{post_id}", get(get_contest_post_by_id))
         .route(
             "/problems/questions/{question_id}/answer",

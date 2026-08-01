@@ -76,10 +76,14 @@ pub struct PublicContestConfig {
 /// Request for creating/updating a post in contest
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ContestPostRequest {
-    /// Post's title
-    pub title: String,
-    /// Post's text
-    pub text: String,
+    /// Post's title (ru)
+    pub title_ru: String,
+    /// Post's text (ru)
+    pub text_ru: String,
+    /// Post's title (en)
+    pub title_en: String,
+    /// Post's text (en)
+    pub text_en: String,
     /// Created at
     pub created_at: DateTime<Utc>,
 }
@@ -94,10 +98,14 @@ pub struct ContestPost {
     pub owner_id: i64,
     /// Contest's id
     pub contest_id: i64,
-    /// Post's title
-    pub title: String,
-    /// Post's text
-    pub text: String,
+    /// Post's title (ru)
+    pub title_ru: String,
+    /// Post's text (ru)
+    pub text_ru: String,
+    /// Post's title (en)
+    pub title_en: String,
+    /// Post's text (en)
+    pub text_en: String,
     /// Created at
     pub created_at: DateTime<Utc>,
 }

@@ -230,8 +230,10 @@ pub async fn create_contest_post(
             &state.db,
             auth.id,
             contest_id,
-            &request.title,
-            &request.text,
+            &request.title_ru,
+            &request.text_ru,
+            &request.title_en,
+            &request.text_en,
         )
         .await
         .map_http()?,
@@ -250,9 +252,16 @@ pub async fn update_contest_post(
     if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
         return Err(StatusCode::FORBIDDEN);
     }
-    database::contests::update_contest_post(&state.db, post_id, &request.title, &request.text)
-        .await
-        .map_http()?;
+    database::contests::update_contest_post(
+        &state.db,
+        post_id,
+        &request.title_ru,
+        &request.text_ru,
+        &request.title_en,
+        &request.text_en,
+    )
+    .await
+    .map_http()?;
 
     Ok(())
 }

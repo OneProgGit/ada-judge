@@ -279,16 +279,20 @@ pub async fn create_contest_post(
     pool: &PgPool,
     owner_id: i64,
     contest_id: i64,
-    title: &str,
-    text: &str,
+    title_ru: &str,
+    text_ru: &str,
+    title_en: &str,
+    text_en: &str,
 ) -> Result<i64, TotalVerdict> {
     let post_id = sqlx::query_scalar(
-        "insert into contests_posts (owner_id, contest_id, title, text) values ($1, $2, $3, $4) returning id",
+        "insert into contests_posts (owner_id, contest_id, title_ru, text_ru, title_en, text_en) values ($1, $2, $3, $4, $5, $6) returning id",
     )
     .bind(owner_id)
     .bind(contest_id)
-    .bind(title)
-    .bind(text)
+    .bind(title_ru)
+    .bind(text_ru)
+    .bind(title_en)
+    .bind(text_en)
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
@@ -302,12 +306,16 @@ pub async fn create_contest_post(
 pub async fn update_contest_post(
     pool: &PgPool,
     post_id: i64,
-    title: &str,
-    text: &str,
+    title_ru: &str,
+    text_ru: &str,
+    title_en: &str,
+    text_en: &str,
 ) -> Result<(), TotalVerdict> {
-    sqlx::query("update contests_posts set title = $1, text = $2 where id = $3")
-        .bind(title)
-        .bind(text)
+    sqlx::query("update contests_posts set title_ru = $1, text_ru = $2, title_en = $3, text_en = $4 where id = $5")
+        .bind(title_ru)
+        .bind(text_ru)
+        .bind(title_en)
+        .bind(text_en)
         .bind(post_id)
         .fetch_one(pool)
         .await

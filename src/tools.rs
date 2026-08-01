@@ -3,18 +3,7 @@ use chrono::Utc;
 use sqlx::PgPool;
 
 pub fn is_allowed(user_id: i64, owner_id: Option<i64>, admin_level: &AdminLevel) -> bool {
-    if admin_level == &AdminLevel::Owner {
-        return true;
-    }
-    if owner_id.is_none() {
-        return false;
-    }
-    if let Some(owner_id) = owner_id
-        && owner_id != user_id
-    {
-        return false;
-    }
-    return true;
+    owner_id.is_some_and(|owner_id| owner_id == user_id) || admin_level == &AdminLevel::Owner
 }
 
 pub async fn check_contest_started_and_not_ended(

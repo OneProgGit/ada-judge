@@ -130,6 +130,8 @@ pub struct ProblemQuestionRequest {
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct ProblemQuestion {
+    /// Post id
+    pub id: i64,
     /// Owner's id
     pub owner_id: i64,
     /// Problem's id

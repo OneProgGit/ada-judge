@@ -88,6 +88,8 @@ pub struct ContestPostRequest {
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct ContestPost {
+    /// Post id
+    pub id: i64,
     /// Owner's id
     pub owner_id: i64,
     /// Contest's id

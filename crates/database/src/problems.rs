@@ -208,7 +208,7 @@ pub async fn create_problem_question(
     text: &str,
 ) -> Result<i64, TotalVerdict> {
     let post_id = sqlx::query_scalar(
-        "insert into contests_posts (owner_id, problem_id, title, text) values ($1, $2, $3, $4) returning id",
+        "insert into problems_questions (owner_id, problem_id, title, text) values ($1, $2, $3, $4) returning id",
     )
     .bind(owner_id)
     .bind(problem_id)

@@ -84,8 +84,6 @@ pub struct ContestPostRequest {
     pub title_en: String,
     /// Post's text (en)
     pub text_en: String,
-    /// Created at
-    pub created_at: DateTime<Utc>,
 }
 
 /// Request for creating a post in contest

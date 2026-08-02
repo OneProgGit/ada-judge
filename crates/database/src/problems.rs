@@ -284,7 +284,7 @@ pub async fn get_all_user_problem_questions(
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
         .map_log(TotalVerdict::InvalidRequest),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
-            "select id from problems_questions where user_id = $1 and problem_id = $2 order by id desc",
+            "select id from problems_questions where owner_id = $1 and problem_id = $2 order by id desc",
         )
         .bind(user_id)
         .bind(problem_id)

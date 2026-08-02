@@ -57,7 +57,7 @@ dependencies = [
 
 [[package]]
 name = "aj-models"
-version = "0.9.13"
+version = "0.9.14"
 dependencies = [
  "chrono",
  "serde",

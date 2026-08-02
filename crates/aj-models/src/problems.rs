@@ -142,6 +142,4 @@ pub struct ProblemQuestion {
     pub text: String,
     /// Answer for a question
     pub answer: String,
-    /// Created at
-    pub created_at: DateTime<Utc>,
 }

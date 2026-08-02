@@ -122,8 +122,6 @@ pub struct ProblemQuestionRequest {
     pub title: String,
     /// Question's text
     pub text: String,
-    /// Created at
-    pub created_at: DateTime<Utc>,
 }
 
 /// Request for creating a question for a problem
@@ -142,4 +140,6 @@ pub struct ProblemQuestion {
     pub text: String,
     /// Answer for a question
     pub answer: String,
+    /// Created at
+    pub created_at: DateTime<Utc>,
 }

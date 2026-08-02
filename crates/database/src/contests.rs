@@ -317,7 +317,7 @@ pub async fn update_contest_post(
         .bind(title_en)
         .bind(text_en)
         .bind(post_id)
-        .fetch_one(pool)
+        .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;
 
@@ -330,7 +330,7 @@ pub async fn update_contest_post(
 pub async fn delete_contest_post(pool: &PgPool, post_id: i64) -> Result<(), TotalVerdict> {
     sqlx::query("delete from contests_posts where id = $1")
         .bind(post_id)
-        .fetch_one(pool)
+        .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;
 

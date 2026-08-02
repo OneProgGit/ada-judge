@@ -232,7 +232,7 @@ pub async fn update_problem_question_answer(
     sqlx::query("update problems_questions set answer = $1 where id = $2")
         .bind(answer)
         .bind(question_id)
-        .fetch_one(pool)
+        .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;
 
@@ -245,7 +245,7 @@ pub async fn update_problem_question_answer(
 pub async fn delete_problem_question(pool: &PgPool, question_id: i64) -> Result<(), TotalVerdict> {
     sqlx::query("delete from problems_questions where id = $1")
         .bind(question_id)
-        .fetch_one(pool)
+        .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;
 

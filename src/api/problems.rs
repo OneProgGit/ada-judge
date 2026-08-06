@@ -319,6 +319,7 @@ pub async fn get_problem_question_by_id(
         .map_http()?;
     if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, Some(question.owner_id), &auth.admin_level)
     {
         return Err(StatusCode::FORBIDDEN);
     }

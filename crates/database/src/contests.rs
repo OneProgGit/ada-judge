@@ -197,7 +197,7 @@ pub async fn get_contest_by_id(
                 c.hide_solutions,
                 c.hide_leaderboard,
                 coalesce(
-                    array_agg(co.user_id),
+                    array_agg(co.user_id) filter (where co.user_id is not null),
                     '{}'
                 ) as co_authors from contests c
                 left join contests_co_authors co on co.contest_id = c.id

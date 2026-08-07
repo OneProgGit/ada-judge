@@ -34,6 +34,10 @@ pub struct DatabaseContestConfig {
     pub upsolving_opened: bool,
     /// Hide solutions' files
     pub hide_solutions: bool,
+    /// Hide leaderboard till contest's finishing
+    pub hide_leaderboard: bool,
+    /// Contests' co-authors
+    pub co_authors: Vec<i64>,
 }
 
 impl From<DatabaseContestConfig> for PublicContestConfig {
@@ -52,6 +56,8 @@ impl From<DatabaseContestConfig> for PublicContestConfig {
             hidden: value.hidden,
             upsolving_opened: value.upsolving_opened,
             hide_solutions: value.hide_solutions,
+            hide_leaderboard: value.hide_leaderboard,
+            co_authors: value.co_authors,
         }
     }
 }

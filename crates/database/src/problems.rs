@@ -45,19 +45,7 @@ pub async fn get_problem_by_id(
             from problems c
             left join problems_subgroups v on v.problem_id = c.id
             where c.id = $1
-            group by c.id,
-                c.owner_id,
-                c.type,
-                c.merge_subgroups,
-                c.contest_id,
-                c.problem_index,
-                c.name_ru,
-                c.name_en,
-                c.time_limit_ms,
-                c.memory_limit_mb,
-                c.checker_path,
-                c.tests_path,
-                c.created_at
+            group by c.id
         ",
     )
     .bind(problem_id)

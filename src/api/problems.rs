@@ -5,6 +5,7 @@ use crate::{
 };
 use aj_models::{
     DeletionRequest,
+    contests::PublicContestConfig,
     problems::{ProblemConfig, ProblemQuestion, ProblemQuestionRequest, PublicProblemConfig},
     verdicts::TotalVerdict,
 };
@@ -69,6 +70,25 @@ async fn load_problem_config(
     toml::from_str::<ProblemConfig>(&config_text).map_log(TotalVerdict::InvalidProblem)
 }
 
+fn assert_subgroups_correctness(config: &ProblemConfig) -> Result<(), TotalVerdict> {
+    for (i, subgroup) in config.subgroups.iter().enumerate() {
+        log::info!("Check subgroup #{i} for correctness");
+        for x in &subgroup.depends_on {
+            if *x >= i {
+                log::error!("Subgroup depends on a subgroup that has index less than it's");
+                return Err(TotalVerdict::InvalidProblem);
+            }
+        }
+        if subgroup.score.is_some() == subgroup.score_per_test.is_some() {
+            log::error!(
+                "Subgroup does have both `score` and `score_per_test` or doesn't have neither `score` nor `score_per_test`"
+            );
+            return Err(TotalVerdict::InvalidProblem);
+        }
+    }
+    Ok(())
+}
+
 pub async fn create_problem(
     State(state): State<AppState>,
     Auth(auth): Auth,
@@ -127,7 +147,7 @@ pub async fn create_problem(
         .map_log(TotalVerdict::Bug)
         .map_http()?;
 
-    log::info!("Insert problem to database");
+    log::info!("Check problem's config");
     let config = match load_problem_config(&problem_path).await {
         Err(e) => {
             std::fs::remove_dir_all(&problem_path)
@@ -137,10 +157,22 @@ pub async fn create_problem(
         }
         Ok(config) => config,
     };
+    assert_subgroups_correctness(&config).map_http()?;
     match config.owner_id {
         None => return Err(StatusCode::BAD_REQUEST),
         Some(owner_id) if owner_id != auth.id => return Err(StatusCode::FORBIDDEN),
         _ => {}
+    }
+    log::info!("Insert problem to database");
+    let contest: PublicContestConfig =
+        database::contests::get_contest_by_id(&state.db, config.contest_id)
+            .await
+            .map_http()?
+            .into();
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && contest.co_authors.binary_search(&auth.id).is_err()
+    {
+        return Err(StatusCode::FORBIDDEN);
     }
     let problem_id = database::problems::create_problem(
         &state.db,

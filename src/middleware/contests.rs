@@ -23,6 +23,7 @@ pub async fn check_contest_started_common(
 
     if (now < contest.starts_at || contest.hidden)
         && !is_allowed(user_id, contest.owner_id, &admin_level)
+        && contest.co_authors.binary_search(&user_id).is_err()
     {
         Err(StatusCode::FORBIDDEN.into_response())
     } else {
@@ -44,6 +45,8 @@ pub async fn check_contest_ended_common(
 
     if (now < contest.ends_at || contest.hidden)
         && !is_allowed(user_id, contest.owner_id, &admin_level)
+        && contest.co_authors.binary_search(&user_id).is_err()
+        && contest.hide_leaderboard
     {
         Err(StatusCode::FORBIDDEN.into_response())
     } else {

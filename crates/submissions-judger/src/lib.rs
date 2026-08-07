@@ -361,35 +361,14 @@ async fn write_subgroup_result(
     Ok(())
 }
 
-fn assert_subgroups_correctness(config: &ProblemConfig) -> Result<(), TotalVerdict> {
-    for (i, subgroup) in config.subgroups.iter().enumerate() {
-        log::info!("Check subgroup #{i} for correctness");
-        for x in &subgroup.depends_on {
-            if *x >= i {
-                log::error!("Subgroup depends on a subgroup that has index less than it's");
-                return Err(TotalVerdict::InvalidProblem);
-            }
-        }
-        if subgroup.score.is_some() == subgroup.score_per_test.is_some() {
-            log::error!(
-                "Subgroup does have both `score` and `score_per_test` or doesn't have neither `score` nor `score_per_test`"
-            );
-            return Err(TotalVerdict::InvalidProblem);
-        }
-    }
-    Ok(())
-}
-
 fn does_subgroup_need_to_be_tested_on(
     subgroup: &Subgroup,
     subgroups_results: &[SubgroupResult],
 ) -> bool {
-    for i in &subgroup.depends_on {
-        if subgroups_results[*i].subgroup_verdict != SubgroupVerdict::Ok {
-            return false;
-        }
-    }
-    true
+    subgroup
+        .depends_on
+        .iter()
+        .all(|i| subgroups_results[*i].subgroup_verdict == SubgroupVerdict::Ok)
 }
 
 /// Tests submission for a problem on all test subgroups and writes a total verdict and a verdict for each subgroup
@@ -428,11 +407,6 @@ pub async fn test_submission(
         .await?
         .into();
     log::info!("Loaded config: {config:?}");
-
-    log::info!("Check subgroups' for correctness");
-    assert_subgroups_correctness(&config)
-        .map_db(&pool, submission_id)
-        .await?;
 
     log::info!("Create tests paths");
     let tests_paths = TestsPaths::new(

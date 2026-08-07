@@ -40,6 +40,10 @@ pub struct ContestRequest {
     pub upsolving_opened: bool,
     /// Hide solutions' files
     pub hide_solutions: bool,
+    /// Hide leaderboard till contest's finishing
+    pub hide_leaderboard: bool,
+    /// Contests' co-authors
+    pub co_authors: Vec<i64>,
 }
 
 /// Contest config visible to all users
@@ -71,6 +75,10 @@ pub struct PublicContestConfig {
     pub upsolving_opened: bool,
     /// Hide solutions' files
     pub hide_solutions: bool,
+    /// Hide leaderboard till contest's finishing
+    pub hide_leaderboard: bool,
+    /// Contests' co-authors
+    pub co_authors: Vec<i64>,
 }
 
 /// Request for creating/updating a post in contest

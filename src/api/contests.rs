@@ -66,7 +66,10 @@ pub async fn get_contest_by_id(
             .map_http()?
             .into();
 
-    if contest.hidden && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+    if contest.hidden
+        && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && contest.co_authors.binary_search(&auth.id).is_err()
+    {
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -119,6 +122,8 @@ pub async fn create_contest(
     if request.starts_at >= request.ends_at {
         Err(StatusCode::BAD_REQUEST)
     } else {
+        let mut co_authors = request.co_authors;
+        co_authors.sort_unstable();
         Ok(Json(
             database::contests::create_contest(
                 &state.db,
@@ -134,6 +139,8 @@ pub async fn create_contest(
                 request.hidden,
                 request.upsolving_opened,
                 request.hide_solutions,
+                request.hide_leaderboard,
+                &co_authors,
             )
             .await
             .map_http()?,
@@ -158,6 +165,9 @@ pub async fn update_contest(
             return Err(StatusCode::FORBIDDEN);
         }
 
+        let mut co_authors = request.co_authors;
+        co_authors.sort_unstable();
+
         database::contests::update_contest(
             &state.db,
             contest_id,
@@ -172,6 +182,8 @@ pub async fn update_contest(
             request.hidden,
             request.upsolving_opened,
             request.hide_solutions,
+            request.hide_leaderboard,
+            &co_authors,
         )
         .await
         .map_http()?;

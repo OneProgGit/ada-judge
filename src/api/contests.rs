@@ -130,27 +130,28 @@ pub async fn create_contest(
     } else {
         let mut co_authors = request.co_authors;
         co_authors.sort_unstable();
-        Ok(Json(
-            database::contests::create_contest(
-                &state.db,
-                auth.id,
-                &request.name_ru,
-                &request.name_en,
-                &request.starts_at,
-                &request.ends_at,
-                &request.statements_url_ru,
-                &request.editorial_url_ru,
-                &request.statements_url_en,
-                &request.editorial_url_en,
-                request.hidden,
-                request.upsolving_opened,
-                request.hide_solutions,
-                request.hide_leaderboard,
-                &co_authors,
-            )
+        let id = database::contests::create_contest(
+            &state.db,
+            auth.id,
+            &request.name_ru,
+            &request.name_en,
+            &request.starts_at,
+            &request.ends_at,
+            &request.statements_url_ru,
+            &request.editorial_url_ru,
+            &request.statements_url_en,
+            &request.editorial_url_en,
+            request.hidden,
+            request.upsolving_opened,
+            request.hide_solutions,
+            request.hide_leaderboard,
+        )
+        .await
+        .map_http()?;
+        database::contests::insert_contest_co_authors(&state.db, id, &co_authors)
             .await
-            .map_http()?,
-        ))
+            .map_http()?;
+        Ok(Json(id))
     }
 }
 
@@ -189,10 +190,14 @@ pub async fn update_contest(
             request.upsolving_opened,
             request.hide_solutions,
             request.hide_leaderboard,
-            &co_authors,
         )
         .await
         .map_http()?;
+
+        database::contests::insert_contest_co_authors(&state.db, contest_id, &co_authors)
+            .await
+            .map_http()?;
+
         Ok(())
     }
 }

@@ -228,13 +228,12 @@ pub async fn create_contest(
     upsolving_opened: bool,
     hide_solutions: bool,
     hide_leaderboard: bool,
-    co_authors: &Vec<i64>,
 ) -> Result<i64, TotalVerdict> {
     let contest_id = sqlx::query_scalar(
         "insert into contests
             (owner_id, name_ru, name_en, starts_at,
             ends_at, statements_url_ru, editorial_url_ru, statements_url_en, editorial_url_en, hidden, upsolving_opened,
-            hide_solutions, hide_leaderboard, co_authors) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) returning id",
+            hide_solutions, hide_leaderboard) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id",
     )
     .bind(owner_id)
     .bind(name_ru)
@@ -249,7 +248,6 @@ pub async fn create_contest(
     .bind(upsolving_opened)
     .bind(hide_solutions)
     .bind(hide_leaderboard)
-    .bind(co_authors)
     .fetch_one(pool)
     .await
     .map_log(TotalVerdict::InvalidRequest)?;
@@ -275,11 +273,10 @@ pub async fn update_contest(
     upsolving_opened: bool,
     hide_solutions: bool,
     hide_leaderboard: bool,
-    co_authors: &Vec<i64>,
 ) -> Result<(), TotalVerdict> {
     sqlx::query("update contests set name_ru = $1, name_en = $2, starts_at = $3,
                 ends_at = $4, statements_url_ru = $5, editorial_url_ru = $6, statements_url_en = $7, editorial_url_en = $8, hidden = $9, upsolving_opened = $10,
-                hide_solutions = $11, hide_leaderboard = $12, co_authors = $13 where id = $14")
+                hide_solutions = $11, hide_leaderboard = $12 where id = $13")
         .bind(name_ru)
         .bind(name_en)
         .bind(starts_at)
@@ -293,10 +290,36 @@ pub async fn update_contest(
         .bind(hide_solutions)
         .bind(contest_id)
         .bind(hide_leaderboard)
-        .bind(co_authors)
         .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;
+
+    Ok(())
+}
+
+/// Erases and inserts contest's co-authors
+/// # Errors
+/// Returns an error if `contest_id` is invalid
+pub async fn insert_contest_co_authors(
+    pool: &PgPool,
+    contest_id: i64,
+    co_authors: &Vec<i64>,
+) -> Result<(), TotalVerdict> {
+    let mut tx = pool.begin().await.map_log(TotalVerdict::Bug)?;
+    sqlx::query("delete from contests_co_authors where contest_id = $1")
+        .bind(contest_id)
+        .execute(&mut *tx)
+        .await
+        .map_log(TotalVerdict::Bug)?;
+    for co_author in co_authors {
+        sqlx::query("insert into contests_co_authors (contest_id, user_id) values ($1, $2)")
+            .bind(contest_id)
+            .bind(co_author)
+            .execute(&mut *tx)
+            .await
+            .map_log(TotalVerdict::Bug)?;
+    }
+    tx.commit().await.map_log(TotalVerdict::Bug)?;
 
     Ok(())
 }

@@ -38,6 +38,8 @@ pub async fn get_run_solution_verdict(
             "none",
             "--memory",
             &format!("{}m", config.memory_limit_mb),
+            "--ulimit",
+            "stack=67108864:-1",
             "--cpus",
             "0.5",
             "--pids-limit",

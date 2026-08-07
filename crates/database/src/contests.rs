@@ -288,8 +288,8 @@ pub async fn update_contest(
         .bind(hidden)
         .bind(upsolving_opened)
         .bind(hide_solutions)
-        .bind(contest_id)
         .bind(hide_leaderboard)
+        .bind(contest_id)
         .execute(pool)
         .await
         .map_log(TotalVerdict::InvalidRequest)?;

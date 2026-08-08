@@ -23,6 +23,7 @@ pub async fn compile_solution(
         Language::Go => "go",
         Language::Rust => "rustc",
         Language::Python => "pyinstaller",
+        Language::FreePascal => "fpc",
         Language::Unknown => return Err(TotalVerdict::InvalidRequest),
     };
     let solution_source_path = PathBuf::from("env")
@@ -113,6 +114,7 @@ pub async fn compile_solution(
                 "/sandbox/build",
                 &solution_source_path,
             ],
+            Language::FreePascal => vec![compile_cmd, "-O2", &solution_source_path],
             Language::Unknown => unreachable!(),
         })
         .spawn()

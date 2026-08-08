@@ -160,7 +160,6 @@ async fn main() {
         )
         .route("/problems/my", get(get_my_problems))
         .route("/problems/{problem_id}", get(get_problem_by_id_admin))
-        .route("/problems", method_router)
         .route("/problems/{problem_id}/delete", delete(delete_problem))
         .route("/contests/my", get(get_my_contests))
         .route("/contests/{contest_id}/delete", delete(delete_contest))

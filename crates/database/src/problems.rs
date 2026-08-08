@@ -140,7 +140,7 @@ pub async fn update_problem(
     sqlx::query(
         "update problems set type = $1, merge_subgroups = $2, contest_id = $3, problem_index = $4,
                                 name_ru = $5, name_en = $6, time_limit_ms = $7, memory_limit_mb = $8,
-                                checker_path = $9, tests_path = $10 where problem_id = $11",
+                                checker_path = $9, tests_path = $10 where id = $11",
     )
     .bind(r#type)
     .bind(merge_subgroups)

@@ -212,7 +212,7 @@ pub async fn update_problem(
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
     mut multipart: Multipart,
-) -> Result<Json<i64>, StatusCode> {
+) -> Result<(), StatusCode> {
     let mut file_stream: Option<Bytes> = None;
 
     log::info!("Extracting file");
@@ -326,7 +326,7 @@ pub async fn update_problem(
         .await
         .map_http()?;
 
-    Ok(Json(problem_id))
+    Ok(())
 }
 
 pub async fn delete_problem(

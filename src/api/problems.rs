@@ -293,6 +293,10 @@ pub async fn update_problem(
     let new_problem_path = PathBuf::from(format!("/problems/{}", problem_id));
     let new_problem_archive_path = PathBuf::from(format!("/problems/{}.zip", problem_id));
 
+    fs::remove_dir_all(&new_problem_path)
+        .await
+        .map_log(TotalVerdict::Bug)
+        .map_http()?;
     fs::rename(problem_path, new_problem_path)
         .await
         .map_log(TotalVerdict::Bug)

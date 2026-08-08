@@ -1,7 +1,7 @@
 //! Database tools for problems
 
 use aj_models::{
-    problems::{ProblemQuestion, ProblemType, SubgroupType},
+    problems::{ProblemQuestion, ProblemType, Subgroup},
     verdicts::TotalVerdict,
 };
 use models::problems::DatabaseProblemConfig;
@@ -80,7 +80,7 @@ pub async fn get_all_user_problems(
     }
 }
 
-/// Creates a problem in database.
+/// Creates a problem
 /// # Errors
 /// Returns an error if `owner_id` is invalid
 pub async fn create_problem(
@@ -120,56 +120,98 @@ pub async fn create_problem(
     Ok(problem_id)
 }
 
-/// Inserts a problem's subgroup into database.
+/// Updates a problem
 /// # Errors
 /// Returns an error if `problem_id` is invalid
-pub async fn insert_problem_subgroup(
+pub async fn update_problem(
     pool: &PgPool,
     problem_id: i64,
-    subgroup_index: usize,
-    r#type: &SubgroupType,
-    tests: &Vec<i32>,
-    score: Option<i32>,
-    score_per_test: Option<i32>,
-    depends_on: &Vec<usize>,
+    r#type: ProblemType,
+    merge_subgroups: bool,
+    contest_id: i64,
+    problem_index: i64,
+    name_ru: &str,
+    name_en: &str,
+    time_limit_ms: i32,
+    memory_limit_mb: i32,
+    checker_path: &str,
+    tests_path: &str,
 ) -> Result<(), TotalVerdict> {
-    if score.is_some() == score_per_test.is_some() {
-        return Err(TotalVerdict::InvalidProblem);
-    } else if let Some(score) = score {
-        sqlx::query(
-            "insert into problems_subgroups (problem_id, subgroup_index,
-                                            type, tests, score, depends_on) values ($1, $2, $3, $4, $5, $6)",
-        )
-        .bind(problem_id)
-        .bind(subgroup_index as i64)
-        .bind(r#type)
-        .bind(tests)
-        .bind(score)
-        .bind(depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
-        .execute(pool)
-        .await
-        .map_log(TotalVerdict::InvalidRequest)?;
+    sqlx::query(
+        "update problems set type = $1, merge_subgroups = $2, contest_id = $3, problem_index = $4,
+                                name_ru = $5, name_en = $6, time_limit_ms = $7, memory_limit_mb = $8,
+                                checker_path = $9, tests_path = $10 where problem_id = $11",
+    )
+    .bind(r#type)
+    .bind(merge_subgroups)
+    .bind(contest_id)
+    .bind(problem_index)
+    .bind(name_ru)
+    .bind(name_en)
+    .bind(time_limit_ms)
+    .bind(memory_limit_mb)
+    .bind(checker_path)
+    .bind(tests_path)
+    .bind(problem_id)
+    .execute(pool)
+    .await
+    .map_log(TotalVerdict::InvalidRequest)?;
 
-        Ok(())
-    } else if let Some(score_per_test) = score_per_test {
-        sqlx::query(
-            "insert into problems_subgroups (problem_id, subgroup_index,
-                                            type, tests, score_per_test, depends_on) values ($1, $2, $3, $4, $5, $6)",
-        )
-        .bind(problem_id)
-        .bind(subgroup_index as i64)
-        .bind(r#type)
-        .bind(tests)
-        .bind(score_per_test)
-        .bind(depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
-        .execute(pool)
-        .await
-        .map_log(TotalVerdict::InvalidRequest)?;
+    Ok(())
+}
 
-        Ok(())
-    } else {
-        unreachable!()
+/// Erases and inserts a problem's subgroups
+/// # Errors
+/// Returns an error if `problem_id` is invalid
+pub async fn insert_problem_subgroups(
+    pool: &PgPool,
+    problem_id: i64,
+    subgroups: &Vec<Subgroup>,
+) -> Result<(), TotalVerdict> {
+    let mut tx = pool.begin().await.map_log(TotalVerdict::Bug)?;
+    sqlx::query("delete from problems_subgroups where problem_id = $1")
+        .bind(problem_id)
+        .execute(&mut *tx)
+        .await
+        .map_log(TotalVerdict::Bug)?;
+    for (i, subgroup) in subgroups.iter().enumerate() {
+        if subgroup.score.is_some() == subgroup.score_per_test.is_some() {
+            return Err(TotalVerdict::InvalidProblem);
+        } else if let Some(score) = subgroup.score {
+            sqlx::query(
+                "insert into problems_subgroups (problem_id, subgroup_index,
+                                                type, tests, score, depends_on) values ($1, $2, $3, $4, $5, $6)",
+            )
+            .bind(problem_id)
+            .bind(i as i64)
+            .bind(&subgroup.r#type)
+            .bind(&subgroup.tests)
+            .bind(score)
+            .bind(subgroup.depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
+            .execute(pool)
+            .await
+            .map_log(TotalVerdict::InvalidRequest)?;
+        } else if let Some(score_per_test) = subgroup.score_per_test {
+            sqlx::query(
+                "insert into problems_subgroups (problem_id, subgroup_index,
+                                                type, tests, score_per_test, depends_on) values ($1, $2, $3, $4, $5, $6)",
+            )
+            .bind(problem_id)
+            .bind(i as i64)
+            .bind(&subgroup.r#type)
+            .bind(&subgroup.tests)
+            .bind(score_per_test)
+            .bind(subgroup.depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
+            .execute(pool)
+            .await
+            .map_log(TotalVerdict::InvalidRequest)?;
+        } else {
+            unreachable!()
+        }
     }
+    tx.commit().await.map_log(TotalVerdict::Bug)?;
+
+    Ok(())
 }
 
 /// Deletes a problem by given id

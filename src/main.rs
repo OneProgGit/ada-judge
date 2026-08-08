@@ -20,8 +20,9 @@ use crate::{
         },
         problems::{
             answer_problem_question, create_problem, create_problem_question, delete_problem,
-            delete_problem_question, get_all_problem_questions, get_my_problem_questions,
-            get_my_problems, get_problem_by_id_admin, get_problem_question_by_id, get_problems,
+            delete_problem_question, download_problem, get_all_problem_questions,
+            get_my_problem_questions, get_my_problems, get_problem_by_id_admin,
+            get_problem_question_by_id, get_problems, update_problem,
         },
         submissions::{
             download_submission, get_all_my_submissions, get_all_submissions,
@@ -159,6 +160,7 @@ async fn main() {
         )
         .route("/problems/my", get(get_my_problems))
         .route("/problems/{problem_id}", get(get_problem_by_id_admin))
+        .route("/problems", method_router)
         .route("/problems/{problem_id}/delete", delete(delete_problem))
         .route("/contests/my", get(get_my_contests))
         .route("/contests/{contest_id}/delete", delete(delete_contest))
@@ -184,14 +186,16 @@ async fn main() {
             "/problems/{problem_id}/questions",
             get(get_all_problem_questions),
         )
+        .route("/problems/{problem_id}/download", get(download_problem))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_user_is_at_least_admin,
         ))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
-    let create_problem_route = Router::new()
+    let create_and_update_problem_routes = Router::new()
         .route("/problems/new", post(create_problem))
+        .route("/problems/{problem_id}/update", patch(update_problem))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             check_user_is_at_least_admin,
@@ -268,7 +272,7 @@ async fn main() {
         .merge(routes_avaible_after_start_of_contest_2_path_elements)
         .merge(routes_avaible_after_end_of_contest)
         .merge(admin_routes)
-        .merge(create_problem_route)
+        .merge(create_and_update_problem_routes)
         .merge(owner_routes)
         .layer(Extension(Auth))
         .layer(cors)

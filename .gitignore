@@ -9,6 +9,10 @@ problems/*
 !problems/1
 !problems/2
 !problems/3
+!problems/4
+!problems/5
+!problems/6
+!problems/7
 .editorconfig
 .env
 .sqlx

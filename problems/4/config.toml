@@ -1,0 +1,28 @@
+name_ru = "Сумма чисел IV"
+name_en = "Sum of numbers IV"
+type = "default"
+merge_subgroups = true
+contest_id = 1
+problem_index = 3
+time_limit_ms = 1000
+memory_limit_mb = 256
+checker_path = "checker"
+tests_path = "tests"
+
+[[subgroups]]
+type = "sample"
+tests = [0]
+score = 0
+depends_on = []
+
+[[subgroups]]
+type = "main"
+tests = [1]
+score = 50
+depends_on = [0]
+
+[[subgroups]]
+type = "main"
+tests = [2]
+score = 50
+depends_on = []

@@ -188,7 +188,7 @@ pub async fn insert_problem_subgroups(
             .bind(&subgroup.tests)
             .bind(score)
             .bind(subgroup.depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
-            .execute(pool)
+            .execute(&mut *tx)
             .await
             .map_log(TotalVerdict::InvalidRequest)?;
         } else if let Some(score_per_test) = subgroup.score_per_test {
@@ -202,7 +202,7 @@ pub async fn insert_problem_subgroups(
             .bind(&subgroup.tests)
             .bind(score_per_test)
             .bind(subgroup.depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
-            .execute(pool)
+            .execute(&mut *tx)
             .await
             .map_log(TotalVerdict::InvalidRequest)?;
         } else {

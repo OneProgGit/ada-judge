@@ -162,11 +162,9 @@ pub async fn create_problem(
         _ => {}
     }
     log::info!("Insert problem to database");
-    let contest: PublicContestConfig =
-        database::contests::get_contest_by_id(&state.db, config.contest_id)
-            .await
-            .map_http()?
-            .into();
+    let contest = database::contests::get_contest_by_id(&state.db, config.contest_id)
+        .await
+        .map_http()?;
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && contest.co_authors.binary_search(&auth.id).is_err()
     {
@@ -280,13 +278,14 @@ pub async fn update_problem(
     }
 
     log::info!("Update problem in database");
-    let contest: PublicContestConfig =
-        database::contests::get_contest_by_id(&state.db, config.contest_id)
-            .await
-            .map_http()?
-            .into();
+    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest_by_id(&state.db, config.contest_id)
+        .await
+        .map_http()?;
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
-        && contest.co_authors.binary_search(&auth.id).is_err()
+        && !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
     {
         return Err(StatusCode::FORBIDDEN);
     }
@@ -523,6 +522,7 @@ pub async fn download_problem(
 
     if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && contest.co_authors.binary_search(&auth.id).is_err()
     {
         Err(StatusCode::FORBIDDEN)
     } else {

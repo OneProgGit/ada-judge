@@ -13,7 +13,7 @@ pub async fn get_users(pool: &PgPool) -> Result<Vec<i64>, TestingVerdict> {
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest)
+        .map_err(|_| AdaJudgeError::Internal)
 }
 
 /// Creates a user with login and password hash and returns it's id
@@ -30,7 +30,7 @@ pub async fn create_user(
             .bind(password_hash)
             .fetch_one(pool)
             .await
-            .map_log(TestingVerdict::InvalidRequest)?;
+            .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(user_id)
 }
@@ -43,7 +43,7 @@ pub async fn delete_user(pool: &PgPool, id: i64) -> Result<(), TestingVerdict> {
         .bind(id)
         .execute(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)?;
+        .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -61,7 +61,7 @@ pub async fn change_user_admin_level(
         .bind(id)
         .execute(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)?;
+        .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -74,7 +74,7 @@ pub async fn get_user_by_login(pool: &PgPool, login: &str) -> Result<DatabaseUse
         .bind(login)
         .fetch_one(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)
+        .map_err(|_| AdaJudgeError::Internal)
 }
 
 /// Gets a user with target id
@@ -85,5 +85,5 @@ pub async fn get_user_by_id(pool: &PgPool, id: i64) -> Result<DatabaseUser, Test
         .bind(id)
         .fetch_one(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)
+        .map_err(|_| AdaJudgeError::Internal)
 }

@@ -1,13 +1,9 @@
-//! Database map tools
-
 use crate::submissions::update_total_testing_result;
 use aj_models::verdicts::TestingVerdict;
 use sqlx::PgPool;
 
-/// Extension updating total verdict if `Self` is `Err(TotalVerdict)`
 #[allow(async_fn_in_trait)]
 pub trait MapDbExt<T> {
-    /// Updates total verdict if `Self` is `Err(TotalVerdict)`
     async fn map_db(self, pool: &PgPool, submission_id: i64) -> Result<T, TestingVerdict>;
 }
 

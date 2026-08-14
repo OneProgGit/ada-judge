@@ -51,7 +51,7 @@ pub async fn get_problem_by_id(
     .bind(problem_id)
     .fetch_one(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(config)
 }
@@ -68,7 +68,7 @@ pub async fn get_all_user_problems(
             .fetch_all(pool)
             .await
             .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TestingVerdict::InvalidRequest),
+            .map_err(|_| AdaJudgeError::Internal),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from problems where owner_id = $1 order by id desc",
         )
@@ -76,7 +76,7 @@ pub async fn get_all_user_problems(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest),
+        .map_err(|_| AdaJudgeError::Internal),
     }
 }
 
@@ -115,7 +115,7 @@ pub async fn create_problem(
     .bind(tests_path)
     .fetch_one(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(problem_id)
 }
@@ -155,7 +155,7 @@ pub async fn update_problem(
     .bind(problem_id)
     .execute(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -190,7 +190,7 @@ pub async fn insert_problem_subgroups(
             .bind(subgroup.depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
             .execute(&mut *tx)
             .await
-            .map_log(TestingVerdict::InvalidRequest)?;
+            .map_err(|_| AdaJudgeError::Internal)?;
         } else if let Some(score_per_test) = subgroup.score_per_test {
             sqlx::query(
                 "insert into problems_subgroups (problem_id, subgroup_index,
@@ -204,7 +204,7 @@ pub async fn insert_problem_subgroups(
             .bind(subgroup.depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
             .execute(&mut *tx)
             .await
-            .map_log(TestingVerdict::InvalidRequest)?;
+            .map_err(|_| AdaJudgeError::Internal)?;
         } else {
             unreachable!()
         }
@@ -222,7 +222,7 @@ pub async fn delete_problem(pool: &PgPool, problem_id: i64) -> Result<(), Testin
         .bind(problem_id)
         .execute(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)?;
+        .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -246,7 +246,7 @@ pub async fn create_problem_question(
     .bind(text)
     .fetch_one(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(post_id)
 }
@@ -264,7 +264,7 @@ pub async fn update_problem_question_answer(
         .bind(question_id)
         .execute(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)?;
+        .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -272,12 +272,15 @@ pub async fn update_problem_question_answer(
 /// Deletes a problem's question
 /// # Errors
 /// Returns an error if `question_id` is invalid
-pub async fn delete_problem_question(pool: &PgPool, question_id: i64) -> Result<(), TestingVerdict> {
+pub async fn delete_problem_question(
+    pool: &PgPool,
+    question_id: i64,
+) -> Result<(), TestingVerdict> {
     sqlx::query("delete from problems_questions where id = $1")
         .bind(question_id)
         .execute(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)?;
+        .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -293,7 +296,7 @@ pub async fn get_problem_question_by_id(
         .bind(question_id)
         .fetch_one(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)
+        .map_err(|_| AdaJudgeError::Internal)
 }
 
 /// Gets all user's problem's questions. If `user_id` is None, gets all problem's questions.
@@ -312,7 +315,7 @@ pub async fn get_all_user_problem_questions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest),
+        .map_err(|_| AdaJudgeError::Internal),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from problems_questions where owner_id = $1 and problem_id = $2 order by id desc",
         )
@@ -321,6 +324,6 @@ pub async fn get_all_user_problem_questions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest),
+        .map_err(|_| AdaJudgeError::Internal),
     }
 }

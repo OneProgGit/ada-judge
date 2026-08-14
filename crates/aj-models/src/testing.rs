@@ -46,7 +46,7 @@ pub struct TestingResult {
     pub total_score: i32,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct SubgroupResult {
     pub verdict: Verdict,
@@ -54,7 +54,7 @@ pub struct SubgroupResult {
     pub score: i32,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct TestResult {
     pub verdict: Verdict,

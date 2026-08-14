@@ -13,7 +13,7 @@ use crate::{
 };
 use ::tools::map::MapLogExt;
 use aj_models::{
-    errors::Error,
+    errors::AdaJudgeError,
     problems::{ProblemConfig, ProblemType, Subgroup, SubgroupType},
     testing::{SubgroupResult, TestResult},
     verdicts::{TestingVerdict, Verdict},
@@ -234,31 +234,42 @@ async fn get_test_verdict(
     }
 }
 
-async fn write_subgroup_result(
+async fn test_subgroup(
     pool: &PgPool,
     submission_id: i64,
-    subgroup_result: &mut SubgroupResult,
     subgroup: &Subgroup,
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
 ) -> Result<(), TestingVerdict> {
+    database::submissions::insert_subgroup_testing_result(&pool, submission_id, subgroup_index)
+        .await
+        .map_db(&pool, submission_id)
+        .await?;
+
+    let mut subgroup_result = SubgroupResult {
+        verdict: Verdict::Testing,
+        test: 0,
+        score: 0,
+    };
+
     let mut score = 0;
-    let per_test = subgroup.score_per_test.is_some();
+    let per_test_scoring = subgroup.score_per_test.is_some();
     let mut ok = true;
     for test_id in &subgroup.tests {
         let test_id = *test_id;
+
         database::submissions::insert_test_testing_result(
             &pool,
             submission_id,
             test_id,
-            if per_test { Some(0) } else { None },
+            if per_test_scoring { Some(0) } else { None },
         )
         .await?;
 
         if !ok {
             let test_result = TestResult {
                 verdict: Verdict::Skipped,
-                score: if per_test { Some(0) } else { None },
+                score: if per_test_scoring { Some(0) } else { None },
             };
 
             database::submissions::update_test_testing_result(
@@ -272,21 +283,22 @@ async fn write_subgroup_result(
             continue;
         }
 
-        subgroup_result.test = test_id;
         let test_verdict = get_test_verdict(config, tests_paths, test_id).await?;
 
-        subgroup_result.verdict = test_verdict.clone();
         subgroup_result.test = test_id;
+        subgroup_result.verdict = test_verdict.clone();
+
         let test_result = TestResult {
             verdict: test_verdict,
             score: if subgroup_result.verdict == Verdict::Ok {
                 subgroup.score_per_test
-            } else if per_test {
+            } else if per_test_scoring {
                 Some(0)
             } else {
                 None
             },
         };
+
         database::submissions::update_test_testing_result(
             &pool,
             submission_id,
@@ -295,42 +307,23 @@ async fn write_subgroup_result(
         )
         .await?;
 
-        if subgroup_result.verdict != Verdict::Ok && !per_test {
-            log::error!(
-                "Verdict {} isn't OK, skip testing",
-                subgroup_result.subgroup_verdict
-            );
+        if subgroup_result.verdict != Verdict::Ok && !per_test_scoring {
             ok = false;
-        } else if per_test && subgroup_result.verdict == Verdict::Ok {
+        } else if per_test_scoring && subgroup_result.verdict == Verdict::Ok {
             score += subgroup.score_per_test.unwrap();
         }
     }
     if ok && subgroup.r#type != SubgroupType::Sample {
-        if per_test {
+        if per_test_scoring {
             subgroup_result.score = score;
         } else {
             subgroup_result.score = subgroup.score.ok_or(TestingVerdict::Bug)?;
         }
     }
+
     Ok(())
 }
 
-fn does_subgroup_need_to_be_tested_on(
-    subgroup: &Subgroup,
-    subgroups_results: &[SubgroupResult],
-) -> bool {
-    subgroup
-        .depends_on
-        .iter()
-        .all(|i| subgroups_results[*i].verdict == Verdict::Ok)
-}
-
-/// Tests submission for a problem on all test subgroups and writes a total verdict and a verdict for each subgroup
-/// # Errors
-/// Returns an error if:
-/// - Request is invalid
-/// - Problem is invalid
-/// - Verdict isn't Ok
 #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub async fn test_submission(
     submission: SubmissionTask,
@@ -349,11 +342,10 @@ pub async fn test_submission(
 
     let problem_id = submission.problem_id;
     let run_path = submission.run_dir.clone();
-    let config: ProblemConfig = get_problem_by_id(&pool, problem_id)
+    let config = get_problem_by_id(&pool, problem_id)
         .await
         .map_db(&pool, submission_id)
-        .await?
-        .into();
+        .await?;
     let tests_paths = TestsPaths::new(
         &submission.problem_path,
         &run_path,
@@ -377,26 +369,14 @@ pub async fn test_submission(
     for (i, subgroup) in config.subgroups.clone().iter().enumerate() {
         let subgroup_index = i as i32;
 
-        database::submissions::insert_subgroup_testing_result(&pool, submission_id, subgroup_index)
-            .await
-            .map_db(&pool, submission_id)
-            .await?;
-
-        let mut subgroup_result = SubgroupResult::default();
-        if does_subgroup_need_to_be_tested_on(subgroup, &subgroups_results) {
-            write_subgroup_result(
-                &pool,
-                submission_id,
-                &mut subgroup_result,
-                subgroup,
-                &config,
-                &tests_paths,
-            )
-            .await
-            .map_db(&pool, submission_id)
-            .await?;
+        if !subgroup.should_skip(&subgroups_results) {
+            test_subgroup(&pool, submission_id, subgroup, &config, &tests_paths)
+                .await
+                .map_db(&pool, submission_id)
+                .await?;
         } else {
             subgroup_result.verdict = Verdict::Skipped;
+
             let per_test = subgroup.score_per_test.is_some();
             for test_id in &subgroup.tests {
                 let test_id = *test_id;
@@ -425,6 +405,7 @@ pub async fn test_submission(
 
         total_score += subgroup_result.score;
         subgroups_results.push(subgroup_result.clone());
+
         database::submissions::update_subgroup_testing_result(
             &pool,
             submission_id,

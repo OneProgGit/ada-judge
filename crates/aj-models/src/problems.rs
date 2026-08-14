@@ -1,3 +1,4 @@
+use crate::{testing::SubgroupResult, verdicts::Verdict};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -69,6 +70,14 @@ pub struct Subgroup {
     pub score: Option<i32>,
     pub score_per_test: Option<i32>,
     pub depends_on: Vec<usize>,
+}
+
+impl Subgroup {
+    pub fn should_skip(&self, subgroups_results: &[SubgroupResult]) -> bool {
+        self.depends_on
+            .iter()
+            .all(|i| subgroups_results[*i].verdict == Verdict::Ok)
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]

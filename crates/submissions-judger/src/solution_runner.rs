@@ -15,7 +15,7 @@ use tools::map::MapLogExt;
 pub async fn get_solution_verdict(
     config: &ProblemConfig,
     input_path: &Path,
-    tests_paths: &TestsPaths,
+    output_path: &Path,
 ) -> Result<Verdict, TestingVerdict> {
     let stdin_file = File::open(input_path)
         .await

@@ -3,7 +3,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Error {
+pub enum AdaJudgeError {
     #[error("invalid username or password")]
     InvalidUsernameOrPassword,
 

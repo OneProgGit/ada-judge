@@ -2,7 +2,7 @@
 
 use aj_models::{
     testing::{Language, SubgroupResult, TestResult},
-    verdicts::{Verdict, TestingVerdict},
+    verdicts::{TestingVerdict, Verdict},
 };
 use models::testing::DatabaseSubmission;
 use sqlx::PgPool;
@@ -28,7 +28,7 @@ pub async fn insert_submission(
     .bind(0)
     .fetch_one(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(submission_id)
 }
@@ -51,7 +51,7 @@ pub async fn update_total_testing_result(
     .bind(submission_id)
     .execute(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -75,7 +75,7 @@ pub async fn insert_subgroup_testing_result(
         .bind(0)
         .execute(pool)
         .await
-        .map_log(TestingVerdict::InvalidRequest)?;
+        .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -99,7 +99,7 @@ pub async fn insert_test_testing_result(
     .bind(score)
     .execute(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -124,7 +124,7 @@ pub async fn update_subgroup_testing_result(
     .bind(subgroup_index)
     .execute(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -148,7 +148,7 @@ pub async fn update_test_testing_result(
     .bind(test)
     .execute(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
@@ -198,7 +198,7 @@ pub async fn get_submission(
     .bind(submission_id)
     .fetch_one(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(submission)
 }
@@ -215,7 +215,7 @@ pub async fn get_all_user_submissions(
             .fetch_all(pool)
             .await
             .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TestingVerdict::InvalidRequest),
+            .map_err(|_| AdaJudgeError::Internal),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from submissions where user_id = $1 order by id desc",
         )
@@ -223,7 +223,7 @@ pub async fn get_all_user_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest),
+        .map_err(|_| AdaJudgeError::Internal),
     }
 }
 
@@ -245,7 +245,7 @@ pub async fn get_user_contest_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest),
+        .map_err(|_| AdaJudgeError::Internal),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select c.id from submissions c
                 join problems p on p.id = c.problem_id
@@ -256,7 +256,7 @@ pub async fn get_user_contest_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest),
+        .map_err(|_| AdaJudgeError::Internal),
     }
 }
 
@@ -276,7 +276,7 @@ pub async fn get_user_problem_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest),
+        .map_err(|_| AdaJudgeError::Internal),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from submissions where user_id = $1 and problem_id = $2 order by id desc",
         )
@@ -285,7 +285,7 @@ pub async fn get_user_problem_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TestingVerdict::InvalidRequest),
+        .map_err(|_| AdaJudgeError::Internal),
     }
 }
 
@@ -305,7 +305,7 @@ pub async fn delete_subgroups_results_for_problem(
     .bind(problem_id)
     .execute(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
     Ok(())
 }
 
@@ -325,7 +325,7 @@ pub async fn delete_tests_results_for_problem(
     .bind(problem_id)
     .execute(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
     Ok(())
 }
 
@@ -343,6 +343,6 @@ pub async fn set_all_submissions_pending_for_problem(
     .bind(problem_id)
     .execute(pool)
     .await
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::Internal)?;
     Ok(())
 }

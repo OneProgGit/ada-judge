@@ -21,8 +21,9 @@ use tools::map::MapLogExt;
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_interactive_verdict(
     config: &ProblemConfig,
+    input_path: &Path,
+    output_path: &Path,
     answer_path: &Path,
-    tests_paths: &TestsPaths,
 ) -> Result<Verdict, TestingVerdict> {
     fs::create_dir_all(&tests_paths.fifo)
         .await
@@ -184,9 +185,10 @@ pub async fn get_interactive_verdict(
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_interactive_run_twice_verdict(
     config: &ProblemConfig,
-    answer_path: &Path,
+    input_path: &Path,
+    output_path: &Path,
     final_output: &Path,
-    tests_paths: &TestsPaths,
+    answer_path: &Path,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
     fs::create_dir_all(&tests_paths.fifo)

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Default, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
     feature = "sqlx",
@@ -16,8 +16,6 @@ pub enum Verdict {
     WrongAnswer,
     PresentationError,
     Skipped,
-    #[default]
-    Pending,
     Testing,
     Fail,
 }

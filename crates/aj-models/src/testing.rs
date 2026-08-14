@@ -1,10 +1,7 @@
-//! Submissions and testing structs
-
-use crate::verdicts::{SubgroupVerdict, TotalVerdict};
+use crate::verdicts::{TestingVerdict, Verdict};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Submission's language variants
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
@@ -13,97 +10,67 @@ use serde::{Deserialize, Serialize};
 )]
 #[serde(rename_all = "snake_case")]
 pub enum Language {
-    /// clang++ compiler
-    Clangpp,
-    /// clang compiler
-    Clang,
-    /// go compiler
+    C,
+    Cpp,
     Go,
-    /// rustc compiler
     Rust,
-    /// pyinstaller compiler
     Python,
-    /// fpc compiler
     FreePascal,
-    /// Unknown language
     Unknown,
 }
 
-/// Returns a file extension for a language
-#[must_use]
-pub const fn get_language_file_extension(language: &Language) -> &'static str {
-    match language {
-        Language::Clang => "c",
-        Language::Clangpp => "cpp",
-        Language::Go => "go",
-        Language::Rust => "rs",
-        Language::Python => "py",
-        Language::FreePascal => "pas",
-        Language::Unknown => "!!",
+impl Language {
+    #[must_use]
+    pub const fn file_ext(&self) -> &'static str {
+        match &self {
+            Language::C => "c",
+            Language::Cpp => "cpp",
+            Language::Go => "go",
+            Language::Rust => "rs",
+            Language::Python => "py",
+            Language::FreePascal => "pas",
+            Language::Unknown => "!!",
+        }
     }
 }
 
-/// Submission request data
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SubmissonRequest {
-    /// Target problem's id
-    pub problem_id: i64,
-    /// Submission's language
     pub language: Language,
 }
 
-/// Total testing result
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
-pub struct TotalResult {
-    /// Total submission's testing verdict
-    pub total_verdict: TotalVerdict,
-    /// Total submission's score
+pub struct TestingResult {
+    pub total_verdict: TestingVerdict,
     pub total_score: i32,
 }
 
-/// Subgroup result, including verdict, test of that verdict and score
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct SubgroupResult {
-    /// Subgroup's verdict
-    pub subgroup_verdict: SubgroupVerdict,
-    /// Last tested test
+    pub verdict: Verdict,
     pub test: i32,
-    /// Score for the subgroup
     pub score: i32,
 }
 
-/// Test result, including verdict and score
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct TestResult {
-    /// Tests's verdict
-    pub test_verdict: SubgroupVerdict,
-    /// Score for the test
+    pub verdict: Verdict,
     pub score: Option<i32>,
 }
 
-/// Submission data
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct Submission {
-    /// Submission's id
     pub id: i64,
-    /// Problem's id
     pub problem_id: i64,
-    /// User's id
     pub user_id: i64,
-    /// Submission's language
     pub language: Language,
-    /// Total submission's testing verdict
-    pub total_verdict: TotalVerdict,
-    /// Total submission's score
-    pub total_score: i32,
-    /// Created at timestamp
-    pub created_at: DateTime<Utc>,
-    /// Subgroups' results
+    pub verdict: TestingVerdict,
+    pub score: i32,
     pub subgroups_results: Vec<SubgroupResult>,
-    /// Tests' results
     pub tests_results: Vec<TestResult>,
+    pub created_at: DateTime<Utc>,
 }

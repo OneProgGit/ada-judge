@@ -2,7 +2,7 @@
 
 use aj_models::{
     testing::{Language, SubgroupResult, TestResult},
-    verdicts::{SubgroupVerdict, TotalVerdict},
+    verdicts::{Verdict, TestingVerdict},
 };
 use models::testing::DatabaseSubmission;
 use sqlx::PgPool;
@@ -16,7 +16,7 @@ pub async fn insert_submission(
     user_id: i64,
     problem_id: i64,
     language: &Language,
-) -> Result<i64, TotalVerdict> {
+) -> Result<i64, TestingVerdict> {
     let submission_id = sqlx::query_scalar(
         "insert into submissions (problem_id, user_id, language, total_verdict, total_score)
           values ($1, $2, $3, $4, $5) returning id",
@@ -24,11 +24,11 @@ pub async fn insert_submission(
     .bind(problem_id)
     .bind(user_id)
     .bind(language)
-    .bind(TotalVerdict::Pending)
+    .bind(TestingVerdict::Pending)
     .bind(0)
     .fetch_one(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(submission_id)
 }
@@ -39,9 +39,9 @@ pub async fn insert_submission(
 pub async fn update_total_testing_result(
     pool: &PgPool,
     submission_id: i64,
-    verdict: &TotalVerdict,
+    verdict: &TestingVerdict,
     score: i32,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "update submissions set total_verdict = $1, total_score = $2
             where id = $3",
@@ -51,7 +51,7 @@ pub async fn update_total_testing_result(
     .bind(submission_id)
     .execute(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -63,19 +63,19 @@ pub async fn insert_subgroup_testing_result(
     pool: &PgPool,
     submission_id: i64,
     subgroup_index: i32,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "insert into submissions_subgroups_results (subgroup_index, submission_id, subgroup_verdict, test, score)
             values ($1, $2, $3, $4, $5)",
     )
         .bind(subgroup_index)
         .bind(submission_id)
-        .bind(SubgroupVerdict::Testing)
+        .bind(Verdict::Testing)
         .bind(0)
         .bind(0)
         .execute(pool)
         .await
-        .map_log(TotalVerdict::InvalidRequest)?;
+        .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -88,18 +88,18 @@ pub async fn insert_test_testing_result(
     submission_id: i64,
     test: i32,
     score: Option<i32>,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "insert into submissions_tests_results (test, submission_id, test_verdict, score)
             values ($1, $2, $3, $4)",
     )
     .bind(test)
     .bind(submission_id)
-    .bind(SubgroupVerdict::Testing)
+    .bind(Verdict::Testing)
     .bind(score)
     .execute(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -112,19 +112,19 @@ pub async fn update_subgroup_testing_result(
     submission_id: i64,
     subgroup_index: i32,
     subgroup_result: &SubgroupResult,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "update submissions_subgroups_results set subgroup_verdict = $1, test = $2, score = $3
             where submission_id = $4 and subgroup_index = $5",
     )
-    .bind(&subgroup_result.subgroup_verdict)
+    .bind(&subgroup_result.verdict)
     .bind(subgroup_result.test)
     .bind(subgroup_result.score)
     .bind(submission_id)
     .bind(subgroup_index)
     .execute(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -137,18 +137,18 @@ pub async fn update_test_testing_result(
     submission_id: i64,
     test: i32,
     test_result: &TestResult,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "update submissions_tests_results set test_verdict = $1, score = $2
             where submission_id = $3 and test = $4",
     )
-    .bind(&test_result.test_verdict)
+    .bind(&test_result.verdict)
     .bind(test_result.score)
     .bind(submission_id)
     .bind(test)
     .execute(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -159,7 +159,7 @@ pub async fn update_test_testing_result(
 pub async fn get_submission(
     pool: &PgPool,
     submission_id: i64,
-) -> Result<DatabaseSubmission, TotalVerdict> {
+) -> Result<DatabaseSubmission, TestingVerdict> {
     let submission = sqlx::query_as(
         "select
                 c.id,
@@ -198,7 +198,7 @@ pub async fn get_submission(
     .bind(submission_id)
     .fetch_one(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(submission)
 }
@@ -209,13 +209,13 @@ pub async fn get_submission(
 pub async fn get_all_user_submissions(
     pool: &PgPool,
     user_id: Option<i64>,
-) -> Result<Vec<i64>, TotalVerdict> {
+) -> Result<Vec<i64>, TestingVerdict> {
     match user_id {
         None => sqlx::query_as::<_, (i64,)>("select id from submissions order by id desc")
             .fetch_all(pool)
             .await
             .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TotalVerdict::InvalidRequest),
+            .map_log(TestingVerdict::InvalidRequest),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from submissions where user_id = $1 order by id desc",
         )
@@ -223,7 +223,7 @@ pub async fn get_all_user_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest),
+        .map_log(TestingVerdict::InvalidRequest),
     }
 }
 
@@ -234,7 +234,7 @@ pub async fn get_user_contest_submissions(
     pool: &PgPool,
     user_id: Option<i64>,
     contest_id: i64,
-) -> Result<Vec<i64>, TotalVerdict> {
+) -> Result<Vec<i64>, TestingVerdict> {
     match user_id {
         None => sqlx::query_as::<_, (i64,)>(
             "select c.id from submissions c
@@ -245,7 +245,7 @@ pub async fn get_user_contest_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest),
+        .map_log(TestingVerdict::InvalidRequest),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select c.id from submissions c
                 join problems p on p.id = c.problem_id
@@ -256,7 +256,7 @@ pub async fn get_user_contest_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest),
+        .map_log(TestingVerdict::InvalidRequest),
     }
 }
 
@@ -267,7 +267,7 @@ pub async fn get_user_problem_submissions(
     pool: &PgPool,
     user_id: Option<i64>,
     problem_id: i64,
-) -> Result<Vec<i64>, TotalVerdict> {
+) -> Result<Vec<i64>, TestingVerdict> {
     match user_id {
         None => sqlx::query_as::<_, (i64,)>(
             "select id from submissions where problem_id = $1 order by id desc",
@@ -276,7 +276,7 @@ pub async fn get_user_problem_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest),
+        .map_log(TestingVerdict::InvalidRequest),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from submissions where user_id = $1 and problem_id = $2 order by id desc",
         )
@@ -285,7 +285,7 @@ pub async fn get_user_problem_submissions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest),
+        .map_log(TestingVerdict::InvalidRequest),
     }
 }
 
@@ -295,7 +295,7 @@ pub async fn get_user_problem_submissions(
 pub async fn delete_subgroups_results_for_problem(
     pool: &PgPool,
     problem_id: i64,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "delete from submissions_subgroups_results r
             using submissions s
@@ -305,7 +305,7 @@ pub async fn delete_subgroups_results_for_problem(
     .bind(problem_id)
     .execute(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
     Ok(())
 }
 
@@ -315,7 +315,7 @@ pub async fn delete_subgroups_results_for_problem(
 pub async fn delete_tests_results_for_problem(
     pool: &PgPool,
     problem_id: i64,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "delete from submissions_tests_results r
             using submissions s
@@ -325,7 +325,7 @@ pub async fn delete_tests_results_for_problem(
     .bind(problem_id)
     .execute(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
     Ok(())
 }
 
@@ -335,7 +335,7 @@ pub async fn delete_tests_results_for_problem(
 pub async fn set_all_submissions_pending_for_problem(
     pool: &PgPool,
     problem_id: i64,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "update submissions set total_verdict = 'pending'
             where problem_id = $1",
@@ -343,6 +343,6 @@ pub async fn set_all_submissions_pending_for_problem(
     .bind(problem_id)
     .execute(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
     Ok(())
 }

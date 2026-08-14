@@ -2,7 +2,7 @@
 
 use aj_models::{
     problems::{ProblemQuestion, ProblemType, Subgroup},
-    verdicts::TotalVerdict,
+    verdicts::TestingVerdict,
 };
 use models::problems::DatabaseProblemConfig;
 use sqlx::PgPool;
@@ -14,7 +14,7 @@ use tools::map::MapLogExt;
 pub async fn get_problem_by_id(
     pool: &PgPool,
     problem_id: i64,
-) -> Result<DatabaseProblemConfig, TotalVerdict> {
+) -> Result<DatabaseProblemConfig, TestingVerdict> {
     let config = sqlx::query_as(
         "select
                 c.id,
@@ -51,7 +51,7 @@ pub async fn get_problem_by_id(
     .bind(problem_id)
     .fetch_one(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(config)
 }
@@ -62,13 +62,13 @@ pub async fn get_problem_by_id(
 pub async fn get_all_user_problems(
     pool: &PgPool,
     user_id: Option<i64>,
-) -> Result<Vec<i64>, TotalVerdict> {
+) -> Result<Vec<i64>, TestingVerdict> {
     match user_id {
         None => sqlx::query_as::<_, (i64,)>("select id from problems order by id desc")
             .fetch_all(pool)
             .await
             .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_log(TotalVerdict::InvalidRequest),
+            .map_log(TestingVerdict::InvalidRequest),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from problems where owner_id = $1 order by id desc",
         )
@@ -76,7 +76,7 @@ pub async fn get_all_user_problems(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest),
+        .map_log(TestingVerdict::InvalidRequest),
     }
 }
 
@@ -96,7 +96,7 @@ pub async fn create_problem(
     memory_limit_mb: i32,
     checker_path: &str,
     tests_path: &str,
-) -> Result<i64, TotalVerdict> {
+) -> Result<i64, TestingVerdict> {
     let problem_id = sqlx::query_scalar(
         "insert into problems (owner_id, type, merge_subgroups, contest_id, problem_index,
                                 name_ru, name_en, time_limit_ms, memory_limit_mb,
@@ -115,7 +115,7 @@ pub async fn create_problem(
     .bind(tests_path)
     .fetch_one(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(problem_id)
 }
@@ -136,7 +136,7 @@ pub async fn update_problem(
     memory_limit_mb: i32,
     checker_path: &str,
     tests_path: &str,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query(
         "update problems set type = $1, merge_subgroups = $2, contest_id = $3, problem_index = $4,
                                 name_ru = $5, name_en = $6, time_limit_ms = $7, memory_limit_mb = $8,
@@ -155,7 +155,7 @@ pub async fn update_problem(
     .bind(problem_id)
     .execute(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -167,16 +167,16 @@ pub async fn insert_problem_subgroups(
     pool: &PgPool,
     problem_id: i64,
     subgroups: &Vec<Subgroup>,
-) -> Result<(), TotalVerdict> {
-    let mut tx = pool.begin().await.map_log(TotalVerdict::Bug)?;
+) -> Result<(), TestingVerdict> {
+    let mut tx = pool.begin().await.map_log(TestingVerdict::Bug)?;
     sqlx::query("delete from problems_subgroups where problem_id = $1")
         .bind(problem_id)
         .execute(&mut *tx)
         .await
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TestingVerdict::Bug)?;
     for (i, subgroup) in subgroups.iter().enumerate() {
         if subgroup.score.is_some() == subgroup.score_per_test.is_some() {
-            return Err(TotalVerdict::InvalidProblem);
+            return Err(TestingVerdict::InvalidProblem);
         } else if let Some(score) = subgroup.score {
             sqlx::query(
                 "insert into problems_subgroups (problem_id, subgroup_index,
@@ -190,7 +190,7 @@ pub async fn insert_problem_subgroups(
             .bind(subgroup.depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
             .execute(&mut *tx)
             .await
-            .map_log(TotalVerdict::InvalidRequest)?;
+            .map_log(TestingVerdict::InvalidRequest)?;
         } else if let Some(score_per_test) = subgroup.score_per_test {
             sqlx::query(
                 "insert into problems_subgroups (problem_id, subgroup_index,
@@ -204,12 +204,12 @@ pub async fn insert_problem_subgroups(
             .bind(subgroup.depends_on.iter().map(|x| *x as i32).collect::<Vec<i32>>())
             .execute(&mut *tx)
             .await
-            .map_log(TotalVerdict::InvalidRequest)?;
+            .map_log(TestingVerdict::InvalidRequest)?;
         } else {
             unreachable!()
         }
     }
-    tx.commit().await.map_log(TotalVerdict::Bug)?;
+    tx.commit().await.map_log(TestingVerdict::Bug)?;
 
     Ok(())
 }
@@ -217,12 +217,12 @@ pub async fn insert_problem_subgroups(
 /// Deletes a problem by given id
 /// # Errors
 /// Returns an error if the problem with this id does not exist
-pub async fn delete_problem(pool: &PgPool, problem_id: i64) -> Result<(), TotalVerdict> {
+pub async fn delete_problem(pool: &PgPool, problem_id: i64) -> Result<(), TestingVerdict> {
     sqlx::query("delete from problems where id = $1")
         .bind(problem_id)
         .execute(pool)
         .await
-        .map_log(TotalVerdict::InvalidRequest)?;
+        .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -236,7 +236,7 @@ pub async fn create_problem_question(
     problem_id: i64,
     title: &str,
     text: &str,
-) -> Result<i64, TotalVerdict> {
+) -> Result<i64, TestingVerdict> {
     let post_id = sqlx::query_scalar(
         "insert into problems_questions (owner_id, problem_id, title, text) values ($1, $2, $3, $4) returning id",
     )
@@ -246,7 +246,7 @@ pub async fn create_problem_question(
     .bind(text)
     .fetch_one(pool)
     .await
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(post_id)
 }
@@ -258,13 +258,13 @@ pub async fn update_problem_question_answer(
     pool: &PgPool,
     question_id: i64,
     answer: &str,
-) -> Result<(), TotalVerdict> {
+) -> Result<(), TestingVerdict> {
     sqlx::query("update problems_questions set answer = $1 where id = $2")
         .bind(answer)
         .bind(question_id)
         .execute(pool)
         .await
-        .map_log(TotalVerdict::InvalidRequest)?;
+        .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -272,12 +272,12 @@ pub async fn update_problem_question_answer(
 /// Deletes a problem's question
 /// # Errors
 /// Returns an error if `question_id` is invalid
-pub async fn delete_problem_question(pool: &PgPool, question_id: i64) -> Result<(), TotalVerdict> {
+pub async fn delete_problem_question(pool: &PgPool, question_id: i64) -> Result<(), TestingVerdict> {
     sqlx::query("delete from problems_questions where id = $1")
         .bind(question_id)
         .execute(pool)
         .await
-        .map_log(TotalVerdict::InvalidRequest)?;
+        .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(())
 }
@@ -288,12 +288,12 @@ pub async fn delete_problem_question(pool: &PgPool, question_id: i64) -> Result<
 pub async fn get_problem_question_by_id(
     pool: &PgPool,
     question_id: i64,
-) -> Result<ProblemQuestion, TotalVerdict> {
+) -> Result<ProblemQuestion, TestingVerdict> {
     sqlx::query_as("select * from problems_questions where id = $1")
         .bind(question_id)
         .fetch_one(pool)
         .await
-        .map_log(TotalVerdict::InvalidRequest)
+        .map_log(TestingVerdict::InvalidRequest)
 }
 
 /// Gets all user's problem's questions. If `user_id` is None, gets all problem's questions.
@@ -303,7 +303,7 @@ pub async fn get_all_user_problem_questions(
     pool: &PgPool,
     user_id: Option<i64>,
     problem_id: i64,
-) -> Result<Vec<i64>, TotalVerdict> {
+) -> Result<Vec<i64>, TestingVerdict> {
     match user_id {
         None => sqlx::query_as::<_, (i64,)>(
             "select id from problems_questions where problem_id = $1 order by id desc",
@@ -312,7 +312,7 @@ pub async fn get_all_user_problem_questions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest),
+        .map_log(TestingVerdict::InvalidRequest),
         Some(user_id) => sqlx::query_as::<_, (i64,)>(
             "select id from problems_questions where owner_id = $1 and problem_id = $2 order by id desc",
         )
@@ -321,6 +321,6 @@ pub async fn get_all_user_problem_questions(
         .fetch_all(pool)
         .await
         .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_log(TotalVerdict::InvalidRequest),
+        .map_log(TestingVerdict::InvalidRequest),
     }
 }

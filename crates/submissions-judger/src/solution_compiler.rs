@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aj_models::{testing::Language, verdicts::TotalVerdict};
+use aj_models::{testing::Language, verdicts::TestingVerdict};
 use models::testing::{SubmissionTask, TestsPaths};
 use tokio::process::Command;
 use tools::map::MapLogExt;
@@ -14,24 +14,24 @@ pub async fn compile_solution(
     run_path: &Path,
     tests_paths: &TestsPaths,
     submission: &SubmissionTask,
-) -> Result<(), TotalVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+) -> Result<(), TestingVerdict> {
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
 
     let compile_cmd = match submission.language {
-        Language::Clang => "clang",
-        Language::Clangpp => "clang++",
+        Language::C => "clang",
+        Language::Cpp => "clang++",
         Language::Go => "go",
         Language::Rust => "rustc",
         Language::Python => "pyinstaller",
         Language::FreePascal => "fpc",
-        Language::Unknown => return Err(TotalVerdict::InvalidRequest),
+        Language::Unknown => return Err(TestingVerdict::InvalidRequest),
     };
     let solution_source_path = PathBuf::from("env")
         .join(
             tests_paths
                 .solution_source
                 .file_name()
-                .ok_or(TotalVerdict::Bug)?
+                .ok_or(TestingVerdict::Bug)?
                 .to_string_lossy()
                 .to_string(),
         )
@@ -42,7 +42,7 @@ pub async fn compile_solution(
             tests_paths
                 .solution
                 .file_name()
-                .ok_or(TotalVerdict::Bug)?
+                .ok_or(TestingVerdict::Bug)?
                 .to_string_lossy()
                 .to_string(),
         )
@@ -75,7 +75,7 @@ pub async fn compile_solution(
             &sandbox_image,
         ])
         .args(match submission.language {
-            Language::Clang | Language::Clangpp => vec![
+            Language::C | Language::Cpp => vec![
                 compile_cmd,
                 "-O2",
                 "-pipe",
@@ -118,25 +118,16 @@ pub async fn compile_solution(
             Language::Unknown => unreachable!(),
         })
         .spawn()
-        .map_log(TotalVerdict::CompilationError)?;
+        .map_log(TestingVerdict::CompilationError)?;
     let compilation_result = compile_cmd
         .wait()
         .await
-        .map_log(TotalVerdict::CompilationError)?;
+        .map_log(TestingVerdict::CompilationError)?;
 
     _ = compile_cmd.kill();
     match compilation_result.code() {
-        Some(0) => {
-            log::info!("Solution compiled successfully");
-            Ok(())
-        }
-        Some(_) => {
-            log::error!("Compilation status is not zero");
-            Err(TotalVerdict::CompilationError)
-        }
-        None => {
-            log::error!("No compilation status");
-            Err(TotalVerdict::CompilationError)
-        }
+        Some(0) => Ok(()),
+        Some(_) => Err(TestingVerdict::CompilationError),
+        None => Err(TestingVerdict::CompilationError),
     }
 }

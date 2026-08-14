@@ -1,9 +1,9 @@
-use crate::tools::{check_contest_started_and_not_ended, is_allowed};
+use crate::tools::{is_allowed, is_contest_active};
 use crate::{app_state::AppState, middleware::auth::Auth};
 use aj_models::testing::get_language_file_extension;
 use aj_models::{
     testing::{Submission, SubmissonRequest},
-    verdicts::TotalVerdict,
+    verdicts::TestingVerdict,
 };
 use apalis::prelude::TaskSink;
 use axum::body::Body;
@@ -29,7 +29,6 @@ pub async fn get_all_my_submissions(
     State(state): State<AppState>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get all my submissions");
     Ok(Json(
         database::submissions::get_all_user_submissions(&state.db, Some(auth.id))
             .await
@@ -42,7 +41,6 @@ pub async fn get_my_contest_submissions(
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get contest my submissions");
     Ok(Json(
         database::submissions::get_user_contest_submissions(&state.db, Some(auth.id), contest_id)
             .await
@@ -55,7 +53,6 @@ pub async fn get_my_problem_submissions(
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get problem my submissions");
     Ok(Json(
         database::submissions::get_user_problem_submissions(&state.db, Some(auth.id), problem_id)
             .await
@@ -67,7 +64,6 @@ pub async fn get_all_user_submissions(
     State(state): State<AppState>,
     Path(user_id): Path<i64>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get all user submissions");
     Ok(Json(
         database::submissions::get_all_user_submissions(&state.db, Some(user_id))
             .await
@@ -80,8 +76,6 @@ pub async fn get_user_contest_submissions(
     Path((contest_id, user_id)): Path<(i64, i64)>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get contest user submissions");
-
     let contest = database::contests::get_contest_by_id(&state.db, contest_id)
         .await
         .map_http()?;
@@ -101,8 +95,6 @@ pub async fn get_user_problem_submissions(
     Path((problem_id, user_id)): Path<(i64, i64)>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get problem user submissions");
-
     let problem = database::problems::get_problem_by_id(&state.db, problem_id)
         .await
         .map_http()?;
@@ -125,7 +117,6 @@ pub async fn get_user_problem_submissions(
 pub async fn get_all_submissions(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get all submissions");
     Ok(Json(
         database::submissions::get_all_user_submissions(&state.db, None)
             .await
@@ -138,8 +129,6 @@ pub async fn get_contest_submissions(
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get contest submissions");
-
     let contest = database::contests::get_contest_by_id(&state.db, contest_id)
         .await
         .map_http()?;
@@ -159,8 +148,6 @@ pub async fn get_problem_submissions(
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    log::info!("Get problem submissions");
-
     let problem = database::problems::get_problem_by_id(&state.db, problem_id)
         .await
         .map_http()?;
@@ -185,8 +172,6 @@ pub async fn get_submission(
     Path(submission_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Submission>, StatusCode> {
-    log::info!("Get problem user submissions");
-
     let submission: Submission = database::submissions::get_submission(&state.db, submission_id)
         .await
         .map_http()?
@@ -227,7 +212,7 @@ pub async fn download_submission(
         ));
         let file = File::open(&file_path)
             .await
-            .map_log(TotalVerdict::Bug)
+            .map_log(TestingVerdict::Bug)
             .map_http()?;
         let stream = ReaderStream::new(file);
         let body = Body::from_stream(stream);
@@ -251,12 +236,10 @@ pub async fn submit(
 ) -> Result<Json<i64>, StatusCode> {
     let mut submission: Option<SubmissonRequest> = None;
     let mut file_stream: Option<Bytes> = None;
-
-    log::info!("Extracting submission data and file");
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_log(TotalVerdict::InvalidRequest)
+        .map_log(TestingVerdict::InvalidRequest)
         .map_http()?
     {
         match field.name() {
@@ -264,28 +247,32 @@ pub async fn submit(
                 let text = field
                     .text()
                     .await
-                    .map_log(TotalVerdict::InvalidRequest)
+                    .map_log(TestingVerdict::InvalidRequest)
                     .map_http()?;
                 submission = Some(
                     serde_json::from_str(&text)
-                        .map_log(TotalVerdict::InvalidRequest)
+                        .map_log(TestingVerdict::InvalidRequest)
                         .map_http()?,
                 );
             }
             Some("submission_file") => {
-                file_stream = Some(field.bytes().await.map_log(TotalVerdict::Bug).map_http()?);
+                file_stream = Some(
+                    field
+                        .bytes()
+                        .await
+                        .map_log(TestingVerdict::Bug)
+                        .map_http()?,
+                );
             }
             _ => {}
         }
     }
 
     let Some(submission) = submission else {
-        log::error!("No submission data was provided");
         return Err(StatusCode::BAD_REQUEST);
     };
 
     let Some(file_stream) = file_stream else {
-        log::error!("No submission files were provided");
         return Err(StatusCode::BAD_REQUEST);
     };
 
@@ -293,7 +280,7 @@ pub async fn submit(
         .await
         .map_http()?;
 
-    if !check_contest_started_and_not_ended(
+    if !is_contest_active(
         &state.db,
         auth.id,
         problem.contest_id,
@@ -304,9 +291,6 @@ pub async fn submit(
     {
         return Err(StatusCode::FORBIDDEN);
     }
-
-    log::info!("Push to queue: {submission:?}");
-
     let submission_id = database::submissions::insert_submission(
         &state.db,
         auth.id,
@@ -315,38 +299,34 @@ pub async fn submit(
     )
     .await
     .map_http()?;
-
-    log::info!("Create env dir");
     let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());
     fs::create_dir(run_dir.clone())
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_db(&state.db, submission_id)
         .await
         .map_http()?;
-
-    log::info!("Create submission file");
     let run_path = run_dir.join(format!(
         "run.{}",
         get_language_file_extension(&submission.language)
     ));
     let mut run_file = File::create(run_path)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_db(&state.db, submission_id)
         .await
         .map_http()?;
     run_file
         .write_all(&file_stream)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_db(&state.db, submission_id)
         .await
         .map_http()?;
     run_file
         .flush()
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
 
     let submission_task = SubmissionTask {
@@ -363,7 +343,7 @@ pub async fn submit(
         .await
         .push(submission_task)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_db(&state.db, submission_id)
         .await
         .map_http()?;
@@ -421,7 +401,7 @@ pub async fn retest_problem_submissions(
             .await
             .push(submission_task)
             .await
-            .map_log(TotalVerdict::Bug)
+            .map_log(TestingVerdict::Bug)
             .map_db(&state.db, submission_id)
             .await
             .map_http()?;

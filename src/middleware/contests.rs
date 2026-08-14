@@ -9,7 +9,7 @@ use axum::{
 use chrono::Utc;
 use sqlx::PgPool;
 
-pub async fn check_contest_started_common(
+pub async fn ensure_contest_started_common(
     pool: &PgPool,
     user_id: i64,
     contest_id: i64,
@@ -31,7 +31,7 @@ pub async fn check_contest_started_common(
     }
 }
 
-pub async fn check_contest_ended_common(
+pub async fn ensure_contest_finished_common(
     pool: &PgPool,
     user_id: i64,
     contest_id: i64,
@@ -54,17 +54,15 @@ pub async fn check_contest_ended_common(
     }
 }
 
-pub async fn check_contest_started(
+pub async fn ensure_contest_started_1(
     Path(contest_id): Path<i64>,
     State(state): State<AppState>,
     Auth(auth): Auth,
     req: Request,
     next: Next,
 ) -> Response {
-    log::info!("Check contest started");
-
     if let Err(e) =
-        check_contest_started_common(&state.db, auth.id, contest_id, auth.admin_level).await
+        ensure_contest_started_common(&state.db, auth.id, contest_id, auth.admin_level).await
     {
         return e;
     }
@@ -72,17 +70,15 @@ pub async fn check_contest_started(
     next.run(req).await
 }
 
-pub async fn check_contest_started_2_path_elements(
+pub async fn ensure_contest_started_2(
     Path((contest_id, _)): Path<(i64, i64)>,
     State(state): State<AppState>,
     Auth(auth): Auth,
     req: Request,
     next: Next,
 ) -> Response {
-    log::info!("Check contest started");
-
     if let Err(e) =
-        check_contest_started_common(&state.db, auth.id, contest_id, auth.admin_level).await
+        ensure_contest_started_common(&state.db, auth.id, contest_id, auth.admin_level).await
     {
         return e;
     }
@@ -90,17 +86,15 @@ pub async fn check_contest_started_2_path_elements(
     next.run(req).await
 }
 
-pub async fn check_contest_ended(
+pub async fn ensure_contest_finished(
     Path(contest_id): Path<i64>,
     State(state): State<AppState>,
     Auth(auth): Auth,
     req: Request,
     next: Next,
 ) -> Response {
-    log::info!("Check contest ended");
-
     if let Err(e) =
-        check_contest_ended_common(&state.db, auth.id, contest_id, auth.admin_level).await
+        ensure_contest_finished_common(&state.db, auth.id, contest_id, auth.admin_level).await
     {
         return e;
     }

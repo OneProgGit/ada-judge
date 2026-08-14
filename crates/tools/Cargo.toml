@@ -6,6 +6,5 @@ publish = false
 
 [dependencies]
 models.workspace = true
-log.workspace = true
 axum.workspace = true
 aj-models.workspace = true

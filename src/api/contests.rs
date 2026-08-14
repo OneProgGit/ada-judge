@@ -22,7 +22,6 @@ pub async fn get_contest_leaderboard(
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<Vec<LeaderboardRow>>, StatusCode> {
-    log::info!("Get leaderboard for contest #{contest_id}");
     Ok(Json(
         database::contests::get_contest_leaderboard(&state.db, contest_id)
             .await
@@ -58,8 +57,6 @@ pub async fn get_contest_by_id(
     Auth(auth): Auth,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<PublicContestConfig>, StatusCode> {
-    log::info!("Get contest #{contest_id}");
-
     let mut contest: PublicContestConfig =
         database::contests::get_contest_by_id(&state.db, contest_id)
             .await
@@ -98,9 +95,9 @@ pub async fn get_contests(
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     let mode = if auth.admin_level == AdminLevel::Owner {
-        GetContestsMode::AllIncludeHidden
-    } else {
         GetContestsMode::All
+    } else {
+        GetContestsMode::NotHidden
     };
     Ok(Json(
         get_all_user_contests(&state.db, auth.id, mode)
@@ -214,12 +211,9 @@ pub async fn delete_contest(
     {
         return Err(StatusCode::BAD_REQUEST);
     }
-
-    log::info!("Verify password");
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        log::error!("Invalid password");
         Err(StatusCode::BAD_REQUEST)
     } else {
         let contest = database::contests::get_contest_by_id(&state.db, contest_id)
@@ -301,12 +295,9 @@ pub async fn delete_contest_post(
     {
         return Err(StatusCode::BAD_REQUEST);
     }
-
-    log::info!("Verify password");
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        log::error!("Invalid password");
         Err(StatusCode::BAD_REQUEST)
     } else {
         let post = database::contests::get_contest_post_by_id(&state.db, post_id)
@@ -327,8 +318,6 @@ pub async fn get_contest_post_by_id(
     State(state): State<AppState>,
     Path(post_id): Path<i64>,
 ) -> Result<Json<ContestPost>, StatusCode> {
-    log::info!("Get post #{post_id}");
-
     Ok(Json(
         database::contests::get_contest_post_by_id(&state.db, post_id)
             .await

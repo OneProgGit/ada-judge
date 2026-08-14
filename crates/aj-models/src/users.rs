@@ -1,29 +1,34 @@
-//! Structs for users
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Register request called from frontend
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegisterRequest {
-    /// Login
     pub login: String,
-    /// Password
     pub password: String,
-    /// Password confirmation
     pub password_confirmation: String,
 }
 
-/// Login request called from frontend
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
-    /// Login
     pub login: String,
-    /// Password
     pub password: String,
 }
 
-/// Admin level
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct PublicUserData {
+    pub id: i64,
+    pub login: String,
+    pub admin_level: AdminLevel,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PrivateUserData {
+    pub id: i64,
+    pub login: String,
+    pub admin_level: AdminLevel,
+    pub created_at: DateTime<Utc>,
+}
+
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, PartialOrd, Ord)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
@@ -32,36 +37,7 @@ pub struct LoginRequest {
 )]
 #[serde(rename_all = "snake_case")]
 pub enum AdminLevel {
-    /// Not admin: can create private contests only
-    NotAdmin,
-    /// Beta tester: just a status
-    BetaTester,
-    /// Admin level: can create public contests and edit them
+    User,
     Admin,
-    /// Owner: can manage users, edit and view any public contest
     Owner,
-}
-
-/// User data which is avaible for all users
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct PublicUserData {
-    /// User id
-    pub id: i64,
-    /// Login
-    pub login: String,
-    /// Admin level
-    pub admin_level: AdminLevel,
-}
-
-/// User data which is avaible only for user
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct PrivateUserData {
-    /// User id
-    pub id: i64,
-    /// Login
-    pub login: String,
-    /// Admin level
-    pub admin_level: AdminLevel,
-    /// Timestamp when account was created
-    pub created_at: DateTime<Utc>,
 }

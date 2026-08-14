@@ -4,7 +4,7 @@ use crate::{
 };
 use aj_models::{
     problems::ProblemConfig,
-    verdicts::{SubgroupVerdict, TotalVerdict},
+    verdicts::{TestingVerdict, Verdict},
 };
 use models::testing::TestsPaths;
 use std::{env, path::Path, process::Stdio};
@@ -12,22 +12,18 @@ use tokio::{fs::File, process::Command};
 use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_run_solution_verdict(
+pub async fn get_solution_verdict(
     config: &ProblemConfig,
     input_path: &Path,
     tests_paths: &TestsPaths,
-) -> Result<SubgroupVerdict, TotalVerdict> {
-    log::info!("Open stdin file");
+) -> Result<Verdict, TestingVerdict> {
     let stdin_file = File::open(input_path)
         .await
-        .map_log(TotalVerdict::InvalidProblem)?;
-    log::info!("Open stdout file");
+        .map_log(TestingVerdict::InvalidProblem)?;
     let stdout_file = File::create(tests_paths.output.clone())
         .await
-        .map_log(TotalVerdict::InvalidProblem)?;
-
-    log::info!("Run solution cmd");
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+        .map_log(TestingVerdict::InvalidProblem)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
 
     let solution_cmd = Command::new("docker")
         .args([
@@ -71,15 +67,12 @@ pub async fn get_run_solution_verdict(
         .status();
 
     let solution_status = solution_cmd.await;
-
-    log::info!("Check solution status");
-    solution_status.map_or(
-        Ok(SubgroupVerdict::TimeLimitExceeded),
-        |status| match status.code() {
-            Some(VERDICT_OK) => Ok(SubgroupVerdict::Ok),
-            Some(VERDICT_MLE) => Ok(SubgroupVerdict::MemoryLimitExceeded),
-            Some(VERDICT_TLE) | None => Ok(SubgroupVerdict::TimeLimitExceeded),
-            Some(_code) => Ok(SubgroupVerdict::RuntimeError),
-        },
-    )
+    solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
+        match status.code() {
+            Some(VERDICT_OK) => Ok(Verdict::Ok),
+            Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
+            Some(VERDICT_TLE) | None => Ok(Verdict::TimeLimitExceeded),
+            Some(_code) => Ok(Verdict::RuntimeError),
+        }
+    })
 }

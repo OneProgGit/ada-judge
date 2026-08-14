@@ -7,5 +7,6 @@ edition = "2024"
 sqlx.workspace = true
 models.workspace = true
 tools.workspace = true
-log.workspace = true
 aj-models.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

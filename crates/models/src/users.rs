@@ -1,22 +1,14 @@
-//! Structs for users
-
 use aj_models::users::{AdminLevel, PrivateUserData, PublicUserData};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// User data for database operations
 #[derive(Deserialize, Serialize, Clone, Debug, sqlx::FromRow)]
 pub struct DatabaseUser {
-    /// User id
     pub id: i64,
-    /// Login
     pub login: String,
-    /// Admin level
-    pub admin_level: AdminLevel,
-    /// Timestamp when account was created
-    pub created_at: DateTime<Utc>,
-    /// Password hash
     pub password_hash: String,
+    pub admin_level: AdminLevel,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<DatabaseUser> for PublicUserData {
@@ -40,11 +32,8 @@ impl From<DatabaseUser> for PrivateUserData {
     }
 }
 
-/// Json web token claims
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JwtClaims {
-    /// User id
     pub id: i64,
-    /// Expire datetime
     pub exp: usize,
 }

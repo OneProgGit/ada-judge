@@ -1,117 +1,66 @@
-//! Structs for contests
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Leaderboard single row
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct LeaderboardRow {
-    /// User id
     pub user_id: i64,
-    /// Max scores for each problem
+    pub login: String,
     pub scores: Vec<i32>,
-    /// Total score
     pub total_score: i64,
 }
 
-/// Request for creating/updating a contest
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ContestRequest {
-    /// Contest's name (ru)
     pub name_ru: String,
-    /// Contest's name (en)
     pub name_en: String,
-    /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
-    /// Timestamp of contest ending
-    pub ends_at: DateTime<Utc>,
-    /// Statements url (ru)
+    pub finishes_at: DateTime<Utc>,
     pub statements_url_ru: String,
-    /// Editorial url (ru)
-    pub editorial_url_ru: String,
-    /// Statements url (en)
     pub statements_url_en: String,
-    /// Editorial url (en)
+    pub editorial_url_ru: String,
     pub editorial_url_en: String,
-    /// Is contest hidden
     pub hidden: bool,
-    /// Is upsolving opened
-    pub upsolving_opened: bool,
-    /// Hide solutions' files
-    pub hide_solutions: bool,
-    /// Hide leaderboard till contest's finishing
-    pub hide_leaderboard: bool,
-    /// Contests' co-authors
+    pub upsolving_enabled: bool,
+    pub solutions_hidden: bool,
+    pub leaderboard_hidden: bool,
     pub co_authors: Vec<i64>,
 }
 
-/// Contest config visible to all users
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PublicContestConfig {
-    /// Contest's id
     pub id: i64,
-    /// Contest's owner's user id (optional)
-    pub owner_id: Option<i64>,
-    /// Contest's name (ru)
     pub name_ru: String,
-    /// Contest's name (en)
     pub name_en: String,
-    /// Statements url (ru)
-    pub statements_url_ru: String,
-    /// Editorial url (ru)
-    pub editorial_url_ru: String,
-    /// Statements url (en)
-    pub statements_url_en: String,
-    /// Editorial url (en)
-    pub editorial_url_en: String,
-    /// Timestamp of contest beginning
     pub starts_at: DateTime<Utc>,
-    /// Timestamp of contest ending
-    pub ends_at: DateTime<Utc>,
-    /// Is contest hidden
+    pub finishes_at: DateTime<Utc>,
+    pub statements_url_ru: String,
+    pub statements_url_en: String,
+    pub editorial_url_ru: String,
+    pub editorial_url_en: String,
     pub hidden: bool,
-    /// Is upsolving opened
-    pub upsolving_opened: bool,
-    /// Hide solutions' files
-    pub hide_solutions: bool,
-    /// Hide leaderboard till contest's finishing
-    pub hide_leaderboard: bool,
-    /// Contests' co-authors
+    pub upsolving_enabled: bool,
+    pub solutions_hidden: bool,
+    pub leaderboard_hidden: bool,
     pub co_authors: Vec<i64>,
 }
 
-/// Request for creating/updating a post in contest
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ContestPostRequest {
-    /// Post's title (ru)
     pub title_ru: String,
-    /// Post's text (ru)
-    pub text_ru: String,
-    /// Post's title (en)
     pub title_en: String,
-    /// Post's text (en)
+    pub text_ru: String,
     pub text_en: String,
 }
 
-/// Request for creating a post in contest
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct ContestPost {
-    /// Post id
     pub id: i64,
-    /// Owner's id
     pub owner_id: i64,
-    /// Contest's id
     pub contest_id: i64,
-    /// Post's title (ru)
     pub title_ru: String,
-    /// Post's text (ru)
-    pub text_ru: String,
-    /// Post's title (en)
     pub title_en: String,
-    /// Post's text (en)
+    pub text_ru: String,
     pub text_en: String,
-    /// Created at
-    pub created_at: DateTime<Utc>,
 }

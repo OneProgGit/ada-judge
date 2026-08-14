@@ -4,7 +4,7 @@ use crate::{
 };
 use aj_models::{
     problems::ProblemConfig,
-    verdicts::{SubgroupVerdict, TotalVerdict},
+    verdicts::{TestingVerdict, Verdict},
 };
 use models::testing::TestsPaths;
 use std::{env, path::Path};
@@ -12,14 +12,13 @@ use tokio::process::Command;
 use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_checker_result(
+pub async fn get_checker_verdict(
     config: &ProblemConfig,
     input_path: &Path,
     answer_path: &Path,
     tests_paths: &TestsPaths,
-) -> Result<SubgroupVerdict, TotalVerdict> {
-    log::info!("Run checker cmd");
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+) -> Result<Verdict, TestingVerdict> {
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Fail)?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -77,27 +76,24 @@ pub async fn get_checker_result(
         .status();
 
     let checker_status = checker_cmd.await;
-
-    log::info!("Check checker status");
-    checker_status.map_or(Err(TotalVerdict::InvalidProblem), |status| {
+    checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
         match status.code() {
-            Some(CHECKER_OK) => Ok(SubgroupVerdict::Ok),
-            Some(CHECKER_WA) => Ok(SubgroupVerdict::WrongAnswer),
-            Some(CHECKER_PE) => Ok(SubgroupVerdict::PresentationError),
-            _ => Err(TotalVerdict::InvalidProblem),
+            Some(CHECKER_OK) => Ok(Verdict::Ok),
+            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+            _ => Err(TestingVerdict::InvalidProblem),
         }
     })
 }
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_checker_result_run_twice(
+pub async fn get_checker_run_twice_verdict(
     config: &ProblemConfig,
     answer_path: &Path,
     tests_paths: &TestsPaths,
     stage: i32,
-) -> Result<SubgroupVerdict, TotalVerdict> {
-    log::info!("Run checker cmd");
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+) -> Result<Verdict, TestingVerdict> {
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -156,28 +152,25 @@ pub async fn get_checker_result_run_twice(
         .status();
 
     let checker_status = checker_cmd.await;
-
-    log::info!("Check checker status");
-    checker_status.map_or(Err(TotalVerdict::InvalidProblem), |status| {
+    checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
         match status.code() {
-            Some(CHECKER_OK) => Ok(SubgroupVerdict::Ok),
-            Some(CHECKER_WA) => Ok(SubgroupVerdict::WrongAnswer),
-            Some(CHECKER_PE) => Ok(SubgroupVerdict::PresentationError),
-            _ => Err(TotalVerdict::InvalidProblem),
+            Some(CHECKER_OK) => Ok(Verdict::Ok),
+            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+            _ => Err(TestingVerdict::InvalidProblem),
         }
     })
 }
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_checker_result_interactive_run_twice(
+pub async fn get_checker_run_twice_interactive_verdict(
     config: &ProblemConfig,
     answer_path: &Path,
     final_output: &Path,
     tests_paths: &TestsPaths,
     stage: i32,
-) -> Result<SubgroupVerdict, TotalVerdict> {
-    log::info!("Run checker cmd");
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+) -> Result<Verdict, TestingVerdict> {
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -242,14 +235,12 @@ pub async fn get_checker_result_interactive_run_twice(
         .status();
 
     let checker_status = checker_cmd.await;
-
-    log::info!("Check checker status");
-    checker_status.map_or(Err(TotalVerdict::InvalidProblem), |status| {
+    checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
         match status.code() {
-            Some(CHECKER_OK) => Ok(SubgroupVerdict::Ok),
-            Some(CHECKER_WA) => Ok(SubgroupVerdict::WrongAnswer),
-            Some(CHECKER_PE) => Ok(SubgroupVerdict::PresentationError),
-            _ => Err(TotalVerdict::InvalidProblem),
+            Some(CHECKER_OK) => Ok(Verdict::Ok),
+            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+            _ => Err(TestingVerdict::InvalidProblem),
         }
     })
 }

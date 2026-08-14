@@ -7,7 +7,7 @@ use aj_models::{
     DeletionRequest,
     contests::PublicContestConfig,
     problems::{ProblemConfig, ProblemQuestion, ProblemQuestionRequest, PublicProblemConfig},
-    verdicts::TotalVerdict,
+    verdicts::TestingVerdict,
 };
 use axum::{
     Json,
@@ -64,28 +64,26 @@ pub async fn get_problem_by_id_admin(
 
 async fn load_problem_config(
     problem_path: &std::path::Path,
-) -> Result<ProblemConfig, TotalVerdict> {
+) -> Result<ProblemConfig, TestingVerdict> {
     let config_text = read_to_string(problem_path.join("config.toml"))
         .await
-        .map_log(TotalVerdict::InvalidProblem)?;
+        .map_log(TestingVerdict::InvalidProblem)?;
 
-    toml::from_str::<ProblemConfig>(&config_text).map_log(TotalVerdict::InvalidProblem)
+    toml::from_str::<ProblemConfig>(&config_text).map_log(TestingVerdict::InvalidProblem)
 }
 
-fn assert_subgroups_correctness(config: &ProblemConfig) -> Result<(), TotalVerdict> {
+fn assert_subgroups_correctness(config: &ProblemConfig) -> Result<(), TestingVerdict> {
     for (i, subgroup) in config.subgroups.iter().enumerate() {
-        log::info!("Check subgroup #{i} for correctness");
         for x in &subgroup.depends_on {
             if *x >= i {
-                log::error!("Subgroup depends on a subgroup that has index less than it's");
-                return Err(TotalVerdict::InvalidProblem);
+                return Err(TestingVerdict::InvalidProblem);
             }
         }
         if subgroup.score.is_some() == subgroup.score_per_test.is_some() {
             log::error!(
                 "Subgroup does have both `score` and `score_per_test` or doesn't have neither `score` nor `score_per_test`"
             );
-            return Err(TotalVerdict::InvalidProblem);
+            return Err(TestingVerdict::InvalidProblem);
         }
     }
     Ok(())
@@ -97,59 +95,54 @@ pub async fn create_problem(
     mut multipart: Multipart,
 ) -> Result<Json<i64>, StatusCode> {
     let mut file_stream: Option<Bytes> = None;
-
-    log::info!("Extracting file");
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_log(TotalVerdict::InvalidRequest)
+        .map_log(TestingVerdict::InvalidRequest)
         .map_http()?
     {
         match field.name() {
             Some("problem_archive") => {
-                file_stream = Some(field.bytes().await.map_log(TotalVerdict::Bug).map_http()?);
+                file_stream = Some(
+                    field
+                        .bytes()
+                        .await
+                        .map_log(TestingVerdict::Bug)
+                        .map_http()?,
+                );
             }
             _ => {}
         }
     }
 
     let Some(file_stream) = file_stream else {
-        log::error!("No problem files were provided");
         return Err(StatusCode::BAD_REQUEST);
     };
 
     let request_id = Uuid::new_v4();
     let archive_path = PathBuf::from(format!("/problems/{request_id}.zip"));
     let problem_path = PathBuf::from(format!("/problems/{request_id}"));
-
-    log::info!("Create problem file");
-
     let mut problem_archive_file = File::create(archive_path.clone())
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
     problem_archive_file
         .write_all(&file_stream)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
     problem_archive_file
         .flush()
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
-
-    log::info!("Extract problem archive");
-
     zip_extract(&archive_path, &problem_path)
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
-
-    log::info!("Check problem's config");
     let config = match load_problem_config(&problem_path).await {
         Err(e) => {
             std::fs::remove_dir_all(&problem_path)
-                .map_log(TotalVerdict::Bug)
+                .map_log(TestingVerdict::Bug)
                 .map_http()?;
             return Err(e).map_http();
         }
@@ -161,7 +154,6 @@ pub async fn create_problem(
         Some(owner_id) if owner_id != auth.id => return Err(StatusCode::FORBIDDEN),
         _ => {}
     }
-    log::info!("Insert problem to database");
     let contest = database::contests::get_contest_by_id(&state.db, config.contest_id)
         .await
         .map_http()?;
@@ -191,11 +183,11 @@ pub async fn create_problem(
 
     fs::rename(problem_path, new_problem_path)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
     fs::rename(archive_path, new_problem_archive_path)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
 
     database::problems::insert_problem_subgroups(&state.db, problem_id, &config.subgroups)
@@ -212,59 +204,54 @@ pub async fn update_problem(
     mut multipart: Multipart,
 ) -> Result<(), StatusCode> {
     let mut file_stream: Option<Bytes> = None;
-
-    log::info!("Extracting file");
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_log(TotalVerdict::InvalidRequest)
+        .map_log(TestingVerdict::InvalidRequest)
         .map_http()?
     {
         match field.name() {
             Some("problem_archive") => {
-                file_stream = Some(field.bytes().await.map_log(TotalVerdict::Bug).map_http()?);
+                file_stream = Some(
+                    field
+                        .bytes()
+                        .await
+                        .map_log(TestingVerdict::Bug)
+                        .map_http()?,
+                );
             }
             _ => {}
         }
     }
 
     let Some(file_stream) = file_stream else {
-        log::error!("No problem files were provided");
         return Err(StatusCode::BAD_REQUEST);
     };
 
     let request_id = Uuid::new_v4();
     let archive_path = PathBuf::from(format!("/problems/{request_id}.zip"));
     let problem_path = PathBuf::from(format!("/problems/{request_id}"));
-
-    log::info!("Create problem file");
-
     let mut problem_archive_file = File::create(archive_path.clone())
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
     problem_archive_file
         .write_all(&file_stream)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
     problem_archive_file
         .flush()
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
-
-    log::info!("Extract problem archive");
-
     zip_extract(&archive_path, &problem_path)
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
-
-    log::info!("Check problem's config");
     let config = match load_problem_config(&problem_path).await {
         Err(e) => {
             std::fs::remove_dir_all(&problem_path)
-                .map_log(TotalVerdict::Bug)
+                .map_log(TestingVerdict::Bug)
                 .map_http()?;
             return Err(e).map_http();
         }
@@ -276,8 +263,6 @@ pub async fn update_problem(
         Some(owner_id) if owner_id != auth.id => return Err(StatusCode::FORBIDDEN),
         _ => {}
     }
-
-    log::info!("Update problem in database");
     let problem = database::problems::get_problem_by_id(&state.db, problem_id)
         .await
         .map_http()?;
@@ -294,15 +279,15 @@ pub async fn update_problem(
 
     fs::remove_dir_all(&new_problem_path)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
     fs::rename(problem_path, new_problem_path)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
     fs::rename(archive_path, new_problem_archive_path)
         .await
-        .map_log(TotalVerdict::Bug)
+        .map_log(TestingVerdict::Bug)
         .map_http()?;
     database::problems::update_problem(
         &state.db,
@@ -340,12 +325,9 @@ pub async fn delete_problem(
     {
         return Err(StatusCode::BAD_REQUEST);
     }
-
-    log::info!("Verify password");
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        log::error!("Invalid password");
         Err(StatusCode::BAD_REQUEST)
     } else {
         let problem = database::problems::get_problem_by_id(&state.db, problem_id)
@@ -359,7 +341,7 @@ pub async fn delete_problem(
                 .map_http()?;
             fs::remove_dir_all(PathBuf::from(format!("/problems/{problem_id}")))
                 .await
-                .map_log(TotalVerdict::Bug)
+                .map_log(TestingVerdict::Bug)
                 .map_http()?;
             Ok(())
         }
@@ -424,12 +406,9 @@ pub async fn delete_problem_question(
     {
         return Err(StatusCode::BAD_REQUEST);
     }
-
-    log::info!("Verify password");
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        log::error!("Invalid password");
         Err(StatusCode::BAD_REQUEST)
     } else {
         let question = database::problems::get_problem_question_by_id(&state.db, question_id)
@@ -451,8 +430,6 @@ pub async fn get_problem_question_by_id(
     Auth(auth): Auth,
     Path(question_id): Path<i64>,
 ) -> Result<Json<ProblemQuestion>, StatusCode> {
-    log::info!("Get question #{question_id}");
-
     let question = database::problems::get_problem_question_by_id(&state.db, question_id)
         .await
         .map_http()?;
@@ -529,7 +506,7 @@ pub async fn download_problem(
         let file_path = PathBuf::from(format!("/problems/{problem_id}.zip"));
         let file = File::open(&file_path)
             .await
-            .map_log(TotalVerdict::Bug)
+            .map_log(TestingVerdict::Bug)
             .map_http()?;
         let stream = ReaderStream::new(file);
         let body = Body::from_stream(stream);

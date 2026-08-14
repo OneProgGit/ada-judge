@@ -1,12 +1,7 @@
-//! Main `ada-judge` backend
-
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 #![deny(clippy::nursery)]
 #![deny(warnings)]
-#![deny(missing_docs)]
-#![deny(rustdoc::all)]
-#![deny(rustdoc::broken_intra_doc_links)]
 #![forbid(unsafe_code)]
 
 use crate::{
@@ -25,22 +20,19 @@ use crate::{
             get_problem_question_by_id, get_problems, update_problem,
         },
         submissions::{
-            download_submission, get_all_my_submissions, get_all_submissions,
-            get_all_user_submissions, get_contest_submissions, get_my_contest_submissions,
-            get_my_problem_submissions, get_problem_submissions, get_submission,
-            get_user_contest_submissions, get_user_problem_submissions, retest_problem_submissions,
+            download_submission, get_all_submissions, get_all_user_submissions,
+            get_contest_submissions, get_my_contest_submissions, get_submission,
+            retest_problem_submissions,
         },
         users::{
-            change_user_admin_level, delete_user_account, get_my_user_profile,
-            get_private_user_profile, get_public_user_profile, get_users,
+            delete_user_account, get_my_user_profile, get_private_user_profile,
+            get_public_user_profile, get_users, update_user_admin_level,
         },
     },
     middleware::{
-        admin::{check_user_is_at_least_admin, check_user_is_owner},
         auth::Auth,
-        contests::{
-            check_contest_ended, check_contest_started, check_contest_started_2_path_elements,
-        },
+        contests::{ensure_contest_finished, ensure_contest_started_1, ensure_contest_started_2},
+        rights::{require_admin, require_owner},
     },
 };
 use apalis_redis::RedisStorage;
@@ -52,11 +44,11 @@ use axum::{
     http::{Method, header},
     routing::{delete, get, patch, post},
 };
-use log::LevelFilter;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::cors::{Any, CorsLayer};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
 mod app_state;
@@ -67,31 +59,37 @@ mod tools;
 
 #[tokio::main]
 async fn main() {
-    let log_modules: [&str; 0] = [];
-    pretty_logging::init(LevelFilter::Info, log_modules);
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
-    let postgres_url = env::var("POSTGRES_URL").expect("POSTGRES_URL must be set");
+    let postgres_url =
+        env::var("POSTGRES_URL").expect("environment variable POSTGRES_URL must be set");
     let pg_pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(&postgres_url)
         .await
-        .expect("Failed to connect to Postgres");
+        .expect("failed to connect to PostgreSQL");
 
     sqlx::migrate!()
         .run(&pg_pool)
         .await
-        .expect("Failed to run sqlx migrations");
+        .expect("failed to run database migrations");
 
-    let redis_url = env::var("REDIS_URL").expect("REDIS_URL must be set");
+    tracing::info!("connected to PostgreSQL");
+
+    let redis_url = env::var("REDIS_URL").expect("environment variable REDIS_URL must be set");
     let redis_pool = apalis_redis::connect(redis_url)
         .await
-        .expect("Failed to connect to Redis");
+        .expect("failed to connect to Redis");
 
-    let backend = RedisStorage::new(redis_pool);
+    let apalis_backend = RedisStorage::new(redis_pool);
+
+    tracing::info!("connected to Redis");
 
     let state = AppState {
         db: pg_pool.clone(),
-        apalis_backend: Arc::new(Mutex::new(backend.clone())),
+        apalis_backend: Arc::new(Mutex::new(apalis_backend.clone())),
     };
 
     let cors = CorsLayer::new()
@@ -105,64 +103,45 @@ async fn main() {
         ])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
-    let routes_avaible_after_start_of_contest_1_path_element = Router::new()
+    let contest_problems_routes_1 = Router::new()
         .route("/contests/{contest_id}/problems", get(get_contest_problems))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
-            check_contest_started,
+            ensure_contest_started_1,
         ))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
-    let routes_avaible_after_start_of_contest_2_path_elements = Router::new()
+    let contest_problems_routes_2 = Router::new()
         .route(
             "/contests/{contest_id}/problems/{problem_id}",
             get(get_problem_by_id),
         )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
-            check_contest_started_2_path_elements,
+            ensure_contest_started_2,
         ))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
-    let routes_avaible_after_end_of_contest = Router::new()
+    let leaderboard_routes = Router::new()
         .route(
             "/contests/{contest_id}/leaderboard",
             get(get_contest_leaderboard),
         )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
-            check_contest_ended,
+            ensure_contest_finished,
         ))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let admin_routes = Router::new()
-        .route("/contests/{contest_id}/update", patch(update_contest))
         .route("/contests/new", post(create_contest))
+        .route("/contests/{contest_id}/update", patch(update_contest))
+        .route("/contests/{contest_id}/delete", delete(delete_contest))
+        .route("/contests/my", get(get_my_contests))
         .route(
-            "/submissions/filter/contest/{contest_id}",
+            "/contest/{contest_id}/submissions",
             get(get_contest_submissions),
         )
-        .route(
-            "/submissions/filter/problem/{problem_id}",
-            get(get_problem_submissions),
-        )
-        .route(
-            "/submissions/filter/contest/{contest_id}/user/{user_id}",
-            get(get_user_contest_submissions),
-        )
-        .route(
-            "/submissions/filter/problem/{problem_id}/user/{user_id}",
-            get(get_user_problem_submissions),
-        )
-        .route(
-            "/problems/{problem_id}/retest-submissions",
-            post(retest_problem_submissions),
-        )
-        .route("/problems/my", get(get_my_problems))
-        .route("/problems/{problem_id}", get(get_problem_by_id_admin))
-        .route("/problems/{problem_id}/delete", delete(delete_problem))
-        .route("/contests/my", get(get_my_contests))
-        .route("/contests/{contest_id}/delete", delete(delete_contest))
         .route(
             "/contests/{contest_id}/posts/new",
             post(create_contest_post),
@@ -175,29 +154,34 @@ async fn main() {
             "/contests/posts/{post_id}/delete",
             delete(delete_contest_post),
         )
-        .route("/contests/{contest_id}/posts", get(get_contest_posts))
-        .route("/contests/posts/{post_id}", get(get_contest_post_by_id))
+        .route("/problems/{problem_id}/delete", delete(delete_problem))
+        .route("/problems/my", get(get_my_problems))
+        .route("/problems/{problem_id}", get(get_problem_by_id_admin))
         .route(
-            "/problems/questions/{question_id}/answer",
-            patch(answer_problem_question),
+            "/problems/{problem_id}/retest",
+            post(retest_problem_submissions),
         )
+        .route("/problems/{problem_id}/download", get(download_problem))
         .route(
             "/problems/{problem_id}/questions",
             get(get_all_problem_questions),
         )
-        .route("/problems/{problem_id}/download", get(download_problem))
+        .route(
+            "/problems/questions/{question_id}/answer",
+            patch(answer_problem_question),
+        )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
-            check_user_is_at_least_admin,
+            require_admin,
         ))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
-    let create_and_update_problem_routes = Router::new()
+    let heavy_problem_routes = Router::new()
         .route("/problems/new", post(create_problem))
         .route("/problems/{problem_id}/update", patch(update_problem))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
-            check_user_is_at_least_admin,
+            require_admin,
         ))
         .layer(DefaultBodyLimit::max(1024 * 1024 * 1024));
 
@@ -205,41 +189,31 @@ async fn main() {
         .route("/users", get(get_users))
         .route("/users/{user_id}/private", get(get_private_user_profile))
         .route(
+            "/users/{user_id}/update_admin_level",
+            patch(update_user_admin_level),
+        )
+        .route(
             "/users/{user_id}/delete_account",
             delete(delete_user_account),
-        )
-        .route(
-            "/users/{user_id}/change_admin_level",
-            patch(change_user_admin_level),
-        )
-        .route("/submissions", get(get_all_submissions))
-        .route(
-            "/submissions/filter/user/{user_id}",
-            get(get_all_user_submissions),
         )
         .route("/problems", get(get_problems))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
-            check_user_is_owner,
+            require_owner,
         ))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
     let default_routes = Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .route(
+            "/contest/{contest_id}/submissions/my",
+            get(get_my_contest_submissions),
+        )
         .route("/submissions/{submission_id}", get(get_submission))
         .route(
             "/submissions/{submission_id}/download",
             get(download_submission),
-        )
-        .route("/submissions/my", get(get_all_my_submissions))
-        .route(
-            "/submissions/my/filter/contest/{contest_id}",
-            get(get_my_contest_submissions),
-        )
-        .route(
-            "/submissions/my/filter/problem/{problem_id}",
-            get(get_my_problem_submissions),
         )
         .route("/users/{user_id}", get(get_public_user_profile))
         .route("/users/me", get(get_my_user_profile))
@@ -247,6 +221,8 @@ async fn main() {
         .route("/contests", get(get_contests))
         .route("/contests/{contest_id}", get(get_contest_by_id))
         .route("/contests/{contest_id}/submit", post(submit))
+        .route("/contests/{contest_id}/posts", get(get_contest_posts))
+        .route("/contests/posts/{post_id}", get(get_contest_post_by_id))
         .route(
             "/problems/{problem_id}/questions/new",
             post(create_problem_question),
@@ -267,11 +243,11 @@ async fn main() {
 
     let app = Router::new()
         .merge(default_routes)
-        .merge(routes_avaible_after_start_of_contest_1_path_element)
-        .merge(routes_avaible_after_start_of_contest_2_path_elements)
-        .merge(routes_avaible_after_end_of_contest)
+        .merge(contest_problems_routes_1)
+        .merge(contest_problems_routes_2)
+        .merge(leaderboard_routes)
         .merge(admin_routes)
-        .merge(create_and_update_problem_routes)
+        .merge(heavy_problem_routes)
         .merge(owner_routes)
         .layer(Extension(Auth))
         .layer(cors)
@@ -279,7 +255,9 @@ async fn main() {
 
     let listener = TcpListener::bind("0.0.0.0:4444")
         .await
-        .expect("Failed to start server");
+        .expect("failed to bind TCP listener");
 
-    axum::serve(listener, app).await.expect("Failed to serve");
+    axum::serve(listener, app)
+        .await
+        .expect("failed to serve application");
 }

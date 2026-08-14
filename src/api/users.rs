@@ -64,12 +64,9 @@ pub async fn delete_user_account(
     {
         return Err(StatusCode::BAD_REQUEST);
     }
-
-    log::info!("Verify password");
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        log::error!("Invalid password");
         Err(StatusCode::BAD_REQUEST)
     } else {
         database::users::delete_user(&state.db, user_id)
@@ -79,7 +76,7 @@ pub async fn delete_user_account(
     }
 }
 
-pub async fn change_user_admin_level(
+pub async fn update_user_admin_level(
     State(state): State<AppState>,
     Path(user_id): Path<i64>,
     Json(admin_level): Json<AdminLevel>,

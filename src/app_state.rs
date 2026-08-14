@@ -1,8 +1,7 @@
-use std::sync::Arc;
-
 use apalis_redis::RedisStorage;
 use models::testing::SubmissionTask;
 use sqlx::PgPool;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 #[derive(Clone)]

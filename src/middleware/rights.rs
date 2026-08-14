@@ -7,7 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-pub async fn check_user_is_at_least_admin(Auth(auth): Auth, req: Request, next: Next) -> Response {
+pub async fn require_admin(Auth(auth): Auth, req: Request, next: Next) -> Response {
     if auth.admin_level < AdminLevel::Admin {
         return StatusCode::FORBIDDEN.into_response();
     }
@@ -15,7 +15,7 @@ pub async fn check_user_is_at_least_admin(Auth(auth): Auth, req: Request, next: 
     next.run(req).await
 }
 
-pub async fn check_user_is_owner(Auth(auth): Auth, req: Request, next: Next) -> Response {
+pub async fn require_owner(Auth(auth): Auth, req: Request, next: Next) -> Response {
     if auth.admin_level != AdminLevel::Owner {
         return StatusCode::FORBIDDEN.into_response();
     }

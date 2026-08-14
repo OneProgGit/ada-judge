@@ -4,7 +4,7 @@ use crate::{
 };
 use aj_models::{
     problems::ProblemConfig,
-    verdicts::{SubgroupVerdict, TotalVerdict},
+    verdicts::{TestingVerdict, Verdict},
 };
 use models::testing::TestsPaths;
 use std::{
@@ -19,14 +19,14 @@ use tokio::{
 use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_run_interactive_verdict(
+pub async fn get_interactive_verdict(
     config: &ProblemConfig,
     answer_path: &Path,
     tests_paths: &TestsPaths,
-) -> Result<SubgroupVerdict, TotalVerdict> {
+) -> Result<Verdict, TestingVerdict> {
     fs::create_dir_all(&tests_paths.fifo)
         .await
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TestingVerdict::Bug)?;
 
     let checker_to_solution = format!("{}/checker_to_solution", tests_paths.fifo.display());
     let solution_to_checker = format!("{}/solution_to_checker", tests_paths.fifo.display());
@@ -36,20 +36,20 @@ pub async fn get_run_interactive_verdict(
 
     for path in [&checker_to_solution, &solution_to_checker] {
         if PathBuf::from(path).exists() {
-            fs::remove_file(path).await.map_log(TotalVerdict::Bug)?;
+            fs::remove_file(path).await.map_log(TestingVerdict::Bug)?;
         }
 
         let status = Command::new("mkfifo")
             .arg(path)
             .status()
             .await
-            .map_log(TotalVerdict::Bug)?;
+            .map_log(TestingVerdict::Bug)?;
         if !status.success() {
-            return Err(TotalVerdict::Bug);
+            return Err(TestingVerdict::Bug);
         }
     }
 
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
 
     let mut checker_child = Command::new("docker")
         .args([
@@ -105,18 +105,18 @@ pub async fn get_run_interactive_verdict(
             "/sandbox/answer",
         ])
         .spawn()
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TestingVerdict::Bug)?;
 
     let (checker_to_solution_read, solution_to_checker_write) = tokio::join!(
         File::open(&checker_to_solution_path),
         File::create(&solution_to_checker_path)
     );
     let checker_to_solution_read = checker_to_solution_read
-        .map_log(TotalVerdict::Bug)?
+        .map_log(TestingVerdict::Bug)?
         .into_std()
         .await;
     let solution_to_checker_write = solution_to_checker_write
-        .map_log(TotalVerdict::Bug)?
+        .map_log(TestingVerdict::Bug)?
         .into_std()
         .await;
 
@@ -158,43 +158,40 @@ pub async fn get_run_interactive_verdict(
         .stdin(Stdio::from(checker_to_solution_read))
         .stdout(Stdio::from(solution_to_checker_write))
         .spawn()
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TestingVerdict::Bug)?;
 
     let (checker_status, solution_status) =
         tokio::join!(checker_child.wait(), solution_child.wait());
-
-    log::info!("Check solution status");
-    solution_status.map_or(
-        Ok(SubgroupVerdict::TimeLimitExceeded),
-        |status| match status.code() {
+    solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
+        match status.code() {
             Some(VERDICT_OK) => {
-                checker_status.map_or(Err(TotalVerdict::InvalidProblem), |status| {
+                checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
                     match status.code() {
-                        Some(CHECKER_OK) => Ok(SubgroupVerdict::Ok),
-                        Some(CHECKER_WA) => Ok(SubgroupVerdict::WrongAnswer),
-                        Some(CHECKER_PE) => Ok(SubgroupVerdict::PresentationError),
-                        _ => Err(TotalVerdict::InvalidProblem),
+                        Some(CHECKER_OK) => Ok(Verdict::Ok),
+                        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+                        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+                        _ => Err(TestingVerdict::InvalidProblem),
                     }
                 })
             }
-            Some(VERDICT_MLE) => Ok(SubgroupVerdict::MemoryLimitExceeded),
-            Some(VERDICT_TLE) | None => Ok(SubgroupVerdict::TimeLimitExceeded),
-            Some(_code) => Ok(SubgroupVerdict::RuntimeError),
-        },
-    )
+            Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
+            Some(VERDICT_TLE) | None => Ok(Verdict::TimeLimitExceeded),
+            Some(_code) => Ok(Verdict::RuntimeError),
+        }
+    })
 }
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_run_interactive_verdict_run_twice(
+pub async fn get_interactive_run_twice_verdict(
     config: &ProblemConfig,
     answer_path: &Path,
     final_output: &Path,
     tests_paths: &TestsPaths,
     stage: i32,
-) -> Result<SubgroupVerdict, TotalVerdict> {
+) -> Result<Verdict, TestingVerdict> {
     fs::create_dir_all(&tests_paths.fifo)
         .await
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TestingVerdict::Bug)?;
 
     let checker_to_solution = format!("{}/checker_to_solution", tests_paths.fifo.display());
     let solution_to_checker = format!("{}/solution_to_checker", tests_paths.fifo.display());
@@ -204,20 +201,20 @@ pub async fn get_run_interactive_verdict_run_twice(
 
     for path in [&checker_to_solution, &solution_to_checker] {
         if PathBuf::from(path).exists() {
-            fs::remove_file(path).await.map_log(TotalVerdict::Bug)?;
+            fs::remove_file(path).await.map_log(TestingVerdict::Bug)?;
         }
 
         let status = Command::new("mkfifo")
             .arg(path)
             .status()
             .await
-            .map_log(TotalVerdict::Bug)?;
+            .map_log(TestingVerdict::Bug)?;
         if !status.success() {
-            return Err(TotalVerdict::Bug);
+            return Err(TestingVerdict::Bug);
         }
     }
 
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TotalVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
 
     let mut checker_child = Command::new("docker")
         .args([
@@ -280,18 +277,18 @@ pub async fn get_run_interactive_verdict_run_twice(
             &stage.to_string(),
         ])
         .spawn()
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TestingVerdict::Bug)?;
 
     let (checker_to_solution_read, solution_to_checker_write) = tokio::join!(
         File::open(&checker_to_solution_path),
         File::create(&solution_to_checker_path)
     );
     let checker_to_solution_read = checker_to_solution_read
-        .map_log(TotalVerdict::Bug)?
+        .map_log(TestingVerdict::Bug)?
         .into_std()
         .await;
     let solution_to_checker_write = solution_to_checker_write
-        .map_log(TotalVerdict::Bug)?
+        .map_log(TestingVerdict::Bug)?
         .into_std()
         .await;
 
@@ -333,28 +330,25 @@ pub async fn get_run_interactive_verdict_run_twice(
         .stdin(Stdio::from(checker_to_solution_read))
         .stdout(Stdio::from(solution_to_checker_write))
         .spawn()
-        .map_log(TotalVerdict::Bug)?;
+        .map_log(TestingVerdict::Bug)?;
 
     let (checker_status, solution_status) =
         tokio::join!(checker_child.wait(), solution_child.wait());
-
-    log::info!("Check solution status");
-    solution_status.map_or(
-        Ok(SubgroupVerdict::TimeLimitExceeded),
-        |status| match status.code() {
+    solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
+        match status.code() {
             Some(VERDICT_OK) => {
-                checker_status.map_or(Err(TotalVerdict::InvalidProblem), |status| {
+                checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
                     match status.code() {
-                        Some(CHECKER_OK) => Ok(SubgroupVerdict::Ok),
-                        Some(CHECKER_WA) => Ok(SubgroupVerdict::WrongAnswer),
-                        Some(CHECKER_PE) => Ok(SubgroupVerdict::PresentationError),
-                        _ => Err(TotalVerdict::InvalidProblem),
+                        Some(CHECKER_OK) => Ok(Verdict::Ok),
+                        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+                        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+                        _ => Err(TestingVerdict::InvalidProblem),
                     }
                 })
             }
-            Some(VERDICT_MLE) => Ok(SubgroupVerdict::MemoryLimitExceeded),
-            Some(VERDICT_TLE) | None => Ok(SubgroupVerdict::TimeLimitExceeded),
-            Some(_code) => Ok(SubgroupVerdict::RuntimeError),
-        },
-    )
+            Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
+            Some(VERDICT_TLE) | None => Ok(Verdict::TimeLimitExceeded),
+            Some(_code) => Ok(Verdict::RuntimeError),
+        }
+    })
 }

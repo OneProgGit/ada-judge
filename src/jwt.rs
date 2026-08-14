@@ -1,18 +1,18 @@
-use aj_models::verdicts::TotalVerdict;
+use aj_models::verdicts::TestingVerdict;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use models::users::JwtClaims;
 use tools::map::MapLogExt;
 
-pub fn create_jwt(claims: &JwtClaims, secret: &str) -> Result<String, TotalVerdict> {
+pub fn create_jwt(claims: &JwtClaims, secret: &str) -> Result<String, TestingVerdict> {
     encode(
         &Header::default(),
         claims,
         &EncodingKey::from_secret(secret.as_bytes()),
     )
-    .map_log(TotalVerdict::Bug)
+    .map_log(TestingVerdict::Bug)
 }
 
-pub fn decode_jwt(token: &str, secret: &str) -> Result<JwtClaims, TotalVerdict> {
+pub fn decode_jwt(token: &str, secret: &str) -> Result<JwtClaims, TestingVerdict> {
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;
 
@@ -21,7 +21,7 @@ pub fn decode_jwt(token: &str, secret: &str) -> Result<JwtClaims, TotalVerdict> 
         &DecodingKey::from_secret(secret.as_bytes()),
         &validation,
     )
-    .map_log(TotalVerdict::InvalidRequest)?;
+    .map_log(TestingVerdict::InvalidRequest)?;
 
     Ok(claims.claims)
 }

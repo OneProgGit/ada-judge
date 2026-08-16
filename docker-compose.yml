@@ -51,6 +51,7 @@ services:
     environment:
       POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
+      HOST_RUNS_DIR: ${PWD}
       SANDBOX_IMAGE: ada-judge-sandbox
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

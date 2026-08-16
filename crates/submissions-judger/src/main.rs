@@ -30,7 +30,7 @@ async fn main() {
 
     tracing::info!("connected to PostgreSQL");
 
-    let redis_url = env::var("REDIS_URL").expect("REDIS_URL must be set");
+    let redis_url = env::var("REDIS_URL").expect("environment variable REDIS_URL must be set");
     let redis_pool = apalis_redis::connect(redis_url)
         .await
         .expect("failed to connect to Redis");
@@ -38,6 +38,8 @@ async fn main() {
     let backend = RedisStorage::new(redis_pool);
 
     tracing::info!("connected to Redis");
+
+    let host_name = env::var("HOSTNAME").expect("environment variable HOSTNAME must be set");
 
     let worker = WorkerBuilder::new(format!("worker-{host_name}"))
         .backend(backend)

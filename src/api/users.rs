@@ -82,7 +82,7 @@ pub async fn update_user_admin_level(
     Json(admin_level): Json<AdminLevel>,
 ) -> Result<(), StatusCode> {
     Ok(
-        database::users::change_user_admin_level(&state.db, user_id, &admin_level)
+        database::users::change_admin_level(&state.db, user_id, &admin_level)
             .await
             .map_http()?,
     )

@@ -9,16 +9,14 @@ use aj_models::{
 use models::testing::TestsPaths;
 use std::{env, path::Path};
 use tokio::process::Command;
-use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_checker_verdict(
     config: &ProblemConfig,
     input_path: &Path,
     answer_path: &Path,
-    tests_paths: &TestsPaths,
 ) -> Result<Verdict, TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Fail)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -76,13 +74,11 @@ pub async fn get_checker_verdict(
         .status();
 
     let checker_status = checker_cmd.await;
-    checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
-        match status.code() {
-            Some(CHECKER_OK) => Ok(Verdict::Ok),
-            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
-            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-            _ => Err(TestingVerdict::InvalidProblem),
-        }
+    checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
+        Some(CHECKER_OK) => Ok(Verdict::Ok),
+        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+        _ => Err(TestingVerdict::Fail),
     })
 }
 
@@ -93,7 +89,7 @@ pub async fn get_checker_run_twice_verdict(
     tests_paths: &TestsPaths,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Bug)?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -152,13 +148,11 @@ pub async fn get_checker_run_twice_verdict(
         .status();
 
     let checker_status = checker_cmd.await;
-    checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
-        match status.code() {
-            Some(CHECKER_OK) => Ok(Verdict::Ok),
-            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
-            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-            _ => Err(TestingVerdict::InvalidProblem),
-        }
+    checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
+        Some(CHECKER_OK) => Ok(Verdict::Ok),
+        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+        _ => Err(TestingVerdict::Fail),
     })
 }
 
@@ -170,7 +164,7 @@ pub async fn get_checker_run_twice_interactive_verdict(
     tests_paths: &TestsPaths,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Bug)?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -235,12 +229,10 @@ pub async fn get_checker_run_twice_interactive_verdict(
         .status();
 
     let checker_status = checker_cmd.await;
-    checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
-        match status.code() {
-            Some(CHECKER_OK) => Ok(Verdict::Ok),
-            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
-            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-            _ => Err(TestingVerdict::InvalidProblem),
-        }
+    checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
+        Some(CHECKER_OK) => Ok(Verdict::Ok),
+        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+        _ => Err(TestingVerdict::Fail),
     })
 }

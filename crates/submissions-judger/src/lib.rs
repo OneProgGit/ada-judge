@@ -241,7 +241,7 @@ async fn test_subgroup(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
 ) -> Result<(), TestingVerdict> {
-    database::submissions::insert_subgroup_testing_result(&pool, submission_id, subgroup_index)
+    database::submissions::create_subgroup_result(&pool, submission_id, subgroup_index)
         .await
         .map_db(&pool, submission_id)
         .await?;
@@ -258,7 +258,7 @@ async fn test_subgroup(
     for test_id in &subgroup.tests {
         let test_id = *test_id;
 
-        database::submissions::insert_test_testing_result(
+        database::submissions::create_test_result(
             &pool,
             submission_id,
             test_id,
@@ -330,15 +330,10 @@ pub async fn test_submission(
     pool: Data<PgPool>,
 ) -> Result<(), BoxDynError> {
     let submission_id = submission.id;
-    database::submissions::update_total_testing_result(
-        &pool,
-        submission_id,
-        &TestingVerdict::Compiling,
-        0,
-    )
-    .await
-    .map_db(&pool, submission_id)
-    .await?;
+    database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Compiling, 0)
+        .await
+        .map_db(&pool, submission_id)
+        .await?;
 
     let problem_id = submission.problem_id;
     let run_path = submission.run_dir.clone();
@@ -359,13 +354,8 @@ pub async fn test_submission(
 
     let mut total_score = 0;
     let mut subgroups_results: Vec<SubgroupResult> = Vec::with_capacity(config.subgroups.len());
-    database::submissions::update_total_testing_result(
-        &pool,
-        submission_id,
-        &TestingVerdict::Testing,
-        0,
-    )
-    .await?;
+    database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Testing, 0)
+        .await?;
     for (i, subgroup) in config.subgroups.clone().iter().enumerate() {
         let subgroup_index = i as i32;
 
@@ -380,7 +370,7 @@ pub async fn test_submission(
             let per_test = subgroup.score_per_test.is_some();
             for test_id in &subgroup.tests {
                 let test_id = *test_id;
-                database::submissions::insert_test_testing_result(
+                database::submissions::create_test_result(
                     &pool,
                     submission_id,
                     test_id,
@@ -406,7 +396,7 @@ pub async fn test_submission(
         total_score += subgroup_result.score;
         subgroups_results.push(subgroup_result.clone());
 
-        database::submissions::update_subgroup_testing_result(
+        database::submissions::update_subgroup_result(
             &pool,
             submission_id,
             subgroup_index,
@@ -416,7 +406,7 @@ pub async fn test_submission(
         .map_db(&pool, submission_id)
         .await?;
     }
-    database::submissions::update_total_testing_result(
+    database::submissions::update_submission(
         &pool,
         submission_id,
         &match total_score {

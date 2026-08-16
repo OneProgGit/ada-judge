@@ -30,7 +30,7 @@ pub async fn get_all_my_submissions(
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        database::submissions::get_all_user_submissions(&state.db, Some(auth.id))
+        database::submissions::get_submissions(&state.db, Some(auth.id))
             .await
             .map_http()?,
     ))
@@ -42,7 +42,7 @@ pub async fn get_my_contest_submissions(
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        database::submissions::get_user_contest_submissions(&state.db, Some(auth.id), contest_id)
+        database::submissions::get_contest_submissions(&state.db, Some(auth.id), contest_id)
             .await
             .map_http()?,
     ))
@@ -65,7 +65,7 @@ pub async fn get_all_user_submissions(
     Path(user_id): Path<i64>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        database::submissions::get_all_user_submissions(&state.db, Some(user_id))
+        database::submissions::get_submissions(&state.db, Some(user_id))
             .await
             .map_http()?,
     ))
@@ -84,7 +84,7 @@ pub async fn get_user_contest_submissions(
     }
 
     Ok(Json(
-        database::submissions::get_user_contest_submissions(&state.db, Some(user_id), contest_id)
+        database::submissions::get_contest_submissions(&state.db, Some(user_id), contest_id)
             .await
             .map_http()?,
     ))
@@ -118,7 +118,7 @@ pub async fn get_all_submissions(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        database::submissions::get_all_user_submissions(&state.db, None)
+        database::submissions::get_submissions(&state.db, None)
             .await
             .map_http()?,
     ))
@@ -137,7 +137,7 @@ pub async fn get_contest_submissions(
     }
 
     Ok(Json(
-        database::submissions::get_user_contest_submissions(&state.db, None, contest_id)
+        database::submissions::get_contest_submissions(&state.db, None, contest_id)
             .await
             .map_http()?,
     ))
@@ -369,13 +369,13 @@ pub async fn retest_problem_submissions(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    database::submissions::delete_subgroups_results_for_problem(&state.db, problem_id)
+    database::submissions::delete_problem_subgroups_results(&state.db, problem_id)
         .await
         .map_http()?;
-    database::submissions::delete_tests_results_for_problem(&state.db, problem_id)
+    database::submissions::delete_problem_tests_results(&state.db, problem_id)
         .await
         .map_http()?;
-    database::submissions::set_all_submissions_pending_for_problem(&state.db, problem_id)
+    database::submissions::make_submissions_pending(&state.db, problem_id)
         .await
         .map_http()?;
 

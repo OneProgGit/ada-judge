@@ -1,7 +1,7 @@
 use aj_models::{
     errors::AdaJudgeError,
-    testing::{Language, SubgroupResult, TestResult},
-    verdicts::Verdict,
+    testing::{Language, SubgroupResult, Submission, TestResult},
+    verdicts::{TestingVerdict, Verdict},
 };
 use models::testing::DatabaseSubmission;
 use sqlx::PgPool;
@@ -13,13 +13,13 @@ pub async fn create_submission(
     language: &Language,
 ) -> Result<i64, AdaJudgeError> {
     let submission_id = sqlx::query_scalar(
-        r#"insert into submissions (problem_id, user_id, language, total_verdict, total_score)
-          values ($1, $2, $3, $4, $5) returning id",
+        r#"insert into submissions (problem_id, user_id, language, verdict, score)
+          values ($1, $2, $3, $4, $5) returning id"#,
     )
     .bind(problem_id)
     .bind(user_id)
     .bind(language)
-    .bind(AdaJudgeError::Pending)
+    .bind(TestingVerdict::Pending)
     .bind(0)
     .fetch_one(pool)
     .await
@@ -28,40 +28,31 @@ pub async fn create_submission(
     Ok(submission_id)
 }
 
-/// Updates total testing result for a submission
-/// # Errors
-/// Returns an error if `submission_id` is invalid
-pub async fn update_total_testing_result(
+pub async fn update_submission(
     pool: &PgPool,
     submission_id: i64,
-    verdict: &AdaJudgeError,
-    score: i32,
+    verdict: &TestingVerdict,
+    score: f64,
 ) -> Result<(), AdaJudgeError> {
-    sqlx::query(
-        "update submissions set total_verdict = $1, total_score = $2
-            where id = $3",
-    )
-    .bind(verdict)
-    .bind(score)
-    .bind(submission_id)
-    .execute(pool)
-    .await
-    .map_err(|_| AdaJudgeError::Internal)?;
+    sqlx::query(r#"update submissions set verdict = $1, score = $2 where id = $3"#)
+        .bind(verdict)
+        .bind(score)
+        .bind(submission_id)
+        .execute(pool)
+        .await
+        .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
 
-/// Inserts a subgroup's testing result into `submissions_subgroups_results` table
-/// # Errors
-/// Returns an error if `submission_id` is invalid.
-pub async fn insert_subgroup_testing_result(
+pub async fn create_subgroup_result(
     pool: &PgPool,
     submission_id: i64,
     subgroup_index: i32,
 ) -> Result<(), AdaJudgeError> {
     sqlx::query(
-        "insert into submissions_subgroups_results (subgroup_index, submission_id, subgroup_verdict, test, score)
-            values ($1, $2, $3, $4, $5)",
+        r#"insert into submissions_subgroups_results (subgroup_index, submission_id, verdict, test, score)
+            values ($1, $2, $3, $4, $5)"#,
     )
         .bind(subgroup_index)
         .bind(submission_id)
@@ -75,42 +66,15 @@ pub async fn insert_subgroup_testing_result(
     Ok(())
 }
 
-/// Inserts a test's testing result into `submissions_tests_results` table
-/// # Errors
-/// Returns an error if `submission_id` is invalid.
-pub async fn insert_test_testing_result(
-    pool: &PgPool,
-    submission_id: i64,
-    test: i32,
-    score: Option<i32>,
-) -> Result<(), AdaJudgeError> {
-    sqlx::query(
-        "insert into submissions_tests_results (test, submission_id, test_verdict, score)
-            values ($1, $2, $3, $4)",
-    )
-    .bind(test)
-    .bind(submission_id)
-    .bind(Verdict::Testing)
-    .bind(score)
-    .execute(pool)
-    .await
-    .map_err(|_| AdaJudgeError::Internal)?;
-
-    Ok(())
-}
-
-/// Updates testing result for a subgroup of the problem
-/// # Errors
-/// Returns an error if `submission_id` is invalid.
-pub async fn update_subgroup_testing_result(
+pub async fn update_subgroup_result(
     pool: &PgPool,
     submission_id: i64,
     subgroup_index: i32,
     subgroup_result: &SubgroupResult,
 ) -> Result<(), AdaJudgeError> {
     sqlx::query(
-        "update submissions_subgroups_results set subgroup_verdict = $1, test = $2, score = $3
-            where submission_id = $4 and subgroup_index = $5",
+        r#"update submissions_subgroups_results set verdict = $1, test = $2, score = $3
+            where submission_id = $4 and subgroup_index = $5"#,
     )
     .bind(&subgroup_result.verdict)
     .bind(subgroup_result.test)
@@ -124,9 +88,27 @@ pub async fn update_subgroup_testing_result(
     Ok(())
 }
 
-/// Updates testing result for a test of the problem
-/// # Errors
-/// Returns an error if `submission_id` is invalid.
+pub async fn create_test_result(
+    pool: &PgPool,
+    submission_id: i64,
+    test: i32,
+    score: Option<f64>,
+) -> Result<(), AdaJudgeError> {
+    sqlx::query(
+        r#"insert into submissions_tests_results (test, submission_id, verdict, score)
+            values ($1, $2, $3, $4)"#,
+    )
+    .bind(test)
+    .bind(submission_id)
+    .bind(Verdict::Testing)
+    .bind(score)
+    .execute(pool)
+    .await
+    .map_err(|_| AdaJudgeError::Internal)?;
+
+    Ok(())
+}
+
 pub async fn update_test_testing_result(
     pool: &PgPool,
     submission_id: i64,
@@ -134,7 +116,7 @@ pub async fn update_test_testing_result(
     test_result: &TestResult,
 ) -> Result<(), AdaJudgeError> {
     sqlx::query(
-        "update submissions_tests_results set test_verdict = $1, score = $2
+        "update submissions_tests_results set verdict = $1, score = $2
             where submission_id = $3 and test = $4",
     )
     .bind(&test_result.verdict)
@@ -148,21 +130,18 @@ pub async fn update_test_testing_result(
     Ok(())
 }
 
-/// Gets user's submission by it's id.
-/// # Errors
-/// Returns an error if `submission_id` is invalid
 pub async fn get_submission(
     pool: &PgPool,
     submission_id: i64,
-) -> Result<DatabaseSubmission, AdaJudgeError> {
-    let submission = sqlx::query_as(
+) -> Result<Submission, AdaJudgeError> {
+    let submission: DatabaseSubmission = sqlx::query_as(
         "select
                 c.id,
                 c.problem_id,
                 c.user_id,
                 c.language,
-                c.total_verdict,
-                c.total_score,
+                c.verdict,
+                c.score,
                 c.created_at,
                 coalesce(s.subgroups_results, '[]') as subgroups_results,
                 coalesce(t.tests_results, '[]') as tests_results
@@ -170,7 +149,7 @@ pub async fn get_submission(
             left join lateral (
                 select json_agg(
                     json_build_object(
-                        'subgroup_verdict', subgroup_verdict,
+                        'verdict', verdict,
                         'test', test,
                         'score', score
                     ) order by subgroup_index
@@ -181,7 +160,7 @@ pub async fn get_submission(
             left join lateral (
                 select json_agg(
                     json_build_object(
-                        'test_verdict', test_verdict,
+                        'verdict', verdict,
                         'score', score
                     ) order by test
                 ) as tests_results
@@ -195,107 +174,51 @@ pub async fn get_submission(
     .await
     .map_err(|_| AdaJudgeError::Internal)?;
 
-    Ok(submission)
+    Ok(submission.into())
 }
 
-/// Gets all user's submissions. If `user_id` is None, gets all submissions.
-/// # Errors
-/// Returns an error if `user_id` is invalid
-pub async fn get_all_user_submissions(
-    pool: &PgPool,
-    user_id: Option<i64>,
-) -> Result<Vec<i64>, AdaJudgeError> {
-    match user_id {
-        None => sqlx::query_as::<_, (i64,)>("select id from submissions order by id desc")
-            .fetch_all(pool)
-            .await
-            .map(|rows| rows.iter().map(|(id,)| *id).collect())
-            .map_err(|_| AdaJudgeError::Internal),
-        Some(user_id) => sqlx::query_as::<_, (i64,)>(
-            "select id from submissions where user_id = $1 order by id desc",
-        )
-        .bind(user_id)
-        .fetch_all(pool)
-        .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_err(|_| AdaJudgeError::Internal),
-    }
-}
-
-/// Gets user's submissions for contest. If `user_id` is None, gets all submissions for contest.
-/// # Errors
-/// Returns an error if `user_id` or `contest_id` is invalid
-pub async fn get_user_contest_submissions(
+pub async fn get_contest_submissions(
     pool: &PgPool,
     user_id: Option<i64>,
     contest_id: i64,
-) -> Result<Vec<i64>, AdaJudgeError> {
-    match user_id {
-        None => sqlx::query_as::<_, (i64,)>(
-            "select c.id from submissions c
+) -> Result<Vec<Submission>, AdaJudgeError> {
+    let submissions = match user_id {
+        None => sqlx::query_as::<_, DatabaseSubmission>(
+            r#"select c.id from submissions c
                 join problems p on p.id = c.problem_id
-            where p.contest_id = $1 order by c.id desc",
+            where p.contest_id = $1 order by c.id desc"#,
         )
         .bind(contest_id)
         .fetch_all(pool)
         .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_err(|_| AdaJudgeError::Internal),
-        Some(user_id) => sqlx::query_as::<_, (i64,)>(
-            "select c.id from submissions c
+        .map_err(|_| AdaJudgeError::Internal)?,
+        Some(user_id) => sqlx::query_as::<_, DatabaseSubmission>(
+            r#"select c.id from submissions c
                 join problems p on p.id = c.problem_id
-            where c.user_id = $1 and p.contest_id = $2 order by c.id desc",
+            where c.user_id = $1 and p.contest_id = $2 order by c.id desc"#,
         )
         .bind(user_id)
         .bind(contest_id)
         .fetch_all(pool)
         .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_err(|_| AdaJudgeError::Internal),
+        .map_err(|_| AdaJudgeError::Internal)?,
     }
+    .iter()
+    .map(|x| x.clone().into())
+    .collect();
+
+    Ok(submissions)
 }
 
-/// Gets user's submissions for problem. If `user_id` is None, gets all submissions for problem.
-/// # Errors
-/// Returns an error if `user_id` or `problem_id` is invalid
-pub async fn get_user_problem_submissions(
-    pool: &PgPool,
-    user_id: Option<i64>,
-    problem_id: i64,
-) -> Result<Vec<i64>, AdaJudgeError> {
-    match user_id {
-        None => sqlx::query_as::<_, (i64,)>(
-            "select id from submissions where problem_id = $1 order by id desc",
-        )
-        .bind(problem_id)
-        .fetch_all(pool)
-        .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_err(|_| AdaJudgeError::Internal),
-        Some(user_id) => sqlx::query_as::<_, (i64,)>(
-            "select id from submissions where user_id = $1 and problem_id = $2 order by id desc",
-        )
-        .bind(user_id)
-        .bind(problem_id)
-        .fetch_all(pool)
-        .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_err(|_| AdaJudgeError::Internal),
-    }
-}
-
-/// Deletes subgroups' submission results for all submissions for a problem
-/// # Errors
-/// Returns an error if `problem_id` is invalid
-pub async fn delete_subgroups_results_for_problem(
+pub async fn delete_problem_subgroups_results(
     pool: &PgPool,
     problem_id: i64,
 ) -> Result<(), AdaJudgeError> {
     sqlx::query(
-        "delete from submissions_subgroups_results r
+        r#"delete from submissions_subgroups_results r
             using submissions s
             where r.submission_id = s.id
-                and s.problem_id = $1",
+            and s.problem_id = $1"#,
     )
     .bind(problem_id)
     .execute(pool)
@@ -304,18 +227,15 @@ pub async fn delete_subgroups_results_for_problem(
     Ok(())
 }
 
-/// Deletes tests' submission results for all submissions for a problem
-/// # Errors
-/// Returns an error if `problem_id` is invalid
-pub async fn delete_tests_results_for_problem(
+pub async fn delete_problem_tests_results(
     pool: &PgPool,
     problem_id: i64,
 ) -> Result<(), AdaJudgeError> {
     sqlx::query(
-        "delete from submissions_tests_results r
+        r#"delete from submissions_tests_results r
             using submissions s
             where r.submission_id = s.id
-                and s.problem_id = $1",
+            and s.problem_id = $1"#,
     )
     .bind(problem_id)
     .execute(pool)
@@ -324,16 +244,10 @@ pub async fn delete_tests_results_for_problem(
     Ok(())
 }
 
-/// Sets `Pending` verdict for all submissions for a problem
-/// # Errors
-/// Returns an error if `problem_id` is invalid
-pub async fn set_all_submissions_pending_for_problem(
-    pool: &PgPool,
-    problem_id: i64,
-) -> Result<(), AdaJudgeError> {
+pub async fn make_submissions_pending(pool: &PgPool, problem_id: i64) -> Result<(), AdaJudgeError> {
     sqlx::query(
-        "update submissions set total_verdict = 'pending'
-            where problem_id = $1",
+        r#"update submissions set total_verdict = 'pending'
+        where problem_id = $1"#,
     )
     .bind(problem_id)
     .execute(pool)

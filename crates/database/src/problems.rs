@@ -139,7 +139,7 @@ pub async fn create_problem(
     pool: &PgPool,
     owner_id: i64,
     problem: &ProblemConfig,
-) -> Result<(), AdaJudgeError> {
+) -> Result<i64, AdaJudgeError> {
     let mut tx = pool.begin().await.map_err(|_| AdaJudgeError::Internal)?;
 
     let problem_id: i64 = sqlx::query_scalar(
@@ -211,7 +211,7 @@ pub async fn create_problem(
 
     tx.commit().await.map_err(|_| AdaJudgeError::Internal)?;
 
-    Ok(())
+    Ok(problem_id)
 }
 
 pub async fn update_problem(

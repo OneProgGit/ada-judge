@@ -291,7 +291,7 @@ pub async fn submit(
     {
         return Err(StatusCode::FORBIDDEN);
     }
-    let submission_id = database::submissions::insert_submission(
+    let submission_id = database::submissions::create_submission(
         &state.db,
         auth.id,
         submission.problem_id,

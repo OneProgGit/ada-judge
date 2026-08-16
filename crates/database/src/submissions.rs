@@ -1,30 +1,25 @@
-//! Database tools for submissions
-
 use aj_models::{
+    errors::AdaJudgeError,
     testing::{Language, SubgroupResult, TestResult},
-    verdicts::{TestingVerdict, Verdict},
+    verdicts::Verdict,
 };
 use models::testing::DatabaseSubmission;
 use sqlx::PgPool;
-use tools::map::MapLogExt;
 
-/// Inserts a submission to `submissions` table and returns it's id
-/// # Errors
-/// Returns an error if `problem_id` is invalid
-pub async fn insert_submission(
+pub async fn create_submission(
     pool: &PgPool,
     user_id: i64,
     problem_id: i64,
     language: &Language,
-) -> Result<i64, TestingVerdict> {
+) -> Result<i64, AdaJudgeError> {
     let submission_id = sqlx::query_scalar(
-        "insert into submissions (problem_id, user_id, language, total_verdict, total_score)
+        r#"insert into submissions (problem_id, user_id, language, total_verdict, total_score)
           values ($1, $2, $3, $4, $5) returning id",
     )
     .bind(problem_id)
     .bind(user_id)
     .bind(language)
-    .bind(TestingVerdict::Pending)
+    .bind(AdaJudgeError::Pending)
     .bind(0)
     .fetch_one(pool)
     .await
@@ -39,9 +34,9 @@ pub async fn insert_submission(
 pub async fn update_total_testing_result(
     pool: &PgPool,
     submission_id: i64,
-    verdict: &TestingVerdict,
+    verdict: &AdaJudgeError,
     score: i32,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), AdaJudgeError> {
     sqlx::query(
         "update submissions set total_verdict = $1, total_score = $2
             where id = $3",
@@ -63,7 +58,7 @@ pub async fn insert_subgroup_testing_result(
     pool: &PgPool,
     submission_id: i64,
     subgroup_index: i32,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), AdaJudgeError> {
     sqlx::query(
         "insert into submissions_subgroups_results (subgroup_index, submission_id, subgroup_verdict, test, score)
             values ($1, $2, $3, $4, $5)",
@@ -88,7 +83,7 @@ pub async fn insert_test_testing_result(
     submission_id: i64,
     test: i32,
     score: Option<i32>,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), AdaJudgeError> {
     sqlx::query(
         "insert into submissions_tests_results (test, submission_id, test_verdict, score)
             values ($1, $2, $3, $4)",
@@ -112,7 +107,7 @@ pub async fn update_subgroup_testing_result(
     submission_id: i64,
     subgroup_index: i32,
     subgroup_result: &SubgroupResult,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), AdaJudgeError> {
     sqlx::query(
         "update submissions_subgroups_results set subgroup_verdict = $1, test = $2, score = $3
             where submission_id = $4 and subgroup_index = $5",
@@ -137,7 +132,7 @@ pub async fn update_test_testing_result(
     submission_id: i64,
     test: i32,
     test_result: &TestResult,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), AdaJudgeError> {
     sqlx::query(
         "update submissions_tests_results set test_verdict = $1, score = $2
             where submission_id = $3 and test = $4",
@@ -159,7 +154,7 @@ pub async fn update_test_testing_result(
 pub async fn get_submission(
     pool: &PgPool,
     submission_id: i64,
-) -> Result<DatabaseSubmission, TestingVerdict> {
+) -> Result<DatabaseSubmission, AdaJudgeError> {
     let submission = sqlx::query_as(
         "select
                 c.id,
@@ -209,7 +204,7 @@ pub async fn get_submission(
 pub async fn get_all_user_submissions(
     pool: &PgPool,
     user_id: Option<i64>,
-) -> Result<Vec<i64>, TestingVerdict> {
+) -> Result<Vec<i64>, AdaJudgeError> {
     match user_id {
         None => sqlx::query_as::<_, (i64,)>("select id from submissions order by id desc")
             .fetch_all(pool)
@@ -234,7 +229,7 @@ pub async fn get_user_contest_submissions(
     pool: &PgPool,
     user_id: Option<i64>,
     contest_id: i64,
-) -> Result<Vec<i64>, TestingVerdict> {
+) -> Result<Vec<i64>, AdaJudgeError> {
     match user_id {
         None => sqlx::query_as::<_, (i64,)>(
             "select c.id from submissions c
@@ -267,7 +262,7 @@ pub async fn get_user_problem_submissions(
     pool: &PgPool,
     user_id: Option<i64>,
     problem_id: i64,
-) -> Result<Vec<i64>, TestingVerdict> {
+) -> Result<Vec<i64>, AdaJudgeError> {
     match user_id {
         None => sqlx::query_as::<_, (i64,)>(
             "select id from submissions where problem_id = $1 order by id desc",
@@ -295,7 +290,7 @@ pub async fn get_user_problem_submissions(
 pub async fn delete_subgroups_results_for_problem(
     pool: &PgPool,
     problem_id: i64,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), AdaJudgeError> {
     sqlx::query(
         "delete from submissions_subgroups_results r
             using submissions s
@@ -315,7 +310,7 @@ pub async fn delete_subgroups_results_for_problem(
 pub async fn delete_tests_results_for_problem(
     pool: &PgPool,
     problem_id: i64,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), AdaJudgeError> {
     sqlx::query(
         "delete from submissions_tests_results r
             using submissions s
@@ -335,7 +330,7 @@ pub async fn delete_tests_results_for_problem(
 pub async fn set_all_submissions_pending_for_problem(
     pool: &PgPool,
     problem_id: i64,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), AdaJudgeError> {
     sqlx::query(
         "update submissions set total_verdict = 'pending'
             where problem_id = $1",

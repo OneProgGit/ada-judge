@@ -1,6 +1,6 @@
 use crate::{
     constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA},
-    tools::convert_path_in_container_to_path_in_host,
+    tools::ToHostExt,
 };
 use aj_models::{
     problems::ProblemConfig,
@@ -15,6 +15,7 @@ pub async fn get_checker_verdict(
     config: &ProblemConfig,
     input_path: &Path,
     answer_path: &Path,
+    tests_paths: &TestsPaths,
 ) -> Result<Verdict, TestingVerdict> {
     let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
 
@@ -42,23 +43,17 @@ pub async fn get_checker_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.checker)?.display()
+                tests_paths.checker.to_host()?.display()
             ),
             "-v",
-            &format!(
-                "{}:/sandbox/input:ro",
-                convert_path_in_container_to_path_in_host(input_path)?.display()
-            ),
+            &format!("{}:/sandbox/input:ro", input_path.to_host()?.display()),
             "-v",
             &format!(
                 "{}:/sandbox/output:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.output)?.display()
+                tests_paths.output.to_host()?.display()
             ),
             "-v",
-            &format!(
-                "{}:/sandbox/answer:ro",
-                convert_path_in_container_to_path_in_host(&answer_path)?.display()
-            ),
+            &format!("{}:/sandbox/answer:ro", answer_path.to_host()?.display()),
             "-w",
             "/sandbox",
             &sandbox_image,
@@ -89,7 +84,7 @@ pub async fn get_checker_run_twice_verdict(
     tests_paths: &TestsPaths,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -115,23 +110,17 @@ pub async fn get_checker_run_twice_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.checker)?.display()
+                tests_paths.checker.to_host()?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/input:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.output)?.display()
+                tests_paths.output.to_host()?.display()
             ),
             "-v",
-            &format!(
-                "{}:/sandbox/output",
-                convert_path_in_container_to_path_in_host(&tests_paths.input)?.display()
-            ),
+            &format!("{}:/sandbox/output", tests_paths.input.to_host()?.display()),
             "-v",
-            &format!(
-                "{}:/sandbox/answer:ro",
-                convert_path_in_container_to_path_in_host(answer_path)?.display()
-            ),
+            &format!("{}:/sandbox/answer:ro", answer_path.to_host()?.display()),
             "-w",
             "/sandbox",
             &sandbox_image,
@@ -164,7 +153,7 @@ pub async fn get_checker_run_twice_interactive_verdict(
     tests_paths: &TestsPaths,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -190,28 +179,22 @@ pub async fn get_checker_run_twice_interactive_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.checker)?.display()
+                tests_paths.checker.to_host()?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/input:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.output)?.display()
+                tests_paths.output.to_host()?.display()
             ),
             "-v",
-            &format!(
-                "{}:/sandbox/output",
-                convert_path_in_container_to_path_in_host(&tests_paths.input)?.display()
-            ),
+            &format!("{}:/sandbox/output", tests_paths.input.to_host()?.display()),
             "-v",
             &format!(
                 "{}:/sandbox/final_output:ro",
-                convert_path_in_container_to_path_in_host(final_output)?.display()
+                final_output.to_host()?.display()
             ),
             "-v",
-            &format!(
-                "{}:/sandbox/answer:ro",
-                convert_path_in_container_to_path_in_host(answer_path)?.display()
-            ),
+            &format!("{}:/sandbox/answer:ro", answer_path.to_host()?.display()),
             "-w",
             "/sandbox",
             &sandbox_image,

@@ -3,16 +3,23 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
-use tools::map::MapLogExt;
 
-pub fn convert_path_in_container_to_path_in_host(path: &Path) -> Result<PathBuf, TestingVerdict> {
-    if let Ok(host_run_dir) = env::var("HOST_RUNS_DIR") {
-        let host_runs_dir = PathBuf::from(host_run_dir);
-        Ok(host_runs_dir.join(
-            path.strip_prefix("/")
-                .map_log(TestingVerdict::InvalidProblem)?,
-        ))
-    } else {
-        Ok(path.into())
+pub trait ToHostExt<T> {
+    fn to_host(&self) -> Result<PathBuf, TestingVerdict>;
+}
+
+impl<T> ToHostExt<T> for T
+where
+    T: AsRef<Path>,
+{
+    fn to_host(&self) -> Result<PathBuf, TestingVerdict> {
+        let path = self.as_ref();
+
+        if let Ok(host_run_dir) = env::var("HOST_RUNS_DIR") {
+            let host_runs_dir = PathBuf::from(host_run_dir);
+            Ok(host_runs_dir.join(path.strip_prefix("/").map_err(|_| TestingVerdict::Fail)?))
+        } else {
+            Ok(path.to_path_buf())
+        }
     }
 }

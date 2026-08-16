@@ -1,6 +1,6 @@
 use crate::{
     constants::{VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
-    tools::convert_path_in_container_to_path_in_host,
+    tools::container_to_host,
 };
 use aj_models::{
     problems::ProblemConfig,
@@ -51,7 +51,7 @@ pub async fn get_solution_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.solution)?.display()
+                container_to_host(&tests_paths.solution)?.display()
             ),
             "-w",
             "/sandbox",

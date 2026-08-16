@@ -8,7 +8,7 @@ use models::testing::{SubmissionTask, TestsPaths};
 use tokio::process::Command;
 use tools::map::MapLogExt;
 
-use crate::tools::convert_path_in_container_to_path_in_host;
+use crate::tools::container_to_host;
 
 pub async fn compile_solution(
     run_path: &Path,
@@ -68,7 +68,7 @@ pub async fn compile_solution(
             "-v",
             &format!(
                 "{}:/sandbox/env",
-                convert_path_in_container_to_path_in_host(run_path)?.display(),
+                container_to_host(run_path)?.display(),
             ),
             "-w",
             "/sandbox",

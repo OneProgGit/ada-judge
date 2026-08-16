@@ -1,6 +1,6 @@
 use crate::{
     constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA, VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
-    tools::convert_path_in_container_to_path_in_host,
+    tools::container_to_host,
 };
 use aj_models::{
     problems::ProblemConfig,
@@ -76,22 +76,22 @@ pub async fn get_interactive_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.checker)?.display()
+                container_to_host(&tests_paths.checker)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/input:ro",
-                convert_path_in_container_to_path_in_host(&solution_to_checker_path)?.display()
+                container_to_host(&solution_to_checker_path)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/output",
-                convert_path_in_container_to_path_in_host(&checker_to_solution_path)?.display()
+                container_to_host(&checker_to_solution_path)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/answer:ro",
-                convert_path_in_container_to_path_in_host(answer_path)?.display()
+                container_to_host(answer_path)?.display()
             ),
             "-w",
             "/sandbox",
@@ -145,7 +145,7 @@ pub async fn get_interactive_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.solution)?.display()
+                container_to_host(&tests_paths.solution)?.display()
             ),
             "-w",
             "/sandbox",
@@ -242,27 +242,27 @@ pub async fn get_interactive_run_twice_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.checker)?.display()
+                container_to_host(&tests_paths.checker)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/input:ro",
-                convert_path_in_container_to_path_in_host(&solution_to_checker_path)?.display()
+                container_to_host(&solution_to_checker_path)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/output",
-                convert_path_in_container_to_path_in_host(&checker_to_solution_path)?.display()
+                container_to_host(&checker_to_solution_path)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/final_output:ro",
-                convert_path_in_container_to_path_in_host(final_output)?.display()
+                container_to_host(final_output)?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/answer:ro",
-                convert_path_in_container_to_path_in_host(answer_path)?.display()
+                container_to_host(answer_path)?.display()
             ),
             "-w",
             "/sandbox",
@@ -318,7 +318,7 @@ pub async fn get_interactive_run_twice_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                convert_path_in_container_to_path_in_host(&tests_paths.solution)?.display()
+                container_to_host(&tests_paths.solution)?.display()
             ),
             "-w",
             "/sandbox",

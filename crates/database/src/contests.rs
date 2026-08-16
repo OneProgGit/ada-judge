@@ -1,15 +1,12 @@
 use aj_models::{
-    contests::{ContestPost, LeaderboardRow, PublicContestConfig},
+    contests::{
+        ContestPost, ContestPostRequest, ContestRequest, LeaderboardRow, PublicContestConfig,
+    },
     errors::AdaJudgeError,
     problems::PublicProblemConfig,
-    verdicts::TestingVerdict,
 };
 use models::problems::DatabaseProblemConfig;
-use sqlx::{
-    PgPool,
-    postgres::PgSeverity::Error,
-    types::chrono::{DateTime, Utc},
-};
+use sqlx::PgPool;
 
 pub enum GetContestsMode {
     User(i64),
@@ -112,7 +109,7 @@ pub async fn get_problems(
     pool: &PgPool,
     contest_id: i64,
 ) -> Result<Vec<PublicProblemConfig>, AdaJudgeError> {
-    sqlx::query_as::<_, DatabaseProblemConfig>(
+    let problems = sqlx::query_as::<_, DatabaseProblemConfig>(
         r#"select
                 c.id,
                 c.owner_id,
@@ -125,6 +122,7 @@ pub async fn get_problems(
                 c.time_limit_ms,
                 c.memory_limit_mb,
                 c.checker_path,
+                c.checker_lang,
                 c.tests_path,
                 c.created_at,
                 coalesce(
@@ -146,46 +144,120 @@ pub async fn get_problems(
     .bind(contest_id)
     .fetch_all(pool)
     .await
-    .map(|rows| rows.iter().map(|x| x.clone().into()).collect())
-    .map_err(|_| AdaJudgeError::Internal)
+    .map_err(|_| AdaJudgeError::Internal)?
+    .iter()
+    .map(|x| x.clone().into())
+    .collect();
+
+    Ok(problems)
 }
 
-pub async fn get_contests(pool: &PgPool, mode: GetContestsMode) -> Result<Vec<i64>, AdaJudgeError> {
-    match mode {
-        GetContestsMode::All => {
-            sqlx::query_as::<_, (i64,)>(r#"select id from contests order by id desc"#)
-                .fetch_all(pool)
-                .await
-                .map(|rows| rows.iter().map(|(id,)| *id).collect())
-                .map_err(|_| AdaJudgeError::Internal)
-        }
+pub async fn get_contests(
+    pool: &PgPool,
+    mode: GetContestsMode,
+) -> Result<Vec<PublicContestConfig>, AdaJudgeError> {
+    let contests = match mode {
+        GetContestsMode::All => sqlx::query_as(
+            r#"select
+                    c.id,
+                    c.owner_id,
+                    c.name_ru,
+                    c.name_en,
+                    c.statements_url_ru,
+                    c.editorial_url_ru,
+                    c.statements_url_en,
+                    c.editorial_url_en,
+                    c.starts_at,
+                    c.finishes_at,
+                    c.hidden,
+                    c.upsolving_enabled,
+                    c.solutions_hidden,
+                    c.leaderboard_hidden,
+                    coalesce(
+                        array_agg(co.user_id) filter (where co.user_id is not null),
+                        '{}'
+                    ) as co_authors from contests c
+                    left join contests_co_authors co on co.contest_id = c.id
+                    group by c.id
+                    order by c.id desc"#,
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|_| AdaJudgeError::Internal)?,
 
-        GetContestsMode::NotHidden(user_id) => sqlx::query_as::<_, (i64,)>(
-            r#"select id from contests where not hidden or owner_id = $1
+        GetContestsMode::NotHidden(user_id) => sqlx::query_as(
+            r#"select
+                    c.id,
+                    c.owner_id,
+                    c.name_ru,
+                    c.name_en,
+                    c.statements_url_ru,
+                    c.editorial_url_ru,
+                    c.statements_url_en,
+                    c.editorial_url_en,
+                    c.starts_at,
+                    c.finishes_at,
+                    c.hidden,
+                    c.upsolving_enabled,
+                    c.solutions_hidden,
+                    c.leaderboard_hidden,
+                    coalesce(
+                        array_agg(co.user_id) filter (where co.user_id is not null),
+                        '{}'
+                    ) as co_authors from contests c
+                    left join contests_co_authors co on co.contest_id = c.id
+                    where not c.hidden or c.owner_id = $1
                     or exists(
                         select 1 from contests_co_authors
-                        where contest_id = contests.id
+                        where contest_id = c.id
                             and user_id = $1
-                    ) order by id desc"#,
+                    )
+                    group by c.id
+                    order by c.id desc"#,
         )
         .bind(user_id)
         .fetch_all(pool)
         .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_err(|_| AdaJudgeError::Internal),
+        .map_err(|_| AdaJudgeError::Internal)?,
 
-        GetContestsMode::User(user_id) => sqlx::query_as::<_, (i64,)>(
-            r#"select id from contests where owner_id = $1 order by id desc"#,
+        GetContestsMode::User(user_id) => sqlx::query_as(
+            r#"select
+                    c.id,
+                    c.owner_id,
+                    c.name_ru,
+                    c.name_en,
+                    c.statements_url_ru,
+                    c.editorial_url_ru,
+                    c.statements_url_en,
+                    c.editorial_url_en,
+                    c.starts_at,
+                    c.finishes_at,
+                    c.hidden,
+                    c.upsolving_enabled,
+                    c.solutions_hidden,
+                    c.leaderboard_hidden,
+                    coalesce(
+                        array_agg(co.user_id) filter (where co.user_id is not null),
+                        '{}'
+                    ) as co_authors from contests c
+                    left join contests_co_authors co on co.contest_id = c.id
+                    where c.owner_id = $1
+                    group by c.id
+                    order by c.id desc"#,
         )
         .bind(user_id)
         .fetch_all(pool)
         .await
-        .map(|rows| rows.iter().map(|(id,)| *id).collect())
-        .map_err(|_| AdaJudgeError::Internal),
-    }
+        .map_err(|_| AdaJudgeError::Internal)?,
+    };
+
+    Ok(contests)
 }
 
-pub async fn get_contest(&self, contest_id: i64) -> Result<PublicContestConfig, TestingVerdict> {
+pub async fn get_contest(
+    pool: &PgPool,
+    contest_id: i64,
+) -> Result<PublicContestConfig, AdaJudgeError> {
     sqlx::query_as(
         r#"select
                 c.id,
@@ -216,124 +288,99 @@ pub async fn get_contest(&self, contest_id: i64) -> Result<PublicContestConfig, 
     .map_err(|_| AdaJudgeError::Internal)
 }
 
-/// Creates a contest by given contest data
-/// # Errors
-/// Returns an error if `owner_id` is invalid
 pub async fn create_contest(
     pool: &PgPool,
-    owner_id: i64,
-    name_ru: &str,
-    name_en: &str,
-    starts_at: &DateTime<Utc>,
-    ends_at: &DateTime<Utc>,
-    statements_url_ru: &str,
-    editorial_url_ru: &str,
-    statements_url_en: &str,
-    editorial_url_en: &str,
-    hidden: bool,
-    upsolving_opened: bool,
-    hide_solutions: bool,
-    hide_leaderboard: bool,
-) -> Result<i64, TestingVerdict> {
-    let contest_id = sqlx::query_scalar(
-            "insert into contests
-                (owner_id, name_ru, name_en, starts_at,
-                ends_at, statements_url_ru, editorial_url_ru, statements_url_en, editorial_url_en, hidden, upsolving_opened,
-                hide_solutions, hide_leaderboard) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id",
+    user_id: i64,
+    contest: &ContestRequest,
+) -> Result<(), AdaJudgeError> {
+    let mut tx = pool.begin().await.map_err(|_| AdaJudgeError::Internal)?;
+
+    let contest_id: i64 = sqlx::query_scalar(
+        r#"insert into contests
+            (owner_id, name_ru, name_en, starts_at,
+            finishes_at, statements_url_ru, editorial_url_ru, statements_url_en, editorial_url_en, hidden,
+            upsolving_enabled, solutions_hidden, leaderboard_hidden) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id"#,
         )
-        .bind(owner_id)
-        .bind(name_ru)
-        .bind(name_en)
-        .bind(starts_at)
-        .bind(ends_at)
-        .bind(statements_url_ru)
-        .bind(editorial_url_ru)
-        .bind(statements_url_en)
-        .bind(editorial_url_en)
-        .bind(hidden)
-        .bind(upsolving_opened)
-        .bind(hide_solutions)
-        .bind(hide_leaderboard)
-        .fetch_one(pool)
+        .bind(user_id)
+        .bind(&contest.name_ru)
+        .bind(&contest.name_en)
+        .bind(contest.starts_at)
+        .bind(contest.finishes_at)
+        .bind(&contest.statements_url_ru)
+        .bind(&contest.editorial_url_ru)
+        .bind(&contest.statements_url_en)
+        .bind(&contest.editorial_url_en)
+        .bind(contest.hidden)
+        .bind(contest.upsolving_enabled)
+        .bind(contest.solutions_hidden)
+        .bind(contest.leaderboard_hidden)
+        .fetch_one(&mut *tx)
         .await
         .map_err(|_| AdaJudgeError::Internal)?;
 
-    Ok(contest_id)
-}
-
-/// Updates a contest by given contest id and contest data
-/// # Errors
-/// Returns an error if `contest_id` is invalid
-pub async fn update_contest(
-    pool: &PgPool,
-    contest_id: i64,
-    name_ru: &str,
-    name_en: &str,
-    starts_at: &DateTime<Utc>,
-    ends_at: &DateTime<Utc>,
-    statements_url_ru: &str,
-    editorial_url_ru: &str,
-    statements_url_en: &str,
-    editorial_url_en: &str,
-    hidden: bool,
-    upsolving_opened: bool,
-    hide_solutions: bool,
-    hide_leaderboard: bool,
-) -> Result<(), TestingVerdict> {
-    sqlx::query("update contests set name_ru = $1, name_en = $2, starts_at = $3,
-                    ends_at = $4, statements_url_ru = $5, editorial_url_ru = $6, statements_url_en = $7, editorial_url_en = $8, hidden = $9, upsolving_opened = $10,
-                    hide_solutions = $11, hide_leaderboard = $12 where id = $13")
-            .bind(name_ru)
-            .bind(name_en)
-            .bind(starts_at)
-            .bind(ends_at)
-            .bind(statements_url_ru)
-            .bind(editorial_url_ru)
-            .bind(statements_url_en)
-            .bind(editorial_url_en)
-            .bind(hidden)
-            .bind(upsolving_opened)
-            .bind(hide_solutions)
-            .bind(hide_leaderboard)
+    for user_id in &contest.co_authors {
+        sqlx::query(r#"insert into contests_co_authors (contest_id, user_id) values ($1, $2)"#)
             .bind(contest_id)
-            .execute(pool)
+            .bind(user_id)
+            .execute(&mut *tx)
             .await
             .map_err(|_| AdaJudgeError::Internal)?;
+    }
+
+    tx.commit().await.map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
 
-/// Erases and inserts contest's co-authors
-/// # Errors
-/// Returns an error if `contest_id` is invalid
-pub async fn insert_contest_co_authors(
+pub async fn update_contest(
     pool: &PgPool,
     contest_id: i64,
-    co_authors: &Vec<i64>,
-) -> Result<(), TestingVerdict> {
-    let mut tx = pool.begin().await.map_log(TestingVerdict::Bug)?;
+    contest: &ContestRequest,
+) -> Result<(), AdaJudgeError> {
+    let mut tx = pool.begin().await.map_err(|_| AdaJudgeError::Internal)?;
+
+    sqlx::query(r#"update contests set name_ru = $1, name_en = $2, starts_at = $3,
+                    finishes_at = $4, statements_url_ru = $5, editorial_url_ru = $6, statements_url_en = $7,
+                    editorial_url_en = $8, hidden = $9, upsolving_enabled = $10,
+                    solutions_hidden = $11, leaderboard_hidden = $12 where id = $13"#)
+            .bind(&contest.name_ru)
+            .bind(&contest.name_en)
+            .bind(contest.starts_at)
+            .bind(contest.finishes_at)
+            .bind(&contest.statements_url_ru)
+            .bind(&contest.editorial_url_ru)
+            .bind(&contest.statements_url_en)
+            .bind(&contest.editorial_url_en)
+            .bind(contest.hidden)
+            .bind(contest.upsolving_enabled)
+            .bind(contest.solutions_hidden)
+            .bind(contest.leaderboard_hidden)
+            .bind(contest_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|_| AdaJudgeError::Internal)?;
+
     sqlx::query(r#"delete from contests_co_authors where contest_id = $1"#)
         .bind(contest_id)
         .execute(&mut *tx)
         .await
-        .map_log(TestingVerdict::Bug)?;
-    for co_author in co_authors {
+        .map_err(|_| AdaJudgeError::Internal)?;
+
+    for user_id in &contest.co_authors {
         sqlx::query(r#"insert into contests_co_authors (contest_id, user_id) values ($1, $2)"#)
             .bind(contest_id)
-            .bind(co_author)
+            .bind(user_id)
             .execute(&mut *tx)
             .await
-            .map_log(TestingVerdict::Bug)?;
+            .map_err(|_| AdaJudgeError::Internal)?;
     }
-    tx.commit().await.map_log(TestingVerdict::Bug)?;
+
+    tx.commit().await.map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
 
-/// Deletes a contest by given id
-/// # Errors
-/// Returns an error if the contest with this id does not exist
-pub async fn delete_contest(pool: &PgPool, contest_id: i64) -> Result<(), TestingVerdict> {
+pub async fn delete_contest(pool: &PgPool, contest_id: i64) -> Result<(), AdaJudgeError> {
     sqlx::query(r#"delete from contests where id = $1"#)
         .bind(contest_id)
         .execute(pool)
@@ -343,62 +390,51 @@ pub async fn delete_contest(pool: &PgPool, contest_id: i64) -> Result<(), Testin
     Ok(())
 }
 
-/// Creates a post in contest by given post data
-/// # Errors
-/// Returns an error if `owner_id` is invalid
 pub async fn create_contest_post(
     pool: &PgPool,
-    owner_id: i64,
+    user_id: i64,
     contest_id: i64,
-    title_ru: &str,
-    text_ru: &str,
-    title_en: &str,
-    text_en: &str,
-) -> Result<i64, TestingVerdict> {
-    let post_id = sqlx::query_scalar(
-            r#"insert into contests_posts (owner_id, contest_id, title_ru, text_ru, title_en, text_en) values ($1, $2, $3, $4, $5, $6) returning id"#,
-        )
-        .bind(owner_id)
-        .bind(contest_id)
-        .bind(title_ru)
-        .bind(text_ru)
-        .bind(title_en)
-        .bind(text_en)
-        .fetch_one(pool)
-        .await
-        .map_err(|_| AdaJudgeError::Internal)?;
-
-    Ok(post_id)
-}
-
-/// Updates a post in contest by given post data
-/// # Errors
-/// Returns an error if `post_id` is invalid
-pub async fn update_contest_post(
-    pool: &PgPool,
-    post_id: i64,
-    title_ru: &str,
-    text_ru: &str,
-    title_en: &str,
-    text_en: &str,
-) -> Result<(), TestingVerdict> {
-    sqlx::query(r#"update contests_posts set title_ru = $1, text_ru = $2, title_en = $3, text_en = $4 where id = $5"#)
-            .bind(title_ru)
-            .bind(text_ru)
-            .bind(title_en)
-            .bind(text_en)
-            .bind(post_id)
-            .execute(pool)
-            .await
-            .map_err(|_| AdaJudgeError::Internal)?;
+    post: &ContestPostRequest,
+) -> Result<(), AdaJudgeError> {
+    sqlx::query(
+        r#"insert into contests_posts (owner_id, contest_id, title_ru,
+            text_ru, title_en, text_en) values ($1, $2, $3, $4, $5, $6)"#,
+    )
+    .bind(user_id)
+    .bind(contest_id)
+    .bind(&post.title_ru)
+    .bind(&post.text_ru)
+    .bind(&post.title_en)
+    .bind(&post.text_en)
+    .fetch_one(pool)
+    .await
+    .map_err(|_| AdaJudgeError::Internal)?;
 
     Ok(())
 }
 
-/// Deletes a post from contest
-/// # Errors
-/// Returns an error if `post_id` is invalid
-pub async fn delete_contest_post(pool: &PgPool, post_id: i64) -> Result<(), TestingVerdict> {
+pub async fn update_contest_post(
+    pool: &PgPool,
+    post_id: i64,
+    post: &ContestPostRequest,
+) -> Result<(), AdaJudgeError> {
+    sqlx::query(
+        r#"update contests_posts set title_ru = $1, text_ru = $2,
+                    title_en = $3, text_en = $4 where id = $5"#,
+    )
+    .bind(&post.title_ru)
+    .bind(&post.text_ru)
+    .bind(&post.title_en)
+    .bind(&post.text_en)
+    .bind(post_id)
+    .execute(pool)
+    .await
+    .map_err(|_| AdaJudgeError::Internal)?;
+
+    Ok(())
+}
+
+pub async fn delete_contest_post(pool: &PgPool, post_id: i64) -> Result<(), AdaJudgeError> {
     sqlx::query(r#"delete from contests_posts where id = $1"#)
         .bind(post_id)
         .execute(pool)
@@ -408,13 +444,7 @@ pub async fn delete_contest_post(pool: &PgPool, post_id: i64) -> Result<(), Test
     Ok(())
 }
 
-/// Gets a contest's post by given id
-/// # Errors
-/// Returns an error if `post_id` is invalid
-pub async fn get_contest_post_by_id(
-    pool: &PgPool,
-    post_id: i64,
-) -> Result<ContestPost, TestingVerdict> {
+pub async fn get_contest_post(pool: &PgPool, post_id: i64) -> Result<ContestPost, AdaJudgeError> {
     sqlx::query_as(r#"select * from contests_posts where id = $1"#)
         .bind(post_id)
         .fetch_one(pool)
@@ -422,16 +452,16 @@ pub async fn get_contest_post_by_id(
         .map_err(|_| AdaJudgeError::Internal)
 }
 
-/// Gets a contest's posts
-/// # Errors
-/// Returns an error if `contest_id` is invalid
-pub async fn get_contest_posts(pool: &PgPool, contest_id: i64) -> Result<Vec<i64>, TestingVerdict> {
-    sqlx::query_as::<_, (i64,)>(
-        r#"select id from contests_posts where contest_id = $1 order by id desc"#,
-    )
-    .bind(contest_id)
-    .fetch_all(pool)
-    .await
-    .map(|rows| rows.iter().map(|(id,)| *id).collect())
-    .map_err(|_| AdaJudgeError::Internal)
+pub async fn get_contest_posts(
+    pool: &PgPool,
+    contest_id: i64,
+) -> Result<Vec<ContestPost>, AdaJudgeError> {
+    let posts =
+        sqlx::query_as(r#"select * from contests_posts where contest_id = $1 order by id desc"#)
+            .bind(contest_id)
+            .fetch_all(pool)
+            .await
+            .map_err(|_| AdaJudgeError::Internal)?;
+
+    Ok(posts)
 }

@@ -24,7 +24,7 @@ pub struct DatabaseSubmission {
     pub user_id: i64,
     pub language: Language,
     pub verdict: TestingVerdict,
-    pub score: i32,
+    pub score: f64,
     pub subgroups_results: Json<Vec<SubgroupResult>>,
     pub tests_results: Json<Vec<TestResult>>,
     pub created_at: DateTime<Utc>,

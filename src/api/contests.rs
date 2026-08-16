@@ -263,7 +263,7 @@ pub async fn update_contest_post(
     Auth(auth): Auth,
     Json(request): Json<ContestPostRequest>,
 ) -> Result<(), StatusCode> {
-    let post = database::contests::get_contest_post_by_id(&state.db, post_id)
+    let post = database::contests::get_contest_post(&state.db, post_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
@@ -300,7 +300,7 @@ pub async fn delete_contest_post(
     if !is_valid_password {
         Err(StatusCode::BAD_REQUEST)
     } else {
-        let post = database::contests::get_contest_post_by_id(&state.db, post_id)
+        let post = database::contests::get_contest_post(&state.db, post_id)
             .await
             .map_http()?;
         if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
@@ -319,7 +319,7 @@ pub async fn get_contest_post_by_id(
     Path(post_id): Path<i64>,
 ) -> Result<Json<ContestPost>, StatusCode> {
     Ok(Json(
-        database::contests::get_contest_post_by_id(&state.db, post_id)
+        database::contests::get_contest_post(&state.db, post_id)
             .await
             .map_http()?,
     ))

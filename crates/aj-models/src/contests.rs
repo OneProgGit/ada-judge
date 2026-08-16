@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 pub struct LeaderboardRow {
     pub user_id: i64,
     pub login: String,
-    pub scores: Vec<i32>,
-    pub total_score: i64,
+    pub scores: Vec<f64>,
+    pub total_score: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -28,6 +28,7 @@ pub struct ContestRequest {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct PublicContestConfig {
     pub id: i64,
     pub name_ru: String,

@@ -42,8 +42,8 @@ pub struct SubmissonRequest {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct TestingResult {
-    pub total_verdict: TestingVerdict,
-    pub total_score: i32,
+    pub verdict: TestingVerdict,
+    pub score: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -51,14 +51,14 @@ pub struct TestingResult {
 pub struct SubgroupResult {
     pub verdict: Verdict,
     pub test: i32,
-    pub score: i32,
+    pub score: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct TestResult {
     pub verdict: Verdict,
-    pub score: Option<i32>,
+    pub score: Option<f64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -69,7 +69,7 @@ pub struct Submission {
     pub user_id: i64,
     pub language: Language,
     pub verdict: TestingVerdict,
-    pub score: i32,
+    pub score: f64,
     pub subgroups_results: Vec<SubgroupResult>,
     pub tests_results: Vec<TestResult>,
     pub created_at: DateTime<Utc>,

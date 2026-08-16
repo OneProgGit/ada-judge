@@ -13,7 +13,8 @@ pub struct ProblemConfig {
     pub index: i64,
     pub time_limit_ms: i32,
     pub memory_limit_mb: i32,
-    pub checker_src_path: String,
+    pub checker_path: String,
+    pub checker_lang: String,
     pub tests_path: String,
     pub subgroups: Vec<Subgroup>,
 }
@@ -67,8 +68,8 @@ pub enum ProblemTestingType {
 pub struct Subgroup {
     pub r#type: SubgroupType,
     pub tests: Vec<i32>,
-    pub score: Option<i32>,
-    pub score_per_test: Option<i32>,
+    pub score: Option<f64>,
+    pub score_per_test: Option<f64>,
     pub depends_on: Vec<usize>,
 }
 

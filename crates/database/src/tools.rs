@@ -10,7 +10,9 @@ pub trait MapDbExt<T> {
 impl<T: Send> MapDbExt<T> for Result<T, TestingVerdict> {
     async fn map_db(self, pool: &PgPool, submission_id: i64) -> Self {
         if let Err(verdict) = &self {
-            update_submission(pool, submission_id, verdict, 0).await?;
+            update_submission(pool, submission_id, verdict, 0.)
+                .await
+                .map_err(|_| TestingVerdict::Fail)?;
         }
         self
     }

@@ -1,6 +1,6 @@
 use crate::{
     constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA, VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
-    tools::container_to_host,
+    tools::ToHostExt,
 };
 use aj_models::{
     problems::ProblemConfig,
@@ -16,18 +16,16 @@ use tokio::{
     fs::{self, File},
     process::Command,
 };
-use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_interactive_verdict(
+pub async fn get_run_interactive_verdict(
     config: &ProblemConfig,
-    input_path: &Path,
-    output_path: &Path,
     answer_path: &Path,
+    tests_paths: &TestsPaths,
 ) -> Result<Verdict, TestingVerdict> {
     fs::create_dir_all(&tests_paths.fifo)
         .await
-        .map_log(TestingVerdict::Bug)?;
+        .map_err(|_| TestingVerdict::Fail)?;
 
     let checker_to_solution = format!("{}/checker_to_solution", tests_paths.fifo.display());
     let solution_to_checker = format!("{}/solution_to_checker", tests_paths.fifo.display());
@@ -37,20 +35,22 @@ pub async fn get_interactive_verdict(
 
     for path in [&checker_to_solution, &solution_to_checker] {
         if PathBuf::from(path).exists() {
-            fs::remove_file(path).await.map_log(TestingVerdict::Bug)?;
+            fs::remove_file(path)
+                .await
+                .map_err(|_| TestingVerdict::Fail)?;
         }
 
         let status = Command::new("mkfifo")
             .arg(path)
             .status()
             .await
-            .map_log(TestingVerdict::Bug)?;
+            .map_err(|_| TestingVerdict::Fail)?;
         if !status.success() {
-            return Err(TestingVerdict::Bug);
+            return Err(TestingVerdict::Fail);
         }
     }
 
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
 
     let mut checker_child = Command::new("docker")
         .args([
@@ -76,23 +76,20 @@ pub async fn get_interactive_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                container_to_host(&tests_paths.checker)?.display()
+                tests_paths.checker.to_host()?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/input:ro",
-                container_to_host(&solution_to_checker_path)?.display()
+                solution_to_checker_path.to_host()?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/output",
-                container_to_host(&checker_to_solution_path)?.display()
+                checker_to_solution_path.to_host()?.display()
             ),
             "-v",
-            &format!(
-                "{}:/sandbox/answer:ro",
-                container_to_host(answer_path)?.display()
-            ),
+            &format!("{}:/sandbox/answer:ro", answer_path.to_host()?.display()),
             "-w",
             "/sandbox",
             &sandbox_image,
@@ -106,18 +103,18 @@ pub async fn get_interactive_verdict(
             "/sandbox/answer",
         ])
         .spawn()
-        .map_log(TestingVerdict::Bug)?;
+        .map_err(|_| TestingVerdict::Fail)?;
 
     let (checker_to_solution_read, solution_to_checker_write) = tokio::join!(
         File::open(&checker_to_solution_path),
         File::create(&solution_to_checker_path)
     );
     let checker_to_solution_read = checker_to_solution_read
-        .map_log(TestingVerdict::Bug)?
+        .map_err(|_| TestingVerdict::Fail)?
         .into_std()
         .await;
     let solution_to_checker_write = solution_to_checker_write
-        .map_log(TestingVerdict::Bug)?
+        .map_err(|_| TestingVerdict::Fail)?
         .into_std()
         .await;
 
@@ -145,7 +142,7 @@ pub async fn get_interactive_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                container_to_host(&tests_paths.solution)?.display()
+                tests_paths.solution.to_host()?.display()
             ),
             "-w",
             "/sandbox",
@@ -159,20 +156,19 @@ pub async fn get_interactive_verdict(
         .stdin(Stdio::from(checker_to_solution_read))
         .stdout(Stdio::from(solution_to_checker_write))
         .spawn()
-        .map_log(TestingVerdict::Bug)?;
+        .map_err(|_| TestingVerdict::Fail)?;
 
     let (checker_status, solution_status) =
         tokio::join!(checker_child.wait(), solution_child.wait());
+
     solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
         match status.code() {
             Some(VERDICT_OK) => {
-                checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
-                    match status.code() {
-                        Some(CHECKER_OK) => Ok(Verdict::Ok),
-                        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
-                        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-                        _ => Err(TestingVerdict::InvalidProblem),
-                    }
+                checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
+                    Some(CHECKER_OK) => Ok(Verdict::Ok),
+                    Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+                    Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+                    _ => Err(TestingVerdict::Fail),
                 })
             }
             Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
@@ -183,17 +179,16 @@ pub async fn get_interactive_verdict(
 }
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_interactive_run_twice_verdict(
+pub async fn get_run_interactive_verdict_run_twice(
     config: &ProblemConfig,
-    input_path: &Path,
-    output_path: &Path,
-    final_output: &Path,
     answer_path: &Path,
+    final_output: &Path,
+    tests_paths: &TestsPaths,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
     fs::create_dir_all(&tests_paths.fifo)
         .await
-        .map_log(TestingVerdict::Bug)?;
+        .map_err(|_| TestingVerdict::Fail)?;
 
     let checker_to_solution = format!("{}/checker_to_solution", tests_paths.fifo.display());
     let solution_to_checker = format!("{}/solution_to_checker", tests_paths.fifo.display());
@@ -203,20 +198,22 @@ pub async fn get_interactive_run_twice_verdict(
 
     for path in [&checker_to_solution, &solution_to_checker] {
         if PathBuf::from(path).exists() {
-            fs::remove_file(path).await.map_log(TestingVerdict::Bug)?;
+            fs::remove_file(path)
+                .await
+                .map_err(|_| TestingVerdict::Fail)?;
         }
 
         let status = Command::new("mkfifo")
             .arg(path)
             .status()
             .await
-            .map_log(TestingVerdict::Bug)?;
+            .map_err(|_| TestingVerdict::Fail)?;
         if !status.success() {
-            return Err(TestingVerdict::Bug);
+            return Err(TestingVerdict::Fail);
         }
     }
 
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
 
     let mut checker_child = Command::new("docker")
         .args([
@@ -242,28 +239,25 @@ pub async fn get_interactive_run_twice_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                container_to_host(&tests_paths.checker)?.display()
+                tests_paths.checker.to_host()?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/input:ro",
-                container_to_host(&solution_to_checker_path)?.display()
+                solution_to_checker_path.to_host()?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/output",
-                container_to_host(&checker_to_solution_path)?.display()
+                checker_to_solution_path.to_host()?.display()
             ),
             "-v",
             &format!(
                 "{}:/sandbox/final_output:ro",
-                container_to_host(final_output)?.display()
+                final_output.to_host()?.display()
             ),
             "-v",
-            &format!(
-                "{}:/sandbox/answer:ro",
-                container_to_host(answer_path)?.display()
-            ),
+            &format!("{}:/sandbox/answer:ro", answer_path.to_host()?.display()),
             "-w",
             "/sandbox",
             &sandbox_image,
@@ -279,18 +273,18 @@ pub async fn get_interactive_run_twice_verdict(
             &stage.to_string(),
         ])
         .spawn()
-        .map_log(TestingVerdict::Bug)?;
+        .map_err(|_| TestingVerdict::Fail)?;
 
     let (checker_to_solution_read, solution_to_checker_write) = tokio::join!(
         File::open(&checker_to_solution_path),
         File::create(&solution_to_checker_path)
     );
     let checker_to_solution_read = checker_to_solution_read
-        .map_log(TestingVerdict::Bug)?
+        .map_err(|_| TestingVerdict::Fail)?
         .into_std()
         .await;
     let solution_to_checker_write = solution_to_checker_write
-        .map_log(TestingVerdict::Bug)?
+        .map_err(|_| TestingVerdict::Fail)?
         .into_std()
         .await;
 
@@ -318,7 +312,7 @@ pub async fn get_interactive_run_twice_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                container_to_host(&tests_paths.solution)?.display()
+                tests_paths.solution.to_host()?.display()
             ),
             "-w",
             "/sandbox",
@@ -332,20 +326,19 @@ pub async fn get_interactive_run_twice_verdict(
         .stdin(Stdio::from(checker_to_solution_read))
         .stdout(Stdio::from(solution_to_checker_write))
         .spawn()
-        .map_log(TestingVerdict::Bug)?;
+        .map_err(|_| TestingVerdict::Fail)?;
 
     let (checker_status, solution_status) =
         tokio::join!(checker_child.wait(), solution_child.wait());
+
     solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
         match status.code() {
             Some(VERDICT_OK) => {
-                checker_status.map_or(Err(TestingVerdict::InvalidProblem), |status| {
-                    match status.code() {
-                        Some(CHECKER_OK) => Ok(Verdict::Ok),
-                        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
-                        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-                        _ => Err(TestingVerdict::InvalidProblem),
-                    }
+                checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
+                    Some(CHECKER_OK) => Ok(Verdict::Ok),
+                    Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+                    Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+                    _ => Err(TestingVerdict::Fail),
                 })
             }
             Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),

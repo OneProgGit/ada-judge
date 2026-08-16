@@ -16,7 +16,7 @@ pub async fn is_contest_active(
     let Ok(contest) = database::contests::get_contest_by_id(pool, contest_id).await else {
         return false;
     };
-    let Ok(problem) = database::problems::get_problem_by_id(pool, problem_id).await else {
+    let Ok(problem) = database::problems::get_problem(pool, problem_id).await else {
         return false;
     };
 

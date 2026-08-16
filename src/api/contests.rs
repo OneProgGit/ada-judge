@@ -45,7 +45,7 @@ pub async fn get_problem_by_id(
     Path((_, problem_id)): Path<(i64, i64)>,
 ) -> Result<Json<PublicProblemConfig>, StatusCode> {
     Ok(Json(
-        database::problems::get_problem_by_id(&state.db, problem_id)
+        database::problems::get_problem(&state.db, problem_id)
             .await
             .map_http()?
             .into(),

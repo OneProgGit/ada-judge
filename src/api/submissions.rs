@@ -95,7 +95,7 @@ pub async fn get_user_problem_submissions(
     Path((problem_id, user_id)): Path<(i64, i64)>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
@@ -148,7 +148,7 @@ pub async fn get_problem_submissions(
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
@@ -192,7 +192,7 @@ pub async fn download_submission(
         .await
         .map_http()?
         .into();
-    let problem = database::problems::get_problem_by_id(&state.db, submission.problem_id)
+    let problem = database::problems::get_problem(&state.db, submission.problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
@@ -276,7 +276,7 @@ pub async fn submit(
         return Err(StatusCode::BAD_REQUEST);
     };
 
-    let problem = database::problems::get_problem_by_id(&state.db, submission.problem_id)
+    let problem = database::problems::get_problem(&state.db, submission.problem_id)
         .await
         .map_http()?;
 
@@ -356,7 +356,7 @@ pub async fn retest_problem_submissions(
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
 ) -> Result<(), StatusCode> {
-    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)

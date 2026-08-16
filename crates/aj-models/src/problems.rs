@@ -1,4 +1,7 @@
-use crate::{testing::SubgroupResult, verdicts::Verdict};
+use crate::{
+    testing::{Language, SubgroupResult},
+    verdicts::Verdict,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +17,7 @@ pub struct ProblemConfig {
     pub time_limit_ms: i32,
     pub memory_limit_mb: i32,
     pub checker_path: String,
-    pub checker_lang: String,
+    pub checker_lang: Language,
     pub tests_path: String,
     pub subgroups: Vec<Subgroup>,
 }

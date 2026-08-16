@@ -6,6 +6,7 @@ use crate::{
 use aj_models::{
     DeletionRequest,
     contests::PublicContestConfig,
+    errors::{AdaJudgeError, InvalidProblem},
     problems::{ProblemConfig, ProblemQuestion, ProblemQuestionRequest, PublicProblemConfig},
     verdicts::TestingVerdict,
 };
@@ -16,7 +17,7 @@ use axum::{
     http::{StatusCode, header},
     response::IntoResponse,
 };
-use database::problems::get_all_user_problems;
+use database::problems::get_problems;
 use tokio::{
     fs::{self, File, read_to_string},
     io::AsyncWriteExt,
@@ -27,9 +28,7 @@ use uuid::Uuid;
 use zip_extensions::zip_extract::zip_extract;
 
 pub async fn get_problems(State(state): State<AppState>) -> Result<Json<Vec<i64>>, StatusCode> {
-    Ok(Json(
-        get_all_user_problems(&state.db, None).await.map_http()?,
-    ))
+    Ok(Json(get_problems(&state.db, None).await.map_http()?))
 }
 
 pub async fn get_my_problems(
@@ -37,9 +36,7 @@ pub async fn get_my_problems(
     Auth(auth): Auth,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        get_all_user_problems(&state.db, Some(auth.id))
-            .await
-            .map_http()?,
+        get_problems(&state.db, Some(auth.id)).await.map_http()?,
     ))
 }
 
@@ -48,14 +45,14 @@ pub async fn get_problem_by_id_admin(
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
 ) -> Result<Json<PublicProblemConfig>, StatusCode> {
-    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, problem.owner_id, &auth.admin_level) {
         return Err(StatusCode::FORBIDDEN);
     }
     Ok(Json(
-        database::problems::get_problem_by_id(&state.db, problem_id)
+        database::problems::get_problem(&state.db, problem_id)
             .await
             .map_http()?
             .into(),
@@ -72,18 +69,22 @@ async fn load_problem_config(
     toml::from_str::<ProblemConfig>(&config_text).map_log(TestingVerdict::InvalidProblem)
 }
 
-fn assert_subgroups_correctness(config: &ProblemConfig) -> Result<(), TestingVerdict> {
+fn validate_subgroups(config: &ProblemConfig) -> Result<(), AdaJudgeError> {
     for (i, subgroup) in config.subgroups.iter().enumerate() {
         for x in &subgroup.depends_on {
             if *x >= i {
-                return Err(TestingVerdict::InvalidProblem);
+                return Err(AdaJudgeError::InvalidProblem(
+                    InvalidProblem::SubgroupConflict {
+                        subgroup: i,
+                        depends_on: *x,
+                    },
+                ));
             }
         }
         if subgroup.score.is_some() == subgroup.score_per_test.is_some() {
-            log::error!(
-                "Subgroup does have both `score` and `score_per_test` or doesn't have neither `score` nor `score_per_test`"
-            );
-            return Err(TestingVerdict::InvalidProblem);
+            return Err(AdaJudgeError::InvalidProblem(
+                InvalidProblem::InvalidSubgroupScoring { subgroup: i },
+            ));
         }
     }
     Ok(())
@@ -148,7 +149,7 @@ pub async fn create_problem(
         }
         Ok(config) => config,
     };
-    assert_subgroups_correctness(&config).map_http()?;
+    validate_subgroups(&config).map_http()?;
     match config.owner_id {
         None => return Err(StatusCode::BAD_REQUEST),
         Some(owner_id) if owner_id != auth.id => return Err(StatusCode::FORBIDDEN),
@@ -257,13 +258,13 @@ pub async fn update_problem(
         }
         Ok(config) => config,
     };
-    assert_subgroups_correctness(&config).map_http()?;
+    validate_subgroups(&config).map_http()?;
     match config.owner_id {
         None => return Err(StatusCode::BAD_REQUEST),
         Some(owner_id) if owner_id != auth.id => return Err(StatusCode::FORBIDDEN),
         _ => {}
     }
-    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, config.contest_id)
@@ -330,7 +331,7 @@ pub async fn delete_problem(
     if !is_valid_password {
         Err(StatusCode::BAD_REQUEST)
     } else {
-        let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+        let problem = database::problems::get_problem(&state.db, problem_id)
             .await
             .map_http()?;
         if !is_allowed(auth.id, problem.owner_id, &auth.admin_level) {
@@ -373,10 +374,10 @@ pub async fn answer_problem_question(
     Auth(auth): Auth,
     Json(request): Json<String>,
 ) -> Result<(), StatusCode> {
-    let question = database::problems::get_problem_question_by_id(&state.db, question_id)
+    let question = database::problems::get_problem_question(&state.db, question_id)
         .await
         .map_http()?;
-    let problem = database::problems::get_problem_by_id(&state.db, question.problem_id)
+    let problem = database::problems::get_problem(&state.db, question.problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
@@ -387,7 +388,7 @@ pub async fn answer_problem_question(
     {
         return Err(StatusCode::FORBIDDEN);
     }
-    database::problems::update_problem_question_answer(&state.db, question_id, &request)
+    database::problems::answer_problem_question(&state.db, question_id, &request)
         .await
         .map_http()?;
 
@@ -411,7 +412,7 @@ pub async fn delete_problem_question(
     if !is_valid_password {
         Err(StatusCode::BAD_REQUEST)
     } else {
-        let question = database::problems::get_problem_question_by_id(&state.db, question_id)
+        let question = database::problems::get_problem_question(&state.db, question_id)
             .await
             .map_http()?;
         if !is_allowed(auth.id, Some(question.owner_id), &auth.admin_level) {
@@ -430,10 +431,10 @@ pub async fn get_problem_question_by_id(
     Auth(auth): Auth,
     Path(question_id): Path<i64>,
 ) -> Result<Json<ProblemQuestion>, StatusCode> {
-    let question = database::problems::get_problem_question_by_id(&state.db, question_id)
+    let question = database::problems::get_problem_question(&state.db, question_id)
         .await
         .map_http()?;
-    let problem = database::problems::get_problem_by_id(&state.db, question.problem_id)
+    let problem = database::problems::get_problem(&state.db, question.problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
@@ -454,7 +455,7 @@ pub async fn get_all_problem_questions(
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
-    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
@@ -490,7 +491,7 @@ pub async fn download_problem(
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let problem = database::problems::get_problem_by_id(&state.db, problem_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
     let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)

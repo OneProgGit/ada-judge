@@ -20,7 +20,7 @@ use aj_models::{
 };
 use apalis::prelude::{BoxDynError, Data};
 use checker_runner::get_checker_verdict;
-use database::problems::get_problem_by_id;
+use database::problems::get_problem;
 use database::tools::MapDbExt;
 use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;
@@ -342,7 +342,7 @@ pub async fn test_submission(
 
     let problem_id = submission.problem_id;
     let run_path = submission.run_dir.clone();
-    let config = get_problem_by_id(&pool, problem_id)
+    let config = get_problem(&pool, problem_id)
         .await
         .map_db(&pool, submission_id)
         .await?;

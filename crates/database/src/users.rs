@@ -1,5 +1,5 @@
 use aj_models::{
-    errors::AdaJudgeError,
+    errors::{AdaJudgeError, Register},
     users::{AdminLevel, PrivateUserData},
 };
 use models::users::DatabaseUser;
@@ -33,7 +33,7 @@ pub async fn create_user(
         if e.as_database_error()
             .is_some_and(|e| e.is_unique_violation())
         {
-            AdaJudgeError::AlreadyExists
+            AdaJudgeError::Register(Register::AlreadyExists)
         } else {
             AdaJudgeError::Internal
         }

@@ -1,18 +1,16 @@
-use aj_models::errors::{AdaJudgeError, InvalidProblem};
-use axum::http::StatusCode;
+use aj_models::errors::{AdaJudgeError, InvalidProblem, Register};
+use axum::{Json, http::StatusCode};
 
 pub trait MapHttpExt<T> {
-    fn map_http(self) -> Result<T, (StatusCode, AdaJudgeError)>;
+    fn map_http(self) -> Result<T, (StatusCode, Json<AdaJudgeError>)>;
 }
 
 impl<T> MapHttpExt<T> for Result<T, AdaJudgeError> {
-    fn map_http(self) -> Result<T, (StatusCode, AdaJudgeError)> {
+    fn map_http(self) -> Result<T, (StatusCode, Json<AdaJudgeError>)> {
         match self {
             Ok(value) => Ok(value),
             Err(e) => Err((
                 match &e {
-                    AdaJudgeError::InvalidUsernameOrPassword => StatusCode::BAD_REQUEST,
-                    AdaJudgeError::AlreadyExists => StatusCode::CONFLICT,
                     AdaJudgeError::NotFound => StatusCode::NOT_FOUND,
                     AdaJudgeError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
                     AdaJudgeError::InvalidProblem(kind) => match kind {
@@ -24,8 +22,14 @@ impl<T> MapHttpExt<T> for Result<T, AdaJudgeError> {
                             StatusCode::BAD_REQUEST
                         }
                     },
+                    AdaJudgeError::InvalidJwt => todo!(),
+                    AdaJudgeError::Register(kind) => match kind {
+                        Register::InvalidUsernameOrPassword => StatusCode::BAD_REQUEST,
+                        Register::AlreadyExists => StatusCode::CONFLICT,
+                        Register::PasswordsDontMatch => StatusCode::BAD_REQUEST,
+                    },
                 },
-                e,
+                Json(e),
             )),
         }
     }

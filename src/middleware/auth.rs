@@ -1,12 +1,13 @@
 use crate::{app_state::AppState, jwt::decode_jwt};
-use aj_models::verdicts::TestingVerdict;
+use aj_models::errors::AdaJudgeError;
 use axum::{
+    Json,
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
 };
 use models::users::DatabaseUser;
 use std::env;
-use tools::map::{MapHttpExt, MapLogExt};
+use tools::map::MapHttpExt;
 
 pub struct Auth(pub DatabaseUser);
 
@@ -15,7 +16,7 @@ where
     AppState: FromRef<S>,
     S: Send + Sync,
 {
-    type Rejection = StatusCode;
+    type Rejection = (StatusCode, Json<AdaJudgeError>);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = AppState::from_ref(state);
@@ -25,10 +26,10 @@ where
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.strip_prefix("Bearer "))
-            .ok_or(StatusCode::UNAUTHORIZED)?;
+            .ok_or(Err(AdaJudgeError::InvalidJwt).map_http()?)?;
 
         let secret = env::var("JWT_SECRET")
-            .map_log(TestingVerdict::Bug)
+            .map_err(|_| AdaJudgeError::Internal)
             .map_http()?;
         let claims = decode_jwt(token, &secret).map_http()?;
 

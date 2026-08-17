@@ -1,18 +1,17 @@
-use aj_models::verdicts::TestingVerdict;
+use aj_models::errors::AdaJudgeError;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use models::users::JwtClaims;
-use tools::map::MapLogExt;
 
-pub fn create_jwt(claims: &JwtClaims, secret: &str) -> Result<String, TestingVerdict> {
+pub fn create_jwt(claims: &JwtClaims, secret: &str) -> Result<String, AdaJudgeError> {
     encode(
         &Header::default(),
         claims,
         &EncodingKey::from_secret(secret.as_bytes()),
     )
-    .map_log(TestingVerdict::Bug)
+    .map_err(|_| AdaJudgeError::Internal)
 }
 
-pub fn decode_jwt(token: &str, secret: &str) -> Result<JwtClaims, TestingVerdict> {
+pub fn decode_jwt(token: &str, secret: &str) -> Result<JwtClaims, AdaJudgeError> {
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;
 
@@ -21,7 +20,7 @@ pub fn decode_jwt(token: &str, secret: &str) -> Result<JwtClaims, TestingVerdict
         &DecodingKey::from_secret(secret.as_bytes()),
         &validation,
     )
-    .map_log(TestingVerdict::InvalidRequest)?;
+    .map_err(|_| AdaJudgeError::InvalidJwt)?;
 
     Ok(claims.claims)
 }

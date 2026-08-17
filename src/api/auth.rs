@@ -1,33 +1,43 @@
+use crate::api::ApiError;
 use crate::crypt::get_password_hash;
 use crate::jwt::create_jwt;
 use crate::middleware::auth::Auth;
 use crate::{app_state::AppState, crypt::verify_password};
 use aj_models::DeletionRequest;
-use aj_models::users::{LoginRequest, RegisterRequest};
-use aj_models::verdicts::TestingVerdict;
+use aj_models::errors::{AdaJudgeError, Register};
+use aj_models::users::{AdminLevel, LoginRequest, RegisterRequest};
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
 use models::users::JwtClaims;
 use std::env;
-use tools::map::{MapHttpExt, MapLogExt};
+use tools::map::MapHttpExt;
 
 pub async fn register(
     State(state): State<AppState>,
     Json(user): Json<RegisterRequest>,
-) -> Result<(StatusCode, Json<i64>), StatusCode> {
+) -> Result<(), ApiError> {
+    if user.password != user.password_confirmation {
+        return Err(AdaJudgeError::Register(Register::PasswordsDontMatch)).map_http()?;
+    }
+
     let password_hash = get_password_hash(&user.password).map_http()?;
     let user_id = database::users::create_user(&state.db, &user.login, &password_hash)
         .await
         .map_http()?;
+    if user_id == 1 {
+        database::users::change_admin_level(&state.db, user_id, &AdminLevel::Owner)
+            .await
+            .map_http()?;
+    }
 
-    Ok((StatusCode::OK, Json(user_id)))
+    Ok(())
 }
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 pub async fn login(
     State(state): State<AppState>,
     Json(user): Json<LoginRequest>,
-) -> Result<(StatusCode, Json<String>), StatusCode> {
+) -> Result<(StatusCode, Json<String>), ApiError> {
     let expected_user = database::users::get_user_by_login(&state.db, &user.login)
         .await
         .map_http()?;
@@ -35,12 +45,12 @@ pub async fn login(
         verify_password(&expected_user.password_hash, &user.password).map_http()?;
 
     if !is_valid_password {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(AdaJudgeError::Register(Register::InvalidUsernameOrPassword)).map_http()?;
     }
     let jwt_exp_hours = env::var("JWT_EXP_HOURS");
 
     let jwt_exp_hours = match jwt_exp_hours {
-        Ok(s) => s.parse().map_log(TestingVerdict::Bug).map_http()?,
+        Ok(s) => s.parse().map_err(|_| AdaJudgeError::Internal).map_http()?,
         Err(_) => 24,
     };
     let claims = JwtClaims {
@@ -48,7 +58,7 @@ pub async fn login(
         exp: (Utc::now() + Duration::hours(jwt_exp_hours)).timestamp() as usize,
     };
     let secret = env::var("JWT_SECRET")
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
 
     Ok((
@@ -61,12 +71,9 @@ pub async fn delete_my_account(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Json(request): Json<DeletionRequest>,
-) -> Result<(), StatusCode> {
-    if request.login != auth.login
-        || request.password != request.password_confirmation
-        || !request.deletion_confirmation
-    {
-        return Err(StatusCode::BAD_REQUEST);
+) -> Result<(), ApiError> {
+    if request.login != auth.login || !request.deletion_confirmation {
+        return Err(AdaJudgeError::);
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 

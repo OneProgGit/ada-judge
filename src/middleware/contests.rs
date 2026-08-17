@@ -15,7 +15,7 @@ pub async fn ensure_contest_started_common(
     contest_id: i64,
     admin_level: AdminLevel,
 ) -> Result<(), Response> {
-    let Ok(contest) = database::contests::get_contest_by_id(pool, contest_id).await else {
+    let Ok(contest) = database::contests::get_contest(pool, contest_id).await else {
         return Err(StatusCode::BAD_REQUEST.into_response());
     };
 
@@ -37,16 +37,16 @@ pub async fn ensure_contest_finished_common(
     contest_id: i64,
     admin_level: AdminLevel,
 ) -> Result<(), Response> {
-    let Ok(contest) = database::contests::get_contest_by_id(pool, contest_id).await else {
+    let Ok(contest) = database::contests::get_contest(pool, contest_id).await else {
         return Err(StatusCode::BAD_REQUEST.into_response());
     };
 
     let now = Utc::now();
 
-    if (now < contest.ends_at || contest.hidden)
+    if (now < contest.finishes_at || contest.hidden)
         && !is_allowed(user_id, contest.owner_id, &admin_level)
         && contest.co_authors.binary_search(&user_id).is_err()
-        && contest.hide_leaderboard
+        && contest.leaderboard_hidden
     {
         Err(StatusCode::FORBIDDEN.into_response())
     } else {

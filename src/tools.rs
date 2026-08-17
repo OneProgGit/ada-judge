@@ -13,7 +13,7 @@ pub async fn is_contest_active(
     problem_id: i64,
     admin_level: AdminLevel,
 ) -> bool {
-    let Ok(contest) = database::contests::get_contest_by_id(pool, contest_id).await else {
+    let Ok(contest) = database::contests::get_contest(pool, contest_id).await else {
         return false;
     };
     let Ok(problem) = database::problems::get_problem(pool, problem_id).await else {
@@ -23,7 +23,7 @@ pub async fn is_contest_active(
     let now = Utc::now();
 
     return (now >= contest.starts_at
-        && (now <= contest.ends_at || contest.upsolving_opened)
+        && (now <= contest.finishes_at || contest.upsolving_enabled)
         && !contest.hidden)
         || is_allowed(user_id, problem.owner_id, &admin_level)
         || is_allowed(user_id, contest.owner_id, &admin_level)

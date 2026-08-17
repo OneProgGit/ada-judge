@@ -20,9 +20,8 @@ use crate::{
             get_problem_question_by_id, get_problems, update_problem,
         },
         submissions::{
-            download_submission, get_all_submissions, get_all_user_submissions,
-            get_contest_submissions, get_my_contest_submissions, get_submission,
-            retest_problem_submissions,
+            download_submission, get_contest_submissions, get_my_contest_submissions,
+            get_submission, retest_problem_submissions,
         },
         users::{
             delete_user_account, get_my_user_profile, get_private_user_profile,

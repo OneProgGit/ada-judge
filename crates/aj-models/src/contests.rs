@@ -31,6 +31,7 @@ pub struct ContestRequest {
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct PublicContestConfig {
     pub id: i64,
+    pub owner_id: Option<i64>,
     pub name_ru: String,
     pub name_en: String,
     pub starts_at: DateTime<Utc>,

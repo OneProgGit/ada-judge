@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -36,3 +38,20 @@ pub enum TestingVerdict {
     Testing,
     Fail,
 }
+
+impl fmt::Display for TestingVerdict {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let converted = match self {
+            Self::Ok => "Ok",
+            Self::PartialSolution => "PartialSolution",
+            Self::Pending => "Pending",
+            Self::Compiling => "Compiling",
+            Self::CompilationError => "CompilationError",
+            Self::Testing => "Testing",
+            Self::Fail => "Fail",
+        };
+        write!(f, "{converted}")
+    }
+}
+
+impl std::error::Error for TestingVerdict {}

@@ -2,18 +2,14 @@
 #![deny(clippy::pedantic)]
 #![deny(clippy::nursery)]
 #![deny(warnings)]
-#![deny(missing_docs)]
-#![deny(rustdoc::all)]
-#![deny(rustdoc::broken_intra_doc_links)]
 #![forbid(unsafe_code)]
 
 use crate::{
     checker_runner::{get_checker_run_twice_interactive_verdict, get_checker_run_twice_verdict},
     interactive_runner::{get_interactive_run_twice_verdict, get_interactive_verdict},
+    solution_runner::get_solution_verdict,
 };
-use ::tools::map::MapLogExt;
 use aj_models::{
-    errors::AdaJudgeError,
     problems::{ProblemConfig, ProblemType, Subgroup, SubgroupType},
     testing::{SubgroupResult, TestResult},
     verdicts::{TestingVerdict, Verdict},
@@ -24,7 +20,6 @@ use database::problems::get_problem;
 use database::tools::MapDbExt;
 use models::testing::{SubmissionTask, TestsPaths};
 use solution_compiler::compile_solution;
-use solution_runner::get_solution_verdict;
 use sqlx::PgPool;
 use tokio::fs::File;
 
@@ -50,10 +45,10 @@ async fn get_test_verdict(
             {
                 _ = File::create(tests_paths.input.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
                 _ = File::create(tests_paths.output.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
             }
 
             let solution_verdict = get_solution_verdict(config, &input_path, tests_paths).await?;
@@ -71,10 +66,10 @@ async fn get_test_verdict(
             {
                 _ = File::create(tests_paths.input.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
                 _ = File::create(tests_paths.output.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
             }
 
             let checker_verdict =
@@ -94,7 +89,7 @@ async fn get_test_verdict(
             {
                 _ = File::create(tests_paths.input.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
             }
 
             let checker_verdict =
@@ -107,7 +102,7 @@ async fn get_test_verdict(
             {
                 _ = File::create(tests_paths.output.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
             }
 
             let solution_verdict =
@@ -123,7 +118,7 @@ async fn get_test_verdict(
             {
                 _ = File::create(tests_paths.input.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
             }
 
             let checker_verdict = get_interactive_run_twice_verdict(
@@ -152,10 +147,10 @@ async fn get_test_verdict(
             {
                 _ = File::create(tests_paths.input.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
                 _ = File::create(tests_paths.output.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
             }
 
             let checker_verdict = get_interactive_run_twice_verdict(
@@ -191,10 +186,10 @@ async fn get_test_verdict(
             {
                 _ = File::create(tests_paths.input.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
                 _ = File::create(tests_paths.output.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
             }
             let checker_verdict = get_checker_run_twice_interactive_verdict(
                 config,
@@ -212,7 +207,7 @@ async fn get_test_verdict(
             {
                 _ = File::create(tests_paths.output.clone())
                     .await
-                    .map_log(TestingVerdict::InvalidProblem)?;
+                    .map_err(|_| TestingVerdict::Fail)?;
             }
 
             let solution_verdict =
@@ -240,19 +235,9 @@ async fn test_subgroup(
     subgroup: &Subgroup,
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
+    subgroup_result: &mut SubgroupResult,
 ) -> Result<(), TestingVerdict> {
-    database::submissions::create_subgroup_result(&pool, submission_id, subgroup_index)
-        .await
-        .map_db(&pool, submission_id)
-        .await?;
-
-    let mut subgroup_result = SubgroupResult {
-        verdict: Verdict::Testing,
-        test: 0,
-        score: 0,
-    };
-
-    let mut score = 0;
+    let mut score = 0.;
     let per_test_scoring = subgroup.score_per_test.is_some();
     let mut ok = true;
     for test_id in &subgroup.tests {
@@ -262,14 +247,15 @@ async fn test_subgroup(
             &pool,
             submission_id,
             test_id,
-            if per_test_scoring { Some(0) } else { None },
+            if per_test_scoring { Some(0.) } else { None },
         )
-        .await?;
+        .await
+        .map_err(|_| TestingVerdict::Fail)?;
 
         if !ok {
             let test_result = TestResult {
                 verdict: Verdict::Skipped,
-                score: if per_test_scoring { Some(0) } else { None },
+                score: if per_test_scoring { Some(0.) } else { None },
             };
 
             database::submissions::update_test_testing_result(
@@ -278,7 +264,8 @@ async fn test_subgroup(
                 test_id,
                 &test_result,
             )
-            .await?;
+            .await
+            .map_err(|_| TestingVerdict::Fail)?;
 
             continue;
         }
@@ -293,7 +280,7 @@ async fn test_subgroup(
             score: if subgroup_result.verdict == Verdict::Ok {
                 subgroup.score_per_test
             } else if per_test_scoring {
-                Some(0)
+                Some(0.)
             } else {
                 None
             },
@@ -305,7 +292,8 @@ async fn test_subgroup(
             test_id,
             &test_result,
         )
-        .await?;
+        .await
+        .map_err(|_| TestingVerdict::Fail)?;
 
         if subgroup_result.verdict != Verdict::Ok && !per_test_scoring {
             ok = false;
@@ -317,7 +305,7 @@ async fn test_subgroup(
         if per_test_scoring {
             subgroup_result.score = score;
         } else {
-            subgroup_result.score = subgroup.score.ok_or(TestingVerdict::Bug)?;
+            subgroup_result.score = subgroup.score.ok_or(TestingVerdict::Fail)?;
         }
     }
 
@@ -330,7 +318,7 @@ pub async fn test_submission(
     pool: Data<PgPool>,
 ) -> Result<(), BoxDynError> {
     let submission_id = submission.id;
-    database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Compiling, 0)
+    database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Compiling, 0.)
         .await
         .map_db(&pool, submission_id)
         .await?;
@@ -340,7 +328,8 @@ pub async fn test_submission(
     let config = get_problem(&pool, problem_id)
         .await
         .map_db(&pool, submission_id)
-        .await?;
+        .await?
+        .into();
     let tests_paths = TestsPaths::new(
         &submission.problem_path,
         &run_path,
@@ -352,18 +341,43 @@ pub async fn test_submission(
         .map_db(&pool, submission_id)
         .await?;
 
-    let mut total_score = 0;
+    let mut total_score = 0.;
+    let mut max_score = 0.;
     let mut subgroups_results: Vec<SubgroupResult> = Vec::with_capacity(config.subgroups.len());
-    database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Testing, 0)
+    database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Testing, 0.)
         .await?;
     for (i, subgroup) in config.subgroups.clone().iter().enumerate() {
         let subgroup_index = i as i32;
+        max_score += if let Some(score) = subgroup.score {
+            score
+        } else if let Some(score_per_test) = subgroup.score_per_test {
+            score_per_test * (subgroup.tests.len() as f64)
+        } else {
+            unreachable!()
+        };
+        let mut subgroup_result = SubgroupResult {
+            verdict: Verdict::Testing,
+            test: 0,
+            score: 0.,
+        };
+        database::submissions::create_subgroup_result(&pool, submission_id, subgroup_index)
+            .await
+            .map_db(&pool, submission_id)
+            .await
+            .map_err(|_| TestingVerdict::Fail)?;
 
         if !subgroup.should_skip(&subgroups_results) {
-            test_subgroup(&pool, submission_id, subgroup, &config, &tests_paths)
-                .await
-                .map_db(&pool, submission_id)
-                .await?;
+            test_subgroup(
+                &pool,
+                submission_id,
+                subgroup,
+                &config,
+                &tests_paths,
+                &mut subgroup_result,
+            )
+            .await
+            .map_db(&pool, submission_id)
+            .await?;
         } else {
             subgroup_result.verdict = Verdict::Skipped;
 
@@ -374,13 +388,13 @@ pub async fn test_submission(
                     &pool,
                     submission_id,
                     test_id,
-                    if per_test { Some(0) } else { None },
+                    if per_test { Some(0.) } else { None },
                 )
                 .await?;
 
                 let test_result = TestResult {
                     verdict: Verdict::Skipped,
-                    score: if per_test { Some(0) } else { None },
+                    score: if per_test { Some(0.) } else { None },
                 };
 
                 database::submissions::update_test_testing_result(
@@ -409,9 +423,10 @@ pub async fn test_submission(
     database::submissions::update_submission(
         &pool,
         submission_id,
-        &match total_score {
-            100 => TestingVerdict::Ok,
-            _ => TestingVerdict::PartialSolution,
+        if total_score == max_score {
+            &TestingVerdict::Ok
+        } else {
+            &TestingVerdict::PartialSolution
         },
         total_score,
     )

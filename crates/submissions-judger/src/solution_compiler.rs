@@ -6,16 +6,15 @@ use std::{
 use aj_models::{testing::Language, verdicts::TestingVerdict};
 use models::testing::{SubmissionTask, TestsPaths};
 use tokio::process::Command;
-use tools::map::MapLogExt;
 
-use crate::tools::container_to_host;
+use crate::tools::ToHostExt;
 
 pub async fn compile_solution(
     run_path: &Path,
     tests_paths: &TestsPaths,
     submission: &SubmissionTask,
 ) -> Result<(), TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
 
     let compile_cmd = match submission.language {
         Language::C => "clang",
@@ -24,14 +23,14 @@ pub async fn compile_solution(
         Language::Rust => "rustc",
         Language::Python => "pyinstaller",
         Language::FreePascal => "fpc",
-        Language::Unknown => return Err(TestingVerdict::InvalidRequest),
+        Language::Unknown => return Err(TestingVerdict::Fail),
     };
     let solution_source_path = PathBuf::from("env")
         .join(
             tests_paths
                 .solution_source
                 .file_name()
-                .ok_or(TestingVerdict::Bug)?
+                .ok_or(TestingVerdict::Fail)?
                 .to_string_lossy()
                 .to_string(),
         )
@@ -42,7 +41,7 @@ pub async fn compile_solution(
             tests_paths
                 .solution
                 .file_name()
-                .ok_or(TestingVerdict::Bug)?
+                .ok_or(TestingVerdict::Fail)?
                 .to_string_lossy()
                 .to_string(),
         )
@@ -66,10 +65,7 @@ pub async fn compile_solution(
             "--security-opt",
             "no-new-privileges",
             "-v",
-            &format!(
-                "{}:/sandbox/env",
-                container_to_host(run_path)?.display(),
-            ),
+            &format!("{}:/sandbox/env", run_path.to_host()?.display()),
             "-w",
             "/sandbox",
             &sandbox_image,
@@ -118,11 +114,11 @@ pub async fn compile_solution(
             Language::Unknown => unreachable!(),
         })
         .spawn()
-        .map_log(TestingVerdict::CompilationError)?;
+        .map_err(|_| TestingVerdict::CompilationError)?;
     let compilation_result = compile_cmd
         .wait()
         .await
-        .map_log(TestingVerdict::CompilationError)?;
+        .map_err(|_| TestingVerdict::CompilationError)?;
 
     _ = compile_cmd.kill();
     match compilation_result.code() {

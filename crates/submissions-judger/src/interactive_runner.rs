@@ -18,7 +18,7 @@ use tokio::{
 };
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_run_interactive_verdict(
+pub async fn get_interactive_verdict(
     config: &ProblemConfig,
     answer_path: &Path,
     tests_paths: &TestsPaths,
@@ -179,7 +179,7 @@ pub async fn get_run_interactive_verdict(
 }
 
 #[allow(clippy::cast_sign_loss)]
-pub async fn get_run_interactive_verdict_run_twice(
+pub async fn get_interactive_run_twice_verdict(
     config: &ProblemConfig,
     answer_path: &Path,
     final_output: &Path,

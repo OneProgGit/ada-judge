@@ -9,10 +9,10 @@ use apalis::{
     prelude::WorkerBuilder,
 };
 use apalis_redis::RedisStorage;
-use log::LevelFilter;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 use submissions_judger::test_submission;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {

@@ -1,6 +1,6 @@
 use crate::{
     constants::{VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
-    tools::container_to_host,
+    tools::ToHostExt,
 };
 use aj_models::{
     problems::ProblemConfig,
@@ -9,21 +9,21 @@ use aj_models::{
 use models::testing::TestsPaths;
 use std::{env, path::Path, process::Stdio};
 use tokio::{fs::File, process::Command};
-use tools::map::MapLogExt;
 
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_solution_verdict(
     config: &ProblemConfig,
     input_path: &Path,
-    output_path: &Path,
+    tests_paths: &TestsPaths,
 ) -> Result<Verdict, TestingVerdict> {
     let stdin_file = File::open(input_path)
         .await
-        .map_log(TestingVerdict::InvalidProblem)?;
+        .map_err(|_| TestingVerdict::Fail)?;
     let stdout_file = File::create(tests_paths.output.clone())
         .await
-        .map_log(TestingVerdict::InvalidProblem)?;
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_log(TestingVerdict::Bug)?;
+        .map_err(|_| TestingVerdict::Fail)?;
+
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
 
     let solution_cmd = Command::new("docker")
         .args([
@@ -51,7 +51,7 @@ pub async fn get_solution_verdict(
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
-                container_to_host(&tests_paths.solution)?.display()
+                tests_paths.solution.to_host()?.display()
             ),
             "-w",
             "/sandbox",
@@ -67,6 +67,7 @@ pub async fn get_solution_verdict(
         .status();
 
     let solution_status = solution_cmd.await;
+
     solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
         match status.code() {
             Some(VERDICT_OK) => Ok(Verdict::Ok),

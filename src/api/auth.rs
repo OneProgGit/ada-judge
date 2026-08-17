@@ -4,7 +4,7 @@ use crate::jwt::create_jwt;
 use crate::middleware::auth::Auth;
 use crate::{app_state::AppState, crypt::verify_password};
 use aj_models::DeletionRequest;
-use aj_models::errors::{AdaJudgeError, Register};
+use aj_models::errors::{AdaJudgeError, Deletion, Register};
 use aj_models::users::{AdminLevel, LoginRequest, RegisterRequest};
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
@@ -45,7 +45,7 @@ pub async fn login(
         verify_password(&expected_user.password_hash, &user.password).map_http()?;
 
     if !is_valid_password {
-        return Err(AdaJudgeError::Register(Register::InvalidUsernameOrPassword)).map_http()?;
+        return Err(AdaJudgeError::Register(Register::InvalidLoginOrPassword)).map_http()?;
     }
     let jwt_exp_hours = env::var("JWT_EXP_HOURS");
 
@@ -72,13 +72,19 @@ pub async fn delete_my_account(
     Auth(auth): Auth,
     Json(request): Json<DeletionRequest>,
 ) -> Result<(), ApiError> {
-    if request.login != auth.login || !request.deletion_confirmation {
-        return Err(AdaJudgeError::);
+    if request.login != auth.login {
+        return Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?;
+    }
+    if !request.deletion_confirmation {
+        return Err(AdaJudgeError::Deletion(
+            Deletion::MissingDeletionConfirmation,
+        ))
+        .map_http()?;
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        Err(StatusCode::BAD_REQUEST)
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     } else {
         database::users::delete_user(&state.db, auth.id)
             .await

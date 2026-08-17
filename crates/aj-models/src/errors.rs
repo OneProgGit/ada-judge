@@ -18,13 +18,16 @@ pub enum AdaJudgeError {
 
     #[error("register error")]
     Register(#[from] Register),
+
+    #[error("deletion error")]
+    Deletion(#[from] Deletion),
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Register {
-    #[error("invalid username or password")]
-    InvalidUsernameOrPassword,
+    #[error("invalid login or password")]
+    InvalidLoginOrPassword,
 
     #[error("user already exists")]
     AlreadyExists,
@@ -41,4 +44,14 @@ pub enum InvalidProblem {
 
     #[error("subgroup {subgroup} has both score and score_per_test fields")]
     InvalidSubgroupScoring { subgroup: usize },
+}
+
+#[derive(Error, Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Deletion {
+    #[error("invalid login or password")]
+    InvalidLoginOrPassword,
+
+    #[error("missing deletion confirmation")]
+    MissingDeletionConfirmation,
 }

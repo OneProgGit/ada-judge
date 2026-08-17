@@ -1,42 +1,48 @@
 use std::path::PathBuf;
 
 use crate::{
-    app_state::AppState, crypt::verify_password, middleware::auth::Auth, tools::is_allowed,
+    api::ApiError, app_state::AppState, crypt::verify_password, middleware::auth::Auth,
+    tools::is_allowed,
 };
 use aj_models::{
     DeletionRequest,
-    contests::PublicContestConfig,
-    errors::{AdaJudgeError, InvalidProblem},
+    errors::{AdaJudgeError, Deletion, InvalidProblem},
     problems::{ProblemConfig, ProblemQuestion, ProblemQuestionRequest, PublicProblemConfig},
-    verdicts::TestingVerdict,
 };
 use axum::{
     Json,
     body::{Body, Bytes},
     extract::{Multipart, Path, State},
-    http::{StatusCode, header},
+    http::header,
     response::IntoResponse,
 };
-use database::problems::get_problems;
 use tokio::{
     fs::{self, File, read_to_string},
     io::AsyncWriteExt,
 };
 use tokio_util::io::ReaderStream;
-use tools::map::{MapHttpExt, MapLogExt};
+use tools::map::MapHttpExt;
 use uuid::Uuid;
 use zip_extensions::zip_extract::zip_extract;
 
-pub async fn get_problems(State(state): State<AppState>) -> Result<Json<Vec<i64>>, StatusCode> {
-    Ok(Json(get_problems(&state.db, None).await.map_http()?))
+pub async fn get_problems(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<PublicProblemConfig>>, ApiError> {
+    Ok(Json(
+        database::problems::get_problems(&state.db, None)
+            .await
+            .map_http()?,
+    ))
 }
 
 pub async fn get_my_problems(
     State(state): State<AppState>,
     Auth(auth): Auth,
-) -> Result<Json<Vec<i64>>, StatusCode> {
+) -> Result<Json<Vec<PublicProblemConfig>>, ApiError> {
     Ok(Json(
-        get_problems(&state.db, Some(auth.id)).await.map_http()?,
+        database::problems::get_problems(&state.db, Some(auth.id))
+            .await
+            .map_http()?,
     ))
 }
 
@@ -44,12 +50,12 @@ pub async fn get_problem_by_id_admin(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
-) -> Result<Json<PublicProblemConfig>, StatusCode> {
+) -> Result<Json<PublicProblemConfig>, ApiError> {
     let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, problem.owner_id, &auth.admin_level) {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
     Ok(Json(
         database::problems::get_problem(&state.db, problem_id)
@@ -61,12 +67,16 @@ pub async fn get_problem_by_id_admin(
 
 async fn load_problem_config(
     problem_path: &std::path::Path,
-) -> Result<ProblemConfig, TestingVerdict> {
+) -> Result<ProblemConfig, AdaJudgeError> {
     let config_text = read_to_string(problem_path.join("config.toml"))
         .await
-        .map_log(TestingVerdict::InvalidProblem)?;
+        .map_err(|_| AdaJudgeError::InvalidProblem(InvalidProblem::MissingConfig))?;
 
-    toml::from_str::<ProblemConfig>(&config_text).map_log(TestingVerdict::InvalidProblem)
+    toml::from_str::<ProblemConfig>(&config_text).map_err(|e| {
+        AdaJudgeError::InvalidProblem(InvalidProblem::TomlError {
+            message: e.message().into(),
+        })
+    })
 }
 
 fn validate_subgroups(config: &ProblemConfig) -> Result<(), AdaJudgeError> {
@@ -94,12 +104,12 @@ pub async fn create_problem(
     State(state): State<AppState>,
     Auth(auth): Auth,
     mut multipart: Multipart,
-) -> Result<Json<i64>, StatusCode> {
+) -> Result<(), ApiError> {
     let mut file_stream: Option<Bytes> = None;
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_log(TestingVerdict::InvalidRequest)
+        .map_err(|_| AdaJudgeError::BadRequest)
         .map_http()?
     {
         match field.name() {
@@ -108,7 +118,7 @@ pub async fn create_problem(
                     field
                         .bytes()
                         .await
-                        .map_log(TestingVerdict::Bug)
+                        .map_err(|_| AdaJudgeError::BadRequest)
                         .map_http()?,
                 );
             }
@@ -117,7 +127,7 @@ pub async fn create_problem(
     }
 
     let Some(file_stream) = file_stream else {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(AdaJudgeError::BadRequest).map_http()?;
     };
 
     let request_id = Uuid::new_v4();
@@ -125,25 +135,29 @@ pub async fn create_problem(
     let problem_path = PathBuf::from(format!("/problems/{request_id}"));
     let mut problem_archive_file = File::create(archive_path.clone())
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     problem_archive_file
         .write_all(&file_stream)
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     problem_archive_file
         .flush()
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     zip_extract(&archive_path, &problem_path)
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
+    fs::remove_file(&archive_path)
+        .await
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     let config = match load_problem_config(&problem_path).await {
         Err(e) => {
             std::fs::remove_dir_all(&problem_path)
-                .map_log(TestingVerdict::Bug)
+                .map_err(|_| AdaJudgeError::Internal)
                 .map_http()?;
             return Err(e).map_http();
         }
@@ -151,51 +165,36 @@ pub async fn create_problem(
     };
     validate_subgroups(&config).map_http()?;
     match config.owner_id {
-        None => return Err(StatusCode::BAD_REQUEST),
-        Some(owner_id) if owner_id != auth.id => return Err(StatusCode::FORBIDDEN),
+        None => return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId)).map_http()?,
+        Some(owner_id) if owner_id != auth.id => {
+            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId)).map_http()?;
+        }
         _ => {}
     }
-    let contest = database::contests::get_contest_by_id(&state.db, config.contest_id)
+    let contest = database::contests::get_contest(&state.db, config.contest_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && contest.co_authors.binary_search(&auth.id).is_err()
     {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
-    let problem_id = database::problems::create_problem(
-        &state.db,
-        auth.id,
-        config.r#type,
-        config.merge_subgroups,
-        config.contest_id,
-        config.problem_index,
-        &config.name_ru,
-        &config.name_en,
-        config.time_limit_ms,
-        config.memory_limit_mb,
-        &config.checker_path,
-        &config.tests_path,
-    )
-    .await
-    .map_http()?;
+    let problem_id = database::problems::create_problem(&state.db, auth.id, &config)
+        .await
+        .map_http()?;
     let new_problem_path = PathBuf::from(format!("/problems/{}", problem_id));
     let new_problem_archive_path = PathBuf::from(format!("/problems/{}.zip", problem_id));
 
     fs::rename(problem_path, new_problem_path)
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     fs::rename(archive_path, new_problem_archive_path)
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
 
-    database::problems::insert_problem_subgroups(&state.db, problem_id, &config.subgroups)
-        .await
-        .map_http()?;
-
-    Ok(Json(problem_id))
+    Ok(())
 }
 
 pub async fn update_problem(
@@ -203,12 +202,12 @@ pub async fn update_problem(
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
     mut multipart: Multipart,
-) -> Result<(), StatusCode> {
+) -> Result<(), ApiError> {
     let mut file_stream: Option<Bytes> = None;
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_log(TestingVerdict::InvalidRequest)
+        .map_err(|_| AdaJudgeError::BadRequest)
         .map_http()?
     {
         match field.name() {
@@ -217,7 +216,7 @@ pub async fn update_problem(
                     field
                         .bytes()
                         .await
-                        .map_log(TestingVerdict::Bug)
+                        .map_err(|_| AdaJudgeError::BadRequest)
                         .map_http()?,
                 );
             }
@@ -226,7 +225,7 @@ pub async fn update_problem(
     }
 
     let Some(file_stream) = file_stream else {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(AdaJudgeError::BadRequest).map_http()?;
     };
 
     let request_id = Uuid::new_v4();
@@ -234,25 +233,29 @@ pub async fn update_problem(
     let problem_path = PathBuf::from(format!("/problems/{request_id}"));
     let mut problem_archive_file = File::create(archive_path.clone())
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     problem_archive_file
         .write_all(&file_stream)
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     problem_archive_file
         .flush()
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     zip_extract(&archive_path, &problem_path)
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
+    fs::remove_file(&archive_path)
+        .await
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     let config = match load_problem_config(&problem_path).await {
         Err(e) => {
             std::fs::remove_dir_all(&problem_path)
-                .map_log(TestingVerdict::Bug)
+                .map_err(|_| AdaJudgeError::Internal)
                 .map_http()?;
             return Err(e).map_http();
         }
@@ -260,55 +263,33 @@ pub async fn update_problem(
     };
     validate_subgroups(&config).map_http()?;
     match config.owner_id {
-        None => return Err(StatusCode::BAD_REQUEST),
-        Some(owner_id) if owner_id != auth.id => return Err(StatusCode::FORBIDDEN),
+        None => return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId)).map_http()?,
+        Some(owner_id) if owner_id != auth.id => {
+            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId)).map_http()?;
+        }
         _ => {}
     }
-    let problem = database::problems::get_problem(&state.db, problem_id)
-        .await
-        .map_http()?;
-    let contest = database::contests::get_contest_by_id(&state.db, config.contest_id)
+    let contest = database::contests::get_contest(&state.db, config.contest_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
-        && !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, config.owner_id, &auth.admin_level)
     {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
+    database::problems::update_problem(&state.db, auth.id, &config)
+        .await
+        .map_http()?;
     let new_problem_path = PathBuf::from(format!("/problems/{}", problem_id));
     let new_problem_archive_path = PathBuf::from(format!("/problems/{}.zip", problem_id));
 
-    fs::remove_dir_all(&new_problem_path)
-        .await
-        .map_log(TestingVerdict::Bug)
-        .map_http()?;
     fs::rename(problem_path, new_problem_path)
         .await
-        .map_log(TestingVerdict::Bug)
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     fs::rename(archive_path, new_problem_archive_path)
         .await
-        .map_log(TestingVerdict::Bug)
-        .map_http()?;
-    database::problems::update_problem(
-        &state.db,
-        problem_id,
-        config.r#type,
-        config.merge_subgroups,
-        config.contest_id,
-        config.problem_index,
-        &config.name_ru,
-        &config.name_en,
-        config.time_limit_ms,
-        config.memory_limit_mb,
-        &config.checker_path,
-        &config.tests_path,
-    )
-    .await
-    .map_http()?;
-
-    database::problems::insert_problem_subgroups(&state.db, problem_id, &config.subgroups)
-        .await
+        .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
 
     Ok(())
@@ -319,30 +300,37 @@ pub async fn delete_problem(
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<DeletionRequest>,
-) -> Result<(), StatusCode> {
-    if request.login != auth.login
-        || request.password != request.password_confirmation
-        || !request.deletion_confirmation
-    {
-        return Err(StatusCode::BAD_REQUEST);
+) -> Result<(), ApiError> {
+    if request.login != auth.login {
+        return Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?;
+    }
+    if !request.deletion_confirmation {
+        return Err(AdaJudgeError::Deletion(
+            Deletion::MissingDeletionConfirmation,
+        ))
+        .map_http()?;
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        Err(StatusCode::BAD_REQUEST)
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     } else {
         let problem = database::problems::get_problem(&state.db, problem_id)
             .await
             .map_http()?;
         if !is_allowed(auth.id, problem.owner_id, &auth.admin_level) {
-            Err(StatusCode::FORBIDDEN)
+            Err(AdaJudgeError::Forbidden).map_http()?
         } else {
             database::problems::delete_problem(&state.db, problem_id)
                 .await
                 .map_http()?;
             fs::remove_dir_all(PathBuf::from(format!("/problems/{problem_id}")))
                 .await
-                .map_log(TestingVerdict::Bug)
+                .map_err(|_| AdaJudgeError::Internal)
+                .map_http()?;
+            fs::remove_file(PathBuf::from(format!("/problems/{problem_id}.zip")))
+                .await
+                .map_err(|_| AdaJudgeError::Internal)
                 .map_http()?;
             Ok(())
         }
@@ -354,18 +342,11 @@ pub async fn create_problem_question(
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<ProblemQuestionRequest>,
-) -> Result<Json<i64>, StatusCode> {
-    Ok(Json(
-        database::problems::create_problem_question(
-            &state.db,
-            auth.id,
-            problem_id,
-            &request.title,
-            &request.text,
-        )
+) -> Result<(), ApiError> {
+    database::problems::create_problem_question(&state.db, auth.id, problem_id, &request)
         .await
-        .map_http()?,
-    ))
+        .map_http()?;
+    Ok(())
 }
 
 pub async fn answer_problem_question(
@@ -373,20 +354,20 @@ pub async fn answer_problem_question(
     Path(question_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<String>,
-) -> Result<(), StatusCode> {
+) -> Result<(), ApiError> {
     let question = database::problems::get_problem_question(&state.db, question_id)
         .await
         .map_http()?;
     let problem = database::problems::get_problem(&state.db, question.problem_id)
         .await
         .map_http()?;
-    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+    let contest = database::contests::get_contest(&state.db, problem.contest_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
     {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
     database::problems::answer_problem_question(&state.db, question_id, &request)
         .await
@@ -400,23 +381,26 @@ pub async fn delete_problem_question(
     Path(question_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<DeletionRequest>,
-) -> Result<(), StatusCode> {
-    if request.login != auth.login
-        || request.password != request.password_confirmation
-        || !request.deletion_confirmation
-    {
-        return Err(StatusCode::BAD_REQUEST);
+) -> Result<(), ApiError> {
+    if request.login != auth.login {
+        return Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?;
+    }
+    if !request.deletion_confirmation {
+        return Err(AdaJudgeError::Deletion(
+            Deletion::MissingDeletionConfirmation,
+        ))
+        .map_http()?;
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        Err(StatusCode::BAD_REQUEST)
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     } else {
         let question = database::problems::get_problem_question(&state.db, question_id)
             .await
             .map_http()?;
         if !is_allowed(auth.id, Some(question.owner_id), &auth.admin_level) {
-            Err(StatusCode::FORBIDDEN)
+            Err(AdaJudgeError::Forbidden).map_http()?
         } else {
             database::problems::delete_problem_question(&state.db, question_id)
                 .await
@@ -430,21 +414,21 @@ pub async fn get_problem_question_by_id(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Path(question_id): Path<i64>,
-) -> Result<Json<ProblemQuestion>, StatusCode> {
+) -> Result<Json<ProblemQuestion>, ApiError> {
     let question = database::problems::get_problem_question(&state.db, question_id)
         .await
         .map_http()?;
     let problem = database::problems::get_problem(&state.db, question.problem_id)
         .await
         .map_http()?;
-    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+    let contest = database::contests::get_contest(&state.db, problem.contest_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && !is_allowed(auth.id, Some(question.owner_id), &auth.admin_level)
     {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
 
     Ok(Json(question))
@@ -454,17 +438,17 @@ pub async fn get_all_problem_questions(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
-) -> Result<Json<Vec<i64>>, StatusCode> {
+) -> Result<Json<Vec<ProblemQuestion>>, ApiError> {
     let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
-    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+    let contest = database::contests::get_contest(&state.db, problem.contest_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
     {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
 
     Ok(Json(
@@ -478,7 +462,7 @@ pub async fn get_my_problem_questions(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Path(problem_id): Path<i64>,
-) -> Result<Json<Vec<i64>>, StatusCode> {
+) -> Result<Json<Vec<ProblemQuestion>>, ApiError> {
     Ok(Json(
         database::problems::get_problem_questions(&state.db, Some(auth.id), problem_id)
             .await
@@ -490,11 +474,11 @@ pub async fn download_problem(
     State(state): State<AppState>,
     Path(problem_id): Path<i64>,
     Auth(auth): Auth,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<impl IntoResponse, ApiError> {
     let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
-    let contest = database::contests::get_contest_by_id(&state.db, problem.contest_id)
+    let contest = database::contests::get_contest(&state.db, problem.contest_id)
         .await
         .map_http()?;
 
@@ -502,12 +486,12 @@ pub async fn download_problem(
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && contest.co_authors.binary_search(&auth.id).is_err()
     {
-        Err(StatusCode::FORBIDDEN)
+        Err(AdaJudgeError::Forbidden).map_http()?
     } else {
         let file_path = PathBuf::from(format!("/problems/{problem_id}.zip"));
         let file = File::open(&file_path)
             .await
-            .map_log(TestingVerdict::Bug)
+            .map_err(|_| AdaJudgeError::Internal)
             .map_http()?;
         let stream = ReaderStream::new(file);
         let body = Body::from_stream(stream);

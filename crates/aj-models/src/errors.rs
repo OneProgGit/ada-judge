@@ -27,6 +27,9 @@ pub enum AdaJudgeError {
 
     #[error("contest error")]
     Contest(#[from] Contest),
+
+    #[error("bad request")]
+    BadRequest,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]
@@ -50,6 +53,15 @@ pub enum InvalidProblem {
 
     #[error("subgroup {subgroup} has both score and score_per_test fields")]
     InvalidSubgroupScoring { subgroup: usize },
+
+    #[error("no problem config found")]
+    MissingConfig,
+
+    #[error("toml error")]
+    TomlError { message: String },
+
+    #[error("owner id doesn't match")]
+    OwnerId,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]

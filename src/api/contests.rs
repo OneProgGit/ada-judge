@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     api::ApiError, app_state::AppState, crypt::verify_password, middleware::auth::Auth,
     tools::is_allowed,
@@ -17,6 +19,7 @@ use axum::{
 };
 use chrono::Utc;
 use database::contests::GetContestsMode;
+use tokio::fs;
 use tools::map::MapHttpExt;
 
 pub async fn get_contest_leaderboard(
@@ -188,6 +191,21 @@ pub async fn delete_contest(
         if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
             Err(AdaJudgeError::Forbidden).map_http()?
         } else {
+            let problems = database::contests::get_problems(&state.db, contest_id)
+                .await
+                .map_http()?;
+            for problem in problems {
+                let problem_id = problem.id;
+                fs::remove_dir_all(PathBuf::from(format!("/problems/{problem_id}")))
+                    .await
+                    .map_err(|_| AdaJudgeError::Internal)
+                    .map_http()?;
+                fs::remove_file(PathBuf::from(format!("/problems/{problem_id}.zip")))
+                    .await
+                    .map_err(|_| AdaJudgeError::Internal)
+                    .map_http()?;
+            }
+
             database::contests::delete_contest(&state.db, contest_id)
                 .await
                 .map_http()?;

@@ -21,6 +21,9 @@ impl<T> MapHttpExt<T> for Result<T, AdaJudgeError> {
                         InvalidProblem::InvalidSubgroupScoring { subgroup: _ } => {
                             StatusCode::BAD_REQUEST
                         }
+                        InvalidProblem::MissingConfig => StatusCode::BAD_REQUEST,
+                        InvalidProblem::TomlError { message: _ } => StatusCode::BAD_REQUEST,
+                        InvalidProblem::OwnerId => StatusCode::FORBIDDEN,
                     },
                     AdaJudgeError::InvalidJwt => todo!(),
                     AdaJudgeError::Auth(kind) => match kind {
@@ -36,6 +39,7 @@ impl<T> MapHttpExt<T> for Result<T, AdaJudgeError> {
                     AdaJudgeError::Contest(kind) => match kind {
                         Contest::Time => StatusCode::BAD_REQUEST,
                     },
+                    AdaJudgeError::BadRequest => StatusCode::BAD_REQUEST,
                 },
                 Json(e),
             )),

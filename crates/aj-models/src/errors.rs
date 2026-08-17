@@ -24,6 +24,9 @@ pub enum AdaJudgeError {
 
     #[error("forbidden")]
     Forbidden,
+
+    #[error("contest error")]
+    Contest(#[from] Contest),
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]
@@ -57,4 +60,11 @@ pub enum Deletion {
 
     #[error("missing deletion confirmation")]
     MissingDeletionConfirmation,
+}
+
+#[derive(Error, Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Contest {
+    #[error("start time is >= finish time")]
+    Time,
 }

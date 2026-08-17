@@ -7,14 +7,13 @@ use aj_models::{
     contests::{
         ContestPost, ContestPostRequest, ContestRequest, LeaderboardRow, PublicContestConfig,
     },
-    errors::AdaJudgeError,
+    errors::{AdaJudgeError, Contest, Deletion},
     problems::PublicProblemConfig,
     users::AdminLevel,
 };
 use axum::{
     Json,
     extract::{Path, State},
-    http::StatusCode,
 };
 use chrono::Utc;
 use database::contests::GetContestsMode;
@@ -122,34 +121,16 @@ pub async fn create_contest(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
-) -> Result<Json<i64>, ApiError> {
+) -> Result<(), ApiError> {
     if request.starts_at >= request.finishes_at {
-        Err(StatusCode::BAD_REQUEST)
+        Err(AdaJudgeError::Contest(Contest::Time)).map_http()?
     } else {
-        let mut co_authors = request.co_authors;
-        co_authors.sort_unstable();
-        let id = database::contests::create_contest(
-            &state.db,
-            auth.id,
-            &request.name_ru,
-            &request.name_en,
-            &request.starts_at,
-            &request.ends_at,
-            &request.statements_url_ru,
-            &request.editorial_url_ru,
-            &request.statements_url_en,
-            &request.editorial_url_en,
-            request.hidden,
-            request.upsolving_opened,
-            request.hide_solutions,
-            request.hide_leaderboard,
-        )
-        .await
-        .map_http()?;
-        database::contests::insert_contest_co_authors(&state.db, id, &co_authors)
+        let mut request = request;
+        request.co_authors.sort_unstable();
+        database::contests::create_contest(&state.db, auth.id, &request)
             .await
             .map_http()?;
-        Ok(Json(id))
+        Ok(())
     }
 }
 
@@ -158,41 +139,22 @@ pub async fn update_contest(
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
-) -> Result<(), StatusCode> {
-    if request.starts_at >= request.ends_at {
-        Err(StatusCode::BAD_REQUEST)
+) -> Result<(), ApiError> {
+    if request.starts_at >= request.finishes_at {
+        Err(AdaJudgeError::Contest(Contest::Time)).map_http()?
     } else {
-        let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+        let contest = database::contests::get_contest(&state.db, contest_id)
             .await
             .map_http()?;
 
         if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(AdaJudgeError::Forbidden).map_http()?;
         }
 
-        let mut co_authors = request.co_authors;
-        co_authors.sort_unstable();
+        let mut request = request;
+        request.co_authors.sort_unstable();
 
-        database::contests::update_contest(
-            &state.db,
-            contest_id,
-            &request.name_ru,
-            &request.name_en,
-            &request.starts_at,
-            &request.ends_at,
-            &request.statements_url_ru,
-            &request.editorial_url_ru,
-            &request.statements_url_en,
-            &request.editorial_url_en,
-            request.hidden,
-            request.upsolving_opened,
-            request.hide_solutions,
-            request.hide_leaderboard,
-        )
-        .await
-        .map_http()?;
-
-        database::contests::insert_contest_co_authors(&state.db, contest_id, &co_authors)
+        database::contests::update_contest(&state.db, contest_id, &request)
             .await
             .map_http()?;
 
@@ -205,23 +167,26 @@ pub async fn delete_contest(
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<DeletionRequest>,
-) -> Result<(), StatusCode> {
-    if request.login != auth.login
-        || request.password != request.password_confirmation
-        || !request.deletion_confirmation
-    {
-        return Err(StatusCode::BAD_REQUEST);
+) -> Result<(), ApiError> {
+    if request.login != auth.login {
+        return Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?;
+    }
+    if !request.deletion_confirmation {
+        return Err(AdaJudgeError::Deletion(
+            Deletion::MissingDeletionConfirmation,
+        ))
+        .map_http()?;
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        Err(StatusCode::BAD_REQUEST)
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     } else {
-        let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+        let contest = database::contests::get_contest(&state.db, contest_id)
             .await
             .map_http()?;
         if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
-            Err(StatusCode::FORBIDDEN)
+            Err(AdaJudgeError::Forbidden).map_http()?
         } else {
             database::contests::delete_contest(&state.db, contest_id)
                 .await
@@ -236,26 +201,17 @@ pub async fn create_contest_post(
     Path(contest_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<ContestPostRequest>,
-) -> Result<Json<i64>, StatusCode> {
-    let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+) -> Result<(), ApiError> {
+    let contest = database::contests::get_contest(&state.db, contest_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
-    Ok(Json(
-        database::contests::create_contest_post(
-            &state.db,
-            auth.id,
-            contest_id,
-            &request.title_ru,
-            &request.text_ru,
-            &request.title_en,
-            &request.text_en,
-        )
+    database::contests::create_contest_post(&state.db, auth.id, contest_id, &request)
         .await
-        .map_http()?,
-    ))
+        .map_http()?;
+    Ok(())
 }
 
 pub async fn update_contest_post(
@@ -263,23 +219,16 @@ pub async fn update_contest_post(
     Path(post_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<ContestPostRequest>,
-) -> Result<(), StatusCode> {
+) -> Result<(), ApiError> {
     let post = database::contests::get_contest_post(&state.db, post_id)
         .await
         .map_http()?;
     if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
-    database::contests::update_contest_post(
-        &state.db,
-        post_id,
-        &request.title_ru,
-        &request.text_ru,
-        &request.title_en,
-        &request.text_en,
-    )
-    .await
-    .map_http()?;
+    database::contests::update_contest_post(&state.db, post_id, &request)
+        .await
+        .map_http()?;
 
     Ok(())
 }
@@ -289,23 +238,26 @@ pub async fn delete_contest_post(
     Path(post_id): Path<i64>,
     Auth(auth): Auth,
     Json(request): Json<DeletionRequest>,
-) -> Result<(), StatusCode> {
-    if request.login != auth.login
-        || request.password != request.password_confirmation
-        || !request.deletion_confirmation
-    {
-        return Err(StatusCode::BAD_REQUEST);
+) -> Result<(), ApiError> {
+    if request.login != auth.login {
+        return Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?;
+    }
+    if !request.deletion_confirmation {
+        return Err(AdaJudgeError::Deletion(
+            Deletion::MissingDeletionConfirmation,
+        ))
+        .map_http()?;
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if !is_valid_password {
-        Err(StatusCode::BAD_REQUEST)
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     } else {
         let post = database::contests::get_contest_post(&state.db, post_id)
             .await
             .map_http()?;
         if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
-            Err(StatusCode::FORBIDDEN)
+            Err(AdaJudgeError::Forbidden).map_http()?
         } else {
             database::contests::delete_contest_post(&state.db, post_id)
                 .await
@@ -318,7 +270,7 @@ pub async fn delete_contest_post(
 pub async fn get_contest_post_by_id(
     State(state): State<AppState>,
     Path(post_id): Path<i64>,
-) -> Result<Json<ContestPost>, StatusCode> {
+) -> Result<Json<ContestPost>, ApiError> {
     Ok(Json(
         database::contests::get_contest_post(&state.db, post_id)
             .await
@@ -330,13 +282,13 @@ pub async fn get_contest_posts(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Path(contest_id): Path<i64>,
-) -> Result<Json<Vec<i64>>, StatusCode> {
-    let contest = database::contests::get_contest_by_id(&state.db, contest_id)
+) -> Result<Json<Vec<ContestPost>>, ApiError> {
+    let contest = database::contests::get_contest(&state.db, contest_id)
         .await
         .map_http()?;
 
     if contest.hidden && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
 
     Ok(Json(

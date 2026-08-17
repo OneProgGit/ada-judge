@@ -16,7 +16,7 @@ alter type admin_level rename value 'not_admin' to 'user';
 update users set admin_level='user' where admin_level='beta_tester';
 
 create type admin_level_new as enum (
-    'not_admin',
+    'user',
     'admin',
     'owner'
 );

@@ -228,6 +228,29 @@ pub async fn get_contest_submissions(
     Ok(submissions)
 }
 
+pub async fn get_problem_submissions(
+    pool: &PgPool,
+    problem_id: i64,
+) -> Result<Vec<Submission>, AdaJudgeError> {
+    let submissions = sqlx::query_as::<_, DatabaseSubmission>(
+        r#"select c.id from submissions c
+                join problems p on p.id = c.problem_id
+            where p.problem_id = $1 order by c.id desc"#,
+    )
+    .bind(problem_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })?
+    .iter()
+    .map(|x| x.clone().into())
+    .collect();
+
+    Ok(submissions)
+}
+
 pub async fn delete_problem_subgroups_results(
     pool: &PgPool,
     problem_id: i64,

@@ -13,7 +13,7 @@ create type problem_testing_type as enum (
 alter table problems_subgroups alter column score type double precision;
 alter table problems_subgroups alter column score_per_test type double precision;
 alter type admin_level rename value 'not_admin' to 'user';
-update table users set admin_level='user' where admin_level='beta_tester';
+update users set admin_level='user' where admin_level='beta_tester';
 
 create type admin_level_new as enum (
     'not_admin',

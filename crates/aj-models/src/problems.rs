@@ -58,7 +58,7 @@ pub enum ProblemType {
 #[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
     feature = "sqlx",
-    sqlx(type_name = "problem_type", rename_all = "snake_case")
+    sqlx(type_name = "problem_testing_type", rename_all = "snake_case")
 )]
 #[serde(rename_all = "snake_case")]
 pub enum ProblemTestingType {

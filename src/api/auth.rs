@@ -4,7 +4,7 @@ use crate::jwt::create_jwt;
 use crate::middleware::auth::Auth;
 use crate::{app_state::AppState, crypt::verify_password};
 use aj_models::DeletionRequest;
-use aj_models::errors::{AdaJudgeError, Deletion, Register};
+use aj_models::errors::{AdaJudgeError, AuthError, Deletion};
 use aj_models::users::{AdminLevel, LoginRequest, RegisterRequest};
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
@@ -17,7 +17,7 @@ pub async fn register(
     Json(user): Json<RegisterRequest>,
 ) -> Result<(), ApiError> {
     if user.password != user.password_confirmation {
-        return Err(AdaJudgeError::Register(Register::PasswordsDontMatch)).map_http()?;
+        return Err(AdaJudgeError::Auth(AuthError::PasswordsDontMatch)).map_http()?;
     }
 
     let password_hash = get_password_hash(&user.password).map_http()?;
@@ -45,7 +45,7 @@ pub async fn login(
         verify_password(&expected_user.password_hash, &user.password).map_http()?;
 
     if !is_valid_password {
-        return Err(AdaJudgeError::Register(Register::InvalidLoginOrPassword)).map_http()?;
+        return Err(AdaJudgeError::Auth(AuthError::InvalidLoginOrPassword)).map_http()?;
     }
     let jwt_exp_hours = env::var("JWT_EXP_HOURS");
 

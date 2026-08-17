@@ -16,16 +16,19 @@ pub enum AdaJudgeError {
     #[error("invalid JWT")]
     InvalidJwt,
 
-    #[error("register error")]
-    Register(#[from] Register),
+    #[error("auth error")]
+    Auth(#[from] AuthError),
 
     #[error("deletion error")]
     Deletion(#[from] Deletion),
+
+    #[error("forbidden")]
+    Forbidden,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
-pub enum Register {
+pub enum AuthError {
     #[error("invalid login or password")]
     InvalidLoginOrPassword,
 

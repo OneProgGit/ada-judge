@@ -1,11 +1,13 @@
 use crate::{
-    app_state::AppState, crypt::verify_password, middleware::auth::Auth, tools::is_allowed,
+    api::ApiError, app_state::AppState, crypt::verify_password, middleware::auth::Auth,
+    tools::is_allowed,
 };
 use aj_models::{
     DeletionRequest,
     contests::{
         ContestPost, ContestPostRequest, ContestRequest, LeaderboardRow, PublicContestConfig,
     },
+    errors::AdaJudgeError,
     problems::PublicProblemConfig,
     users::AdminLevel,
 };
@@ -15,15 +17,15 @@ use axum::{
     http::StatusCode,
 };
 use chrono::Utc;
-use database::contests::{GetContestsMode, get_all_user_contests};
+use database::contests::GetContestsMode;
 use tools::map::MapHttpExt;
 
 pub async fn get_contest_leaderboard(
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,
-) -> Result<Json<Vec<LeaderboardRow>>, StatusCode> {
+) -> Result<Json<Vec<LeaderboardRow>>, ApiError> {
     Ok(Json(
-        database::contests::get_contest_leaderboard(&state.db, contest_id)
+        database::contests::get_leaderboard(&state.db, contest_id)
             .await
             .map_http()?,
     ))
@@ -32,9 +34,9 @@ pub async fn get_contest_leaderboard(
 pub async fn get_contest_problems(
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,
-) -> Result<Json<Vec<i64>>, StatusCode> {
+) -> Result<Json<Vec<PublicProblemConfig>>, ApiError> {
     Ok(Json(
-        database::contests::get_contest_problems(&state.db, contest_id)
+        database::contests::get_problems(&state.db, contest_id)
             .await
             .map_http()?,
     ))
@@ -43,7 +45,7 @@ pub async fn get_contest_problems(
 pub async fn get_problem_by_id(
     State(state): State<AppState>,
     Path((_, problem_id)): Path<(i64, i64)>,
-) -> Result<Json<PublicProblemConfig>, StatusCode> {
+) -> Result<Json<PublicProblemConfig>, ApiError> {
     Ok(Json(
         database::problems::get_problem(&state.db, problem_id)
             .await
@@ -56,18 +58,17 @@ pub async fn get_contest_by_id(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Path(contest_id): Path<i64>,
-) -> Result<Json<PublicContestConfig>, StatusCode> {
-    let mut contest: PublicContestConfig =
-        database::contests::get_contest_by_id(&state.db, contest_id)
-            .await
-            .map_http()?
-            .into();
+) -> Result<Json<PublicContestConfig>, ApiError> {
+    let mut contest: PublicContestConfig = database::contests::get_contest(&state.db, contest_id)
+        .await
+        .map_http()?
+        .into();
 
     if contest.hidden
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && contest.co_authors.binary_search(&auth.id).is_err()
     {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AdaJudgeError::Forbidden).map_http()?;
     }
 
     let now = Utc::now();
@@ -79,7 +80,7 @@ pub async fn get_contest_by_id(
         contest.statements_url_ru = String::default();
         contest.statements_url_en = String::default();
     }
-    if now < contest.ends_at
+    if now < contest.finishes_at
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && contest.co_authors.binary_search(&auth.id).is_err()
     {
@@ -93,14 +94,14 @@ pub async fn get_contest_by_id(
 pub async fn get_contests(
     State(state): State<AppState>,
     Auth(auth): Auth,
-) -> Result<Json<Vec<i64>>, StatusCode> {
+) -> Result<Json<Vec<PublicContestConfig>>, ApiError> {
     let mode = if auth.admin_level == AdminLevel::Owner {
         GetContestsMode::All
     } else {
-        GetContestsMode::NotHidden
+        GetContestsMode::NotHidden(auth.id)
     };
     Ok(Json(
-        get_all_user_contests(&state.db, auth.id, mode)
+        database::contests::get_contests(&state.db, mode)
             .await
             .map_http()?,
     ))
@@ -109,9 +110,9 @@ pub async fn get_contests(
 pub async fn get_my_contests(
     State(state): State<AppState>,
     Auth(auth): Auth,
-) -> Result<Json<Vec<i64>>, StatusCode> {
+) -> Result<Json<Vec<PublicContestConfig>>, ApiError> {
     Ok(Json(
-        get_all_user_contests(&state.db, auth.id, GetContestsMode::User)
+        database::contests::get_contests(&state.db, GetContestsMode::User(auth.id))
             .await
             .map_http()?,
     ))
@@ -121,8 +122,8 @@ pub async fn create_contest(
     State(state): State<AppState>,
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
-) -> Result<Json<i64>, StatusCode> {
-    if request.starts_at >= request.ends_at {
+) -> Result<Json<i64>, ApiError> {
+    if request.starts_at >= request.finishes_at {
         Err(StatusCode::BAD_REQUEST)
     } else {
         let mut co_authors = request.co_authors;

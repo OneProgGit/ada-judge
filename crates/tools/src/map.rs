@@ -1,4 +1,4 @@
-use aj_models::errors::{AdaJudgeError, Deletion, InvalidProblem, Register};
+use aj_models::errors::{AdaJudgeError, AuthError, Deletion, InvalidProblem};
 use axum::{Json, http::StatusCode};
 
 pub trait MapHttpExt<T> {
@@ -23,15 +23,16 @@ impl<T> MapHttpExt<T> for Result<T, AdaJudgeError> {
                         }
                     },
                     AdaJudgeError::InvalidJwt => todo!(),
-                    AdaJudgeError::Register(kind) => match kind {
-                        Register::InvalidLoginOrPassword => StatusCode::BAD_REQUEST,
-                        Register::AlreadyExists => StatusCode::CONFLICT,
-                        Register::PasswordsDontMatch => StatusCode::BAD_REQUEST,
+                    AdaJudgeError::Auth(kind) => match kind {
+                        AuthError::InvalidLoginOrPassword => StatusCode::BAD_REQUEST,
+                        AuthError::AlreadyExists => StatusCode::CONFLICT,
+                        AuthError::PasswordsDontMatch => StatusCode::BAD_REQUEST,
                     },
                     AdaJudgeError::Deletion(kind) => match kind {
                         Deletion::InvalidLoginOrPassword => StatusCode::BAD_REQUEST,
                         Deletion::MissingDeletionConfirmation => StatusCode::BAD_REQUEST,
                     },
+                    AdaJudgeError::Forbidden => StatusCode::FORBIDDEN,
                 },
                 Json(e),
             )),

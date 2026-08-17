@@ -100,7 +100,10 @@ pub async fn get_leaderboard(
     .bind(contest_id)
     .fetch_all(pool)
     .await
-    .map_err(|_| AdaJudgeError::Internal)?;
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })?;
 
     Ok(leaderboard)
 }
@@ -144,7 +147,10 @@ pub async fn get_problems(
     .bind(contest_id)
     .fetch_all(pool)
     .await
-    .map_err(|_| AdaJudgeError::Internal)?
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })?
     .iter()
     .map(|x| x.clone().into())
     .collect();
@@ -183,7 +189,10 @@ pub async fn get_contests(
         )
         .fetch_all(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?,
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
 
         GetContestsMode::NotHidden(user_id) => sqlx::query_as(
             r#"select
@@ -218,7 +227,10 @@ pub async fn get_contests(
         .bind(user_id)
         .fetch_all(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?,
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
 
         GetContestsMode::User(user_id) => sqlx::query_as(
             r#"select
@@ -248,7 +260,10 @@ pub async fn get_contests(
         .bind(user_id)
         .fetch_all(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?,
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
     };
 
     Ok(contests)
@@ -285,7 +300,10 @@ pub async fn get_contest(
     .bind(contest_id)
     .fetch_one(pool)
     .await
-    .map_err(|_| AdaJudgeError::Internal)
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })
 }
 
 pub async fn create_contest(
@@ -358,13 +376,19 @@ pub async fn update_contest(
             .bind(contest_id)
             .execute(&mut *tx)
             .await
-            .map_err(|_| AdaJudgeError::Internal)?;
+            .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     sqlx::query(r#"delete from contests_co_authors where contest_id = $1"#)
         .bind(contest_id)
         .execute(&mut *tx)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     for user_id in &contest.co_authors {
         sqlx::query(r#"insert into contests_co_authors (contest_id, user_id) values ($1, $2)"#)
@@ -372,7 +396,10 @@ pub async fn update_contest(
             .bind(user_id)
             .execute(&mut *tx)
             .await
-            .map_err(|_| AdaJudgeError::Internal)?;
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+                _ => AdaJudgeError::Internal,
+            })?;
     }
 
     tx.commit().await.map_err(|_| AdaJudgeError::Internal)?;
@@ -385,7 +412,10 @@ pub async fn delete_contest(pool: &PgPool, contest_id: i64) -> Result<(), AdaJud
         .bind(contest_id)
         .execute(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     Ok(())
 }
@@ -429,7 +459,10 @@ pub async fn update_contest_post(
     .bind(post_id)
     .execute(pool)
     .await
-    .map_err(|_| AdaJudgeError::Internal)?;
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })?;
 
     Ok(())
 }
@@ -439,7 +472,10 @@ pub async fn delete_contest_post(pool: &PgPool, post_id: i64) -> Result<(), AdaJ
         .bind(post_id)
         .execute(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     Ok(())
 }
@@ -449,7 +485,10 @@ pub async fn get_contest_post(pool: &PgPool, post_id: i64) -> Result<ContestPost
         .bind(post_id)
         .fetch_one(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })
 }
 
 pub async fn get_contest_posts(
@@ -461,7 +500,10 @@ pub async fn get_contest_posts(
             .bind(contest_id)
             .fetch_all(pool)
             .await
-            .map_err(|_| AdaJudgeError::Internal)?;
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+                _ => AdaJudgeError::Internal,
+            })?;
 
     Ok(posts)
 }

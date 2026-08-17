@@ -468,7 +468,7 @@ pub async fn get_all_problem_questions(
     }
 
     Ok(Json(
-        database::problems::get_all_user_problem_questions(&state.db, None, problem_id)
+        database::problems::get_problem_questions(&state.db, None, problem_id)
             .await
             .map_http()?,
     ))
@@ -480,7 +480,7 @@ pub async fn get_my_problem_questions(
     Path(problem_id): Path<i64>,
 ) -> Result<Json<Vec<i64>>, StatusCode> {
     Ok(Json(
-        database::problems::get_all_user_problem_questions(&state.db, Some(auth.id), problem_id)
+        database::problems::get_problem_questions(&state.db, Some(auth.id), problem_id)
             .await
             .map_http()?,
     ))

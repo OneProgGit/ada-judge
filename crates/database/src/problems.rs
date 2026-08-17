@@ -46,7 +46,10 @@ pub async fn get_problem(
     .bind(problem_id)
     .fetch_one(pool)
     .await
-    .map_err(|_| AdaJudgeError::Internal)?;
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })?;
 
     Ok(config)
 }
@@ -90,7 +93,10 @@ pub async fn get_problems(
         )
         .fetch_all(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?,
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
         Some(user_id) => sqlx::query_as::<_, DatabaseProblemConfig>(
             r#"select
                     c.id,
@@ -126,7 +132,10 @@ pub async fn get_problems(
         .bind(user_id)
         .fetch_all(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?,
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
     }
     .iter()
     .map(|x| x.clone().into())
@@ -240,13 +249,19 @@ pub async fn update_problem(
     .bind(problem_id)
     .execute(&mut *tx)
     .await
-    .map_err(|_| AdaJudgeError::Internal)?;
+    .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     sqlx::query(r#"delete from problems_subgroups where problem_id = $1"#)
         .bind(problem_id)
         .execute(&mut *tx)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     for (i, subgroup) in problem.subgroups.iter().enumerate() {
         if let Some(score) = subgroup.score {
@@ -268,7 +283,10 @@ pub async fn update_problem(
             )
             .execute(&mut *tx)
             .await
-            .map_err(|_| AdaJudgeError::Internal)?;
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+                _ => AdaJudgeError::Internal,
+            })?;
         } else if let Some(score_per_test) = subgroup.score_per_test {
             sqlx::query(
                 r#"insert into problems_subgroups (problem_id, subgroup_index,
@@ -288,7 +306,10 @@ pub async fn update_problem(
             )
             .execute(&mut *tx)
             .await
-            .map_err(|_| AdaJudgeError::Internal)?;
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+                _ => AdaJudgeError::Internal,
+            })?;
         } else {
             unreachable!()
         }
@@ -304,7 +325,10 @@ pub async fn delete_problem(pool: &PgPool, problem_id: i64) -> Result<(), AdaJud
         .bind(problem_id)
         .execute(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     Ok(())
 }
@@ -339,7 +363,10 @@ pub async fn answer_problem_question(
         .bind(question_id)
         .execute(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     Ok(())
 }
@@ -349,7 +376,10 @@ pub async fn delete_problem_question(pool: &PgPool, question_id: i64) -> Result<
         .bind(question_id)
         .execute(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     Ok(())
 }
@@ -362,10 +392,13 @@ pub async fn get_problem_question(
         .bind(question_id)
         .fetch_one(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })
 }
 
-pub async fn get_all_user_problem_questions(
+pub async fn get_problem_questions(
     pool: &PgPool,
     user_id: Option<i64>,
     problem_id: i64,
@@ -377,7 +410,10 @@ pub async fn get_all_user_problem_questions(
         .bind(problem_id)
         .fetch_all(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?,
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
         Some(user_id) => sqlx::query_as(
             r#"select * from problems_questions where owner_id = $1 and problem_id = $2 order by id desc"#,
         )
@@ -385,7 +421,10 @@ pub async fn get_all_user_problem_questions(
         .bind(problem_id)
         .fetch_all(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?,
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
     };
 
     Ok(questions)

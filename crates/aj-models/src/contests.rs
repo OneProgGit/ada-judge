@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct LeaderboardRow {
     pub user_id: i64,
-    pub login: String,
+    pub user_login: String,
     pub scores: Vec<f64>,
     pub total_score: f64,
 }
@@ -25,6 +25,7 @@ pub struct ContestRequest {
     pub solutions_hidden: bool,
     pub leaderboard_hidden: bool,
     pub co_authors: Vec<i64>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -32,6 +33,7 @@ pub struct ContestRequest {
 pub struct PublicContestConfig {
     pub id: i64,
     pub owner_id: Option<i64>,
+    pub owner_login: Option<String>,
     pub name_ru: String,
     pub name_en: String,
     pub starts_at: DateTime<Utc>,
@@ -45,6 +47,7 @@ pub struct PublicContestConfig {
     pub solutions_hidden: bool,
     pub leaderboard_hidden: bool,
     pub co_authors: Vec<i64>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -60,9 +63,11 @@ pub struct ContestPostRequest {
 pub struct ContestPost {
     pub id: i64,
     pub owner_id: i64,
+    pub owner_login: String,
     pub contest_id: i64,
     pub title_ru: String,
     pub title_en: String,
     pub text_ru: String,
     pub text_en: String,
+    pub created_at: DateTime<Utc>,
 }

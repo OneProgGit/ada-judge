@@ -67,6 +67,7 @@ pub struct Submission {
     pub id: i64,
     pub problem_id: i64,
     pub user_id: i64,
+    pub user_login: String,
     pub language: Language,
     pub verdict: TestingVerdict,
     pub score: f64,

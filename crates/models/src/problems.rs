@@ -2,6 +2,7 @@ use aj_models::{
     problems::{ProblemConfig, ProblemTestingType, ProblemType, PublicProblemConfig, Subgroup},
     testing::Language,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 
@@ -9,6 +10,7 @@ use sqlx::types::Json;
 pub struct DatabaseProblemConfig {
     pub id: i64,
     pub owner_id: Option<i64>,
+    pub owner_login: Option<String>,
     pub name_ru: String,
     pub name_en: String,
     pub r#type: ProblemType,
@@ -21,6 +23,7 @@ pub struct DatabaseProblemConfig {
     pub checker_lang: Language,
     pub tests_path: String,
     pub subgroups: Json<Vec<Subgroup>>,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<DatabaseProblemConfig> for PublicProblemConfig {
@@ -28,6 +31,7 @@ impl From<DatabaseProblemConfig> for PublicProblemConfig {
         Self {
             id: value.id,
             owner_id: value.owner_id,
+            owner_login: value.owner_login,
             r#type: value.r#type,
             testing_type: value.testing_type,
             contest_id: value.contest_id,
@@ -37,6 +41,7 @@ impl From<DatabaseProblemConfig> for PublicProblemConfig {
             time_limit_ms: value.time_limit_ms,
             memory_limit_mb: value.memory_limit_mb,
             subgroups: value.subgroups.0,
+            created_at: value.created_at,
         }
     }
 }

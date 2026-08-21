@@ -27,6 +27,7 @@ pub struct ProblemConfig {
 pub struct PublicProblemConfig {
     pub id: i64,
     pub owner_id: Option<i64>,
+    pub owner_login: Option<String>,
     pub name_ru: String,
     pub name_en: String,
     pub r#type: ProblemType,
@@ -36,6 +37,7 @@ pub struct PublicProblemConfig {
     pub time_limit_ms: i32,
     pub memory_limit_mb: i32,
     pub subgroups: Vec<Subgroup>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -107,6 +109,7 @@ pub struct ProblemQuestionRequest {
 pub struct ProblemQuestion {
     pub id: i64,
     pub owner_id: i64,
+    pub owner_login: String,
     pub problem_id: i64,
     pub title: String,
     pub text: String,

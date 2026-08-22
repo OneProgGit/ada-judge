@@ -64,7 +64,7 @@ async fn main() {
         .init();
 
     let postgres_url =
-        env::var("POSTGRES_URL").expect("environment variable POSTGRES_URL must be set");
+        env::var("DATABASE_URL").expect("environment variable DATABASE_URL must be set");
     let pg_pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(&postgres_url)

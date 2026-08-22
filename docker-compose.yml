@@ -49,7 +49,7 @@ services:
       sandbox:
         condition: service_started
     environment:
-      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
       HOST_RUNS_DIR: ${PWD}
       SANDBOX_IMAGE: ada-judge-sandbox
@@ -70,7 +70,7 @@ services:
       sandbox:
         condition: service_started
     environment:
-      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
       HOST_RUNS_DIR: ${PWD}
       JWT_SECRET: ${JWT_SECRET}

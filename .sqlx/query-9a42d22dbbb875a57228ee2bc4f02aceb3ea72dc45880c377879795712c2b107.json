@@ -1,0 +1,213 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n                    c.id,\n                    c.owner_id,\n                    users.login as owner_login,\n                    c.name_ru as \"name_ru!\",\n                    c.name_en as \"name_en!\",\n                    c.statements_url_ru as \"statements_url_ru!\",\n                    c.editorial_url_ru as \"editorial_url_ru!\",\n                    c.statements_url_en as \"statements_url_en!\",\n                    c.editorial_url_en as \"editorial_url_en!\",\n                    c.starts_at,\n                    c.finishes_at,\n                    c.hidden,\n                    c.upsolving_enabled,\n                    c.solutions_hidden,\n                    c.leaderboard_hidden,\n                    c.created_at,\n                    coalesce(\n                        array_agg(co.user_id) filter (where co.user_id is not null),\n                        '{}'\n                    ) as \"co_authors!\" from contests c\n                    left join contests_co_authors co on co.contest_id = c.id\n                    join users on users.id = c.owner_id\n                    group by c.id, owner_login\n                    order by c.id desc",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "owner_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "owner_login",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "login"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name_ru!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "name_ru"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "name_en!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "statements_url_ru!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "statements_url_ru"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "editorial_url_ru!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "editorial_url_ru"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "statements_url_en!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "statements_url_en"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "editorial_url_en!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "editorial_url_en"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "starts_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "starts_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "finishes_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "finishes_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "hidden",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "hidden"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "upsolving_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "upsolving_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "solutions_hidden",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "solutions_hidden"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "leaderboard_hidden",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "leaderboard_hidden"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "contests",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "co_authors!",
+        "type_info": "Int8Array",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "9a42d22dbbb875a57228ee2bc4f02aceb3ea72dc45880c377879795712c2b107"
+}

@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update submissions_subgroups_results set verdict = $1, test = $2, score = $3\n            where submission_id = $4 and subgroup_index = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "verdict",
+            "kind": {
+              "Enum": [
+                "ok",
+                "runtime_error",
+                "time_limit_exceeded",
+                "memory_limit_exceeded",
+                "security_error",
+                "wrong_answer",
+                "presentation_error",
+                "skipped",
+                "testing",
+                "fail"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Float8",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c74e0e367a352b8345fb57ecb4e8b39233a3cc0f970d1da8bf989703c0b606e9"
+}

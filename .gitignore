@@ -15,7 +15,6 @@ problems/*
 !problems/7
 .editorconfig
 .env
-.sqlx
 ok
 wa
 re

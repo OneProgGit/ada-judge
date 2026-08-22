@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 use crate::{app_state::AppState, middleware::auth::Auth, tools::is_allowed};
 use aj_models::users::AdminLevel;
 use axum::{

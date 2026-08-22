@@ -56,6 +56,7 @@ mod jwt;
 mod middleware;
 mod tools;
 
+#[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()

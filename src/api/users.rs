@@ -71,13 +71,13 @@ pub async fn delete_user_account(
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
-    if !is_valid_password {
-        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
-    } else {
+    if is_valid_password {
         database::users::delete_user(&state.db, user_id)
             .await
             .map_http()?;
         Ok(())
+    } else {
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     }
 }
 
@@ -86,9 +86,7 @@ pub async fn update_user_admin_level(
     Path(user_id): Path<i64>,
     Json(admin_level): Json<AdminLevel>,
 ) -> Result<(), ApiError> {
-    Ok(
-        database::users::change_admin_level(&state.db, user_id, &admin_level)
-            .await
-            .map_http()?,
-    )
+    database::users::change_admin_level(&state.db, user_id, &admin_level)
+        .await
+        .map_http()
 }

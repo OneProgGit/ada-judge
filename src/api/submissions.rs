@@ -57,14 +57,13 @@ pub async fn get_submission(
     Path(submission_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Submission>, ApiError> {
-    let submission: Submission = database::submissions::get_submission(&state.db, submission_id)
+    let submission = database::submissions::get_submission(&state.db, submission_id)
         .await
-        .map_http()?
-        .into();
-    if !is_allowed(auth.id, Some(submission.user_id), &auth.admin_level) {
-        Err(AdaJudgeError::Forbidden).map_http()?
-    } else {
+        .map_http()?;
+    if is_allowed(auth.id, Some(submission.user_id), &auth.admin_level) {
         Ok(Json(submission))
+    } else {
+        Err(AdaJudgeError::Forbidden).map_http()?
     }
 }
 
@@ -73,10 +72,9 @@ pub async fn download_submission(
     Path(submission_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<impl IntoResponse, ApiError> {
-    let submission: Submission = database::submissions::get_submission(&state.db, submission_id)
+    let submission = database::submissions::get_submission(&state.db, submission_id)
         .await
-        .map_http()?
-        .into();
+        .map_http()?;
     let problem = database::problems::get_problem(&state.db, submission.problem_id)
         .await
         .map_http()?;
@@ -92,10 +90,7 @@ pub async fn download_submission(
         Err(AdaJudgeError::Forbidden).map_http()?
     } else {
         let file_ext = &submission.language.file_ext();
-        let file_path = PathBuf::from(format!(
-            "/submissions_envs/{submission_id}/run.{}",
-            file_ext
-        ));
+        let file_path = PathBuf::from(format!("/submissions_envs/{submission_id}/run.{file_ext}"));
         let file = File::open(&file_path)
             .await
             .map_err(|_| AdaJudgeError::Internal)
@@ -182,7 +177,7 @@ pub async fn submit(
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    let run_path = run_dir.join(format!("run.{}", &submission.language.file_ext()));
+    let run_path = run_dir.join(format!("run.{}", submission.language.file_ext()));
     let mut run_file = File::create(run_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)
@@ -206,7 +201,7 @@ pub async fn submit(
 
     let submission_task = SubmissionTask {
         problem_path: PathBuf::from("/problems").join(problem_id.to_string()),
-        problem_id: problem_id,
+        problem_id,
         id: submission_id,
         run_dir,
         language: submission.language,

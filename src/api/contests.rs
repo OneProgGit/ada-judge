@@ -63,8 +63,7 @@ pub async fn get_contest_by_id(
 ) -> Result<Json<PublicContestConfig>, ApiError> {
     let mut contest: PublicContestConfig = database::contests::get_contest(&state.db, contest_id)
         .await
-        .map_http()?
-        .into();
+        .map_http()?;
 
     if contest.hidden
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
@@ -182,15 +181,11 @@ pub async fn delete_contest(
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
-    if !is_valid_password {
-        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
-    } else {
+    if is_valid_password {
         let contest = database::contests::get_contest(&state.db, contest_id)
             .await
             .map_http()?;
-        if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
-            Err(AdaJudgeError::Forbidden).map_http()?
-        } else {
+        if is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
             let problems = database::contests::get_problems(&state.db, contest_id)
                 .await
                 .map_http()?;
@@ -210,7 +205,11 @@ pub async fn delete_contest(
                 .await
                 .map_http()?;
             Ok(())
+        } else {
+            Err(AdaJudgeError::Forbidden).map_http()?
         }
+    } else {
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     }
 }
 
@@ -268,20 +267,20 @@ pub async fn delete_contest_post(
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
-    if !is_valid_password {
-        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
-    } else {
+    if is_valid_password {
         let post = database::contests::get_contest_post(&state.db, post_id)
             .await
             .map_http()?;
-        if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
-            Err(AdaJudgeError::Forbidden).map_http()?
-        } else {
+        if is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
             database::contests::delete_contest_post(&state.db, post_id)
                 .await
                 .map_http()?;
             Ok(())
+        } else {
+            Err(AdaJudgeError::Forbidden).map_http()?
         }
+    } else {
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     }
 }
 

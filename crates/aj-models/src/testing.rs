@@ -23,13 +23,13 @@ impl Language {
     #[must_use]
     pub const fn file_ext(&self) -> &'static str {
         match &self {
-            Language::C => "c",
-            Language::Cpp => "cpp",
-            Language::Go => "go",
-            Language::Rust => "rs",
-            Language::Python => "py",
-            Language::FreePascal => "pas",
-            Language::Unknown => "!!",
+            Self::C => "c",
+            Self::Cpp => "cpp",
+            Self::Go => "go",
+            Self::Rust => "rs",
+            Self::Python => "py",
+            Self::FreePascal => "pas",
+            Self::Unknown => "!!",
         }
     }
 }

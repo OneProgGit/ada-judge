@@ -3,9 +3,11 @@
 #![deny(clippy::nursery)]
 #![deny(warnings)]
 #![forbid(unsafe_code)]
+#![allow(clippy::too_many_lines, clippy::missing_errors_doc)]
 
 use crate::{
     checker_runner::{get_checker_run_twice_interactive_verdict, get_checker_run_twice_verdict},
+    constants::EPS,
     interactive_runner::{get_interactive_run_twice_verdict, get_interactive_verdict},
     solution_runner::get_solution_verdict,
 };
@@ -244,7 +246,7 @@ async fn test_subgroup(
         let test_id = *test_id;
 
         database::submissions::create_test_result(
-            &pool,
+            pool,
             submission_id,
             test_id,
             if per_test_scoring { Some(0.) } else { None },
@@ -259,7 +261,7 @@ async fn test_subgroup(
             };
 
             database::submissions::update_test_testing_result(
-                &pool,
+                pool,
                 submission_id,
                 test_id,
                 &test_result,
@@ -287,7 +289,7 @@ async fn test_subgroup(
         };
 
         database::submissions::update_test_testing_result(
-            &pool,
+            pool,
             submission_id,
             test_id,
             &test_result,
@@ -312,7 +314,11 @@ async fn test_subgroup(
     Ok(())
 }
 
-#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_precision_loss
+)]
 pub async fn test_submission(
     submission: SubmissionTask,
     pool: Data<PgPool>,
@@ -348,13 +354,12 @@ pub async fn test_submission(
         .await?;
     for (i, subgroup) in config.subgroups.clone().iter().enumerate() {
         let subgroup_index = i as i32;
-        max_score += if let Some(score) = subgroup.score {
-            score
-        } else if let Some(score_per_test) = subgroup.score_per_test {
-            score_per_test * (subgroup.tests.len() as f64)
-        } else {
-            unreachable!()
-        };
+        max_score += subgroup.score.unwrap_or_else(|| {
+            subgroup.score_per_test.map_or_else(
+                || unreachable!(),
+                |score_per_test| score_per_test * (subgroup.tests.len() as f64),
+            )
+        });
         let mut subgroup_result = SubgroupResult {
             verdict: Verdict::Testing,
             test: 0,
@@ -366,19 +371,7 @@ pub async fn test_submission(
             .await
             .map_err(|_| TestingVerdict::Fail)?;
 
-        if !subgroup.should_skip(&subgroups_results) {
-            test_subgroup(
-                &pool,
-                submission_id,
-                subgroup,
-                &config,
-                &tests_paths,
-                &mut subgroup_result,
-            )
-            .await
-            .map_db(&pool, submission_id)
-            .await?;
-        } else {
+        if subgroup.should_skip(&subgroups_results) {
             subgroup_result.verdict = Verdict::Skipped;
 
             let per_test = subgroup.score_per_test.is_some();
@@ -405,6 +398,18 @@ pub async fn test_submission(
                 )
                 .await?;
             }
+        } else {
+            test_subgroup(
+                &pool,
+                submission_id,
+                subgroup,
+                &config,
+                &tests_paths,
+                &mut subgroup_result,
+            )
+            .await
+            .map_db(&pool, submission_id)
+            .await?;
         }
 
         total_score += subgroup_result.score;
@@ -423,7 +428,7 @@ pub async fn test_submission(
     database::submissions::update_submission(
         &pool,
         submission_id,
-        if total_score == max_score {
+        if (total_score - max_score).abs() < EPS {
             &TestingVerdict::Ok
         } else {
             &TestingVerdict::PartialSolution

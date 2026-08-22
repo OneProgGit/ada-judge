@@ -3,7 +3,7 @@ use aj_models::{
     users::{AdminLevel, PrivateUserData},
 };
 use models::users::DatabaseUser;
-use sqlx::PgPool;
+use sqlx::{PgPool, error::DatabaseError};
 
 pub async fn get_users(pool: &PgPool) -> Result<Vec<PrivateUserData>, AdaJudgeError> {
     let users = sqlx::query_as!(
@@ -39,7 +39,7 @@ pub async fn create_user(
     .await
     .map_err(|e| {
         if e.as_database_error()
-            .is_some_and(|e| e.is_unique_violation())
+            .is_some_and(DatabaseError::is_unique_violation)
         {
             AdaJudgeError::Auth(AuthError::AlreadyExists)
         } else {

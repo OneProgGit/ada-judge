@@ -9,7 +9,7 @@ pub trait MapDbExt<T> {
 
 impl<T: Send> MapDbExt<T> for Result<T, TestingVerdict> {
     async fn map_db(self, pool: &PgPool, submission_id: i64) -> Self {
-        if let Err(_) = &self {
+        if self.is_err() {
             update_submission(pool, submission_id, &TestingVerdict::Fail, 0.)
                 .await
                 .map_err(|_| TestingVerdict::Fail)?;
@@ -20,7 +20,7 @@ impl<T: Send> MapDbExt<T> for Result<T, TestingVerdict> {
 
 impl<T: Send> MapDbExt<T> for Result<T, AdaJudgeError> {
     async fn map_db(self, pool: &PgPool, submission_id: i64) -> Result<T, TestingVerdict> {
-        if let Err(_) = &self {
+        if self.is_err() {
             update_submission(pool, submission_id, &TestingVerdict::Fail, 0.)
                 .await
                 .map_err(|_| TestingVerdict::Fail)?;

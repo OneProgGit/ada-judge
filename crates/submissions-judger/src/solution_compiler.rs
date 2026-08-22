@@ -123,7 +123,6 @@ pub async fn compile_solution(
     _ = compile_cmd.kill();
     match compilation_result.code() {
         Some(0) => Ok(()),
-        Some(_) => Err(TestingVerdict::CompilationError),
-        None => Err(TestingVerdict::CompilationError),
+        _ => Err(TestingVerdict::CompilationError),
     }
 }

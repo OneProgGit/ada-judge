@@ -112,17 +112,14 @@ pub async fn create_problem(
         .map_err(|_| AdaJudgeError::BadRequest)
         .map_http()?
     {
-        match field.name() {
-            Some("problem_archive") => {
-                file_stream = Some(
-                    field
-                        .bytes()
-                        .await
-                        .map_err(|_| AdaJudgeError::BadRequest)
-                        .map_http()?,
-                );
-            }
-            _ => {}
+        if field.name() == Some("problem_archive") {
+            file_stream = Some(
+                field
+                    .bytes()
+                    .await
+                    .map_err(|_| AdaJudgeError::BadRequest)
+                    .map_http()?,
+            );
         }
     }
 
@@ -182,8 +179,8 @@ pub async fn create_problem(
     let problem_id = database::problems::create_problem(&state.db, auth.id, &config)
         .await
         .map_http()?;
-    let new_problem_path = PathBuf::from(format!("/problems/{}", problem_id));
-    let new_problem_archive_path = PathBuf::from(format!("/problems/{}.zip", problem_id));
+    let new_problem_path = PathBuf::from(format!("/problems/{problem_id}"));
+    let new_problem_archive_path = PathBuf::from(format!("/problems/{problem_id}.zip"));
 
     fs::rename(problem_path, new_problem_path)
         .await
@@ -210,17 +207,14 @@ pub async fn update_problem(
         .map_err(|_| AdaJudgeError::BadRequest)
         .map_http()?
     {
-        match field.name() {
-            Some("problem_archive") => {
-                file_stream = Some(
-                    field
-                        .bytes()
-                        .await
-                        .map_err(|_| AdaJudgeError::BadRequest)
-                        .map_http()?,
-                );
-            }
-            _ => {}
+        if field.name() == Some("problem_archive") {
+            file_stream = Some(
+                field
+                    .bytes()
+                    .await
+                    .map_err(|_| AdaJudgeError::BadRequest)
+                    .map_http()?,
+            );
         }
     }
 
@@ -280,8 +274,8 @@ pub async fn update_problem(
     database::problems::update_problem(&state.db, auth.id, &config)
         .await
         .map_http()?;
-    let new_problem_path = PathBuf::from(format!("/problems/{}", problem_id));
-    let new_problem_archive_path = PathBuf::from(format!("/problems/{}.zip", problem_id));
+    let new_problem_path = PathBuf::from(format!("/problems/{problem_id}"));
+    let new_problem_archive_path = PathBuf::from(format!("/problems/{problem_id}.zip"));
 
     fs::rename(problem_path, new_problem_path)
         .await
@@ -312,15 +306,11 @@ pub async fn delete_problem(
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
-    if !is_valid_password {
-        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
-    } else {
+    if is_valid_password {
         let problem = database::problems::get_problem(&state.db, problem_id)
             .await
             .map_http()?;
-        if !is_allowed(auth.id, problem.owner_id, &auth.admin_level) {
-            Err(AdaJudgeError::Forbidden).map_http()?
-        } else {
+        if is_allowed(auth.id, problem.owner_id, &auth.admin_level) {
             database::problems::delete_problem(&state.db, problem_id)
                 .await
                 .map_http()?;
@@ -333,7 +323,11 @@ pub async fn delete_problem(
                 .map_err(|_| AdaJudgeError::Internal)
                 .map_http()?;
             Ok(())
+        } else {
+            Err(AdaJudgeError::Forbidden).map_http()?
         }
+    } else {
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     }
 }
 
@@ -393,20 +387,20 @@ pub async fn delete_problem_question(
     }
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
-    if !is_valid_password {
-        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
-    } else {
+    if is_valid_password {
         let question = database::problems::get_problem_question(&state.db, question_id)
             .await
             .map_http()?;
-        if !is_allowed(auth.id, Some(question.owner_id), &auth.admin_level) {
-            Err(AdaJudgeError::Forbidden).map_http()?
-        } else {
+        if is_allowed(auth.id, Some(question.owner_id), &auth.admin_level) {
             database::problems::delete_problem_question(&state.db, question_id)
                 .await
                 .map_http()?;
             Ok(())
+        } else {
+            Err(AdaJudgeError::Forbidden).map_http()?
         }
+    } else {
+        Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?
     }
 }
 

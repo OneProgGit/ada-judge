@@ -11,6 +11,7 @@ pub struct LeaderboardRow {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ContestRequest {
     pub name_ru: String,
     pub name_en: String,
@@ -30,6 +31,7 @@ pub struct ContestRequest {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
+#[allow(clippy::struct_excessive_bools)]
 pub struct PublicContestConfig {
     pub id: i64,
     pub owner_id: Option<i64>,

@@ -2,7 +2,7 @@
 name = "ada-judge"
 version = "0.7.0"
 edition = "2024"
-rust-version = "1.97.0"
+rust-version = "1.98.0"
 
 [dependencies]
 axum.workspace = true

@@ -79,6 +79,7 @@ pub struct Subgroup {
 }
 
 impl Subgroup {
+    #[must_use]
     pub fn should_skip(&self, subgroups_results: &[SubgroupResult]) -> bool {
         self.depends_on
             .iter()
@@ -86,7 +87,7 @@ impl Subgroup {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(
     feature = "sqlx",

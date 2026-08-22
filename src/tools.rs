@@ -22,10 +22,10 @@ pub async fn is_contest_active(
 
     let now = Utc::now();
 
-    return (now >= contest.starts_at
+    (now >= contest.starts_at
         && (now <= contest.finishes_at || contest.upsolving_enabled)
         && !contest.hidden)
         || is_allowed(user_id, problem.owner_id, &admin_level)
         || is_allowed(user_id, contest.owner_id, &admin_level)
-        || contest.co_authors.binary_search(&user_id).is_ok();
+        || contest.co_authors.binary_search(&user_id).is_ok()
 }

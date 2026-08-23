@@ -13,7 +13,6 @@ alter table problems_subgroups alter column score_per_test type double precision
 alter type admin_level rename value 'not_admin' to 'user';
 update users set admin_level = 'user' where admin_level = 'beta_tester';
 
-
 create type admin_level_new as enum (
     'user',
     'admin',
@@ -43,11 +42,9 @@ alter table submissions_subgroups_results rename column subgroup_verdict to verd
 alter table submissions_tests_results alter column score type double precision;
 alter table submissions_tests_results rename column test_verdict to verdict;
 
-update submissions set verdict = 'bug' where verdict in ('invalid_problem', 'invalid_request');
 alter type subgroup_verdict rename to verdict;
 alter type verdict add value 'fail';
 alter type total_verdict rename to testing_verdict;
-alter type testing_verdict rename value 'bug' to 'fail';
 
 create type testing_verdict_new as enum (
     'ok',
@@ -61,7 +58,13 @@ create type testing_verdict_new as enum (
 
 alter table submissions
 alter column verdict type testing_verdict_new
-using verdict::text::testing_verdict_new;
+using (
+    case
+        when verdict::text in('invalid_problem', 'invalid_request', 'bug')
+            then 'fail'
+        else verdict::text
+    end
+)::testing_verdict_new;
 
 drop type testing_verdict;
 

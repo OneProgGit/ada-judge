@@ -26,7 +26,6 @@ pub struct ContestRequest {
     pub solutions_hidden: bool,
     pub leaderboard_hidden: bool,
     pub co_authors: Vec<i64>,
-    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

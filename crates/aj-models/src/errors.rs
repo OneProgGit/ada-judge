@@ -51,7 +51,7 @@ pub enum InvalidProblem {
     #[error("subgroup {subgroup} depends on subgroup {depends_on}")]
     SubgroupConflict { subgroup: usize, depends_on: usize },
 
-    #[error("subgroup {subgroup} has both score and score_per_test fields")]
+    #[error("subgroup {subgroup} has both score and score_per_test fields (or no of them)")]
     InvalidSubgroupScoring { subgroup: usize },
 
     #[error("no problem config found")]

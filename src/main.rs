@@ -220,7 +220,10 @@ async fn main() {
         .route("/users/me/delete_account", delete(delete_my_account))
         .route("/contests", get(get_contests))
         .route("/contests/{contest_id}", get(get_contest_by_id))
-        .route("/contests/{contest_id}/submit", post(submit))
+        .route(
+            "/contests/{contest_id}/problems/{problem_id}/submit",
+            post(submit),
+        )
         .route("/contests/{contest_id}/posts", get(get_contest_posts))
         .route("/contests/posts/{post_id}", get(get_contest_post_by_id))
         .route(

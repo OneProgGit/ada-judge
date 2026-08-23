@@ -1,9 +1,9 @@
 name_ru = "Прибавь 1"
 name_en = "Add 1"
 type = "run_twice"
-merge_subgroups = false
+testing_type = "ioi"
 contest_id = 1
-problem_index = 5
+index = 5
 time_limit_ms = 1000
 memory_limit_mb = 256
 checker_path = "checker"

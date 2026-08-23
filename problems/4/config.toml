@@ -1,9 +1,9 @@
 name_ru = "Сумма чисел IV"
 name_en = "Sum of numbers IV"
 type = "default"
-merge_subgroups = true
+testing_type = "ioi_merge_subgroups"
 contest_id = 1
-problem_index = 3
+index = 3
 time_limit_ms = 1000
 memory_limit_mb = 256
 checker_path = "checker"

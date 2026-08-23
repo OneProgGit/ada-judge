@@ -41,7 +41,7 @@ JWT_EXP_HOURS=
 SANDBOX_IMAGE=
 # Number of parallel workers 
 WORKERS_COUNT=
-# Database url for tests
+# Database url (for dev)
 DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB}
 ```
 After that, create `submissions_envs` directory.
@@ -51,4 +51,4 @@ docker compose build
 docker compose up -d
 ```
 
-Now, you can start using `ada-judge`! 
+Now, you can start using `ada-judge`!

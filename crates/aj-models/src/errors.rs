@@ -60,7 +60,7 @@ pub enum InvalidProblem {
     #[error("toml error")]
     TomlError { message: String },
 
-    #[error("owner id doesn't match")]
+    #[error("owner id doesn't match or missing")]
     OwnerId,
 }
 

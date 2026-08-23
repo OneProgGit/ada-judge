@@ -26,7 +26,7 @@ impl<T> MapHttpExt<T> for Result<T, AdaJudgeError> {
                         | InvalidProblem::TomlError { message: _ } => StatusCode::BAD_REQUEST,
                         InvalidProblem::OwnerId => StatusCode::FORBIDDEN,
                     },
-                    AdaJudgeError::InvalidJwt => todo!(),
+                    AdaJudgeError::InvalidJwt => StatusCode::UNAUTHORIZED,
                     AdaJudgeError::Auth(kind) => match kind {
                         AuthError::AlreadyExists => StatusCode::CONFLICT,
                         AuthError::InvalidLoginOrPassword | AuthError::PasswordsDontMatch => {

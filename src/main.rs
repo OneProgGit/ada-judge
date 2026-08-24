@@ -139,7 +139,7 @@ async fn main() {
         .route("/contests/{contest_id}/delete", delete(delete_contest))
         .route("/contests/my", get(get_my_contests))
         .route(
-            "/contest/{contest_id}/submissions",
+            "/contests/{contest_id}/submissions",
             get(get_contest_submissions),
         )
         .route(
@@ -207,7 +207,7 @@ async fn main() {
         .route("/register", post(register))
         .route("/login", post(login))
         .route(
-            "/contest/{contest_id}/submissions/my",
+            "/contests/{contest_id}/submissions/my",
             get(get_my_contest_submissions),
         )
         .route("/submissions/{submission_id}", get(get_submission))

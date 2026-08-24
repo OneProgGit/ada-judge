@@ -191,6 +191,17 @@ pub async fn delete_contest(
                 .map_http()?;
             for problem in problems {
                 let problem_id = problem.id;
+                let submissions =
+                    database::submissions::get_problem_submissions(&state.db, problem_id)
+                        .await
+                        .map_http()?;
+                for submission in submissions {
+                    let submission_id = submission.id;
+                    fs::remove_dir_all(PathBuf::from(format!("/submissions_envs/{submission_id}")))
+                        .await
+                        .map_err(|_| AdaJudgeError::Internal)
+                        .map_http()?;
+                }
                 fs::remove_dir_all(PathBuf::from(format!("/problems/{problem_id}")))
                     .await
                     .map_err(|_| AdaJudgeError::Internal)

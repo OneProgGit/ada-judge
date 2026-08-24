@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n                    c.id,\n                    c.owner_id,\n                    users.login as owner_login,\n                    c.name_ru as \"name_ru!\",\n                    c.name_en as \"name_en!\",\n                    c.statements_url_ru as \"statements_url_ru!\",\n                    c.editorial_url_ru as \"editorial_url_ru!\",\n                    c.statements_url_en as \"statements_url_en!\",\n                    c.editorial_url_en as \"editorial_url_en!\",\n                    c.starts_at,\n                    c.finishes_at,\n                    c.hidden,\n                    c.upsolving_enabled,\n                    c.solutions_hidden,\n                    c.leaderboard_hidden,\n                    c.created_at,\n                    coalesce(\n                        array_agg(co.user_id) filter (where co.user_id is not null),\n                        '{}'\n                    ) as \"co_authors!\" from contests c\n                    left join contests_co_authors co on co.contest_id = c.id\n                    join users on users.id = c.owner_id\n                    where c.owner_id = $1\n                    group by c.id, owner_login\n                    order by c.id desc",
+  "query": "select\n                    c.id,\n                    c.owner_id,\n                    users.login as owner_login,\n                    c.name_ru as \"name_ru!\",\n                    c.name_en as \"name_en!\",\n                    c.statements_url_ru as \"statements_url_ru!\",\n                    c.editorial_url_ru as \"editorial_url_ru!\",\n                    c.statements_url_en as \"statements_url_en!\",\n                    c.editorial_url_en as \"editorial_url_en!\",\n                    c.starts_at,\n                    c.finishes_at,\n                    c.hidden,\n                    c.upsolving_enabled,\n                    c.solutions_hidden,\n                    c.leaderboard_hidden,\n                    c.created_at,\n                    coalesce(\n                        array_agg(co.user_id) filter (where co.user_id is not null),\n                        '{}'\n                    ) as \"co_authors!\" from contests c\n                    left join contests_co_authors co on co.contest_id = c.id\n                    left join users on users.id = c.owner_id\n                    group by c.id, owner_login\n                    order by c.id desc",
   "describe": {
     "columns": [
       {
@@ -187,9 +187,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -211,5 +209,5 @@
       null
     ]
   },
-  "hash": "e1caac96a0e676a8095d9f3ada7887644711b28abee01e0017bcbce00c2f3d77"
+  "hash": "2281d2e5bf6716af66d121d054926af751bc07db0c1f04d499a2405f4fd7fb86"
 }

@@ -1,7 +1,4 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::{env, path::Path};
 
 use aj_models::{
     errors::{AdaJudgeError, InvalidProblem},

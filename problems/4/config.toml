@@ -7,6 +7,7 @@ index = 3
 time_limit_ms = 1000
 memory_limit_mb = 256
 checker_path = "checker"
+checker_lang = "rust"
 tests_path = "tests"
 
 [[subgroups]]

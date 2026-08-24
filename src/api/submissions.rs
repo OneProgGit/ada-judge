@@ -201,7 +201,7 @@ pub async fn submit(
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    Command::new("chown")
+    let status = Command::new("chown")
         .args([
             "-R",
             "1000:1000",
@@ -211,6 +211,9 @@ pub async fn submit(
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
+    if status.code().is_some_and(|code| code != 0) {
+        return Err(AdaJudgeError::Internal).map_http()?;
+    }
 
     let submission_task = SubmissionTask {
         problem_path: PathBuf::from("/problems").join(problem_id.to_string()),

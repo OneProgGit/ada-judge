@@ -17,8 +17,8 @@ pub async fn get_problem(
         DatabaseProblemConfig,
         r#"select
                 c.id,
-                c.owner_id,
-                users.login as owner_login,
+                c.owner_id as "owner_id?",
+                users.login as "owner_login?",
                 c.type as "type!: ProblemType",
                 c.testing_type as "testing_type!: ProblemTestingType",
                 c.contest_id as "contest_id!",
@@ -47,7 +47,7 @@ pub async fn get_problem(
             left join problems_subgroups v on v.problem_id = c.id
             left join users on users.id = c.owner_id
             where c.id = $1
-            group by c.id, owner_login
+            group by c.id, users.login
         "#,
         problem_id
     )

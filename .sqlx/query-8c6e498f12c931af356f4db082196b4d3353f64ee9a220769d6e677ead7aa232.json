@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n                c.id,\n                c.owner_id,\n                users.login as owner_login,\n                c.type as \"type!: ProblemType\",\n                c.testing_type as \"testing_type!: ProblemTestingType\",\n                c.contest_id as \"contest_id!\",\n                c.index,\n                c.name_ru,\n                c.name_en,\n                c.time_limit_ms,\n                c.memory_limit_mb,\n                c.checker_path,\n                c.checker_lang as \"checker_lang!: Language\",\n                c.tests_path,\n                c.created_at,\n                coalesce(\n                    json_agg(\n                        json_build_object(\n                            'type', v.type,\n                            'tests', v.tests,\n                            'score', v.score,\n                            'score_per_test', v.score_per_test,\n                            'depends_on', v.depends_on\n                        ) order by v.subgroup_index\n                    ) filter (where v.problem_id is not null),\n                    '[]'\n                ) as \"subgroups!: Json<Vec<Subgroup>>\"\n            from problems c\n            left join problems_subgroups v on v.problem_id = c.id\n            left join users on users.id = c.owner_id\n            where c.id = $1\n            group by c.id, owner_login\n        ",
+  "query": "select\n                c.id,\n                c.owner_id as \"owner_id?\",\n                users.login as \"owner_login?\",\n                c.type as \"type!: ProblemType\",\n                c.testing_type as \"testing_type!: ProblemTestingType\",\n                c.contest_id as \"contest_id!\",\n                c.index,\n                c.name_ru,\n                c.name_en,\n                c.time_limit_ms,\n                c.memory_limit_mb,\n                c.checker_path,\n                c.checker_lang as \"checker_lang!: Language\",\n                c.tests_path,\n                c.created_at,\n                coalesce(\n                    json_agg(\n                        json_build_object(\n                            'type', v.type,\n                            'tests', v.tests,\n                            'score', v.score,\n                            'score_per_test', v.score_per_test,\n                            'depends_on', v.depends_on\n                        ) order by v.subgroup_index\n                    ) filter (where v.problem_id is not null),\n                    '[]'\n                ) as \"subgroups!: Json<Vec<Subgroup>>\"\n            from problems c\n            left join problems_subgroups v on v.problem_id = c.id\n            left join users on users.id = c.owner_id\n            where c.id = $1\n            group by c.id, users.login\n        ",
   "describe": {
     "columns": [
       {
@@ -16,7 +16,7 @@
       },
       {
         "ordinal": 1,
-        "name": "owner_id",
+        "name": "owner_id?",
         "type_info": "Int8",
         "origin": {
           "Table": {
@@ -27,7 +27,7 @@
       },
       {
         "ordinal": 2,
-        "name": "owner_login",
+        "name": "owner_login?",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -238,5 +238,5 @@
       null
     ]
   },
-  "hash": "0b4c890e9e6fac8f274221470e96cff1060aa77d6e7a597fef20b16be7f5bdce"
+  "hash": "8c6e498f12c931af356f4db082196b4d3353f64ee9a220769d6e677ead7aa232"
 }

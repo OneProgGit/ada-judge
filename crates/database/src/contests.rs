@@ -463,7 +463,7 @@ pub async fn create_contest_post(
         &post.title_en,
         &post.text_en
     )
-    .fetch_one(pool)
+    .execute(pool)
     .await
     .map_err(|_| AdaJudgeError::Internal)?;
 

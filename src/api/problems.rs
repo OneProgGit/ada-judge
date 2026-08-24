@@ -1,8 +1,12 @@
 use std::path::PathBuf;
 
 use crate::{
-    api::ApiError, app_state::AppState, checker_compiler::compile_checker, crypt::verify_password,
-    middleware::auth::Auth, tools::is_allowed,
+    api::ApiError,
+    app_state::AppState,
+    checker_compiler::compile_checker,
+    crypt::verify_password,
+    middleware::auth::Auth,
+    tools::{MapCleanupExt, is_allowed},
 };
 use aj_models::{
     DeletionRequest,
@@ -19,6 +23,7 @@ use axum::{
 use tokio::{
     fs::{self, File, read_to_string},
     io::AsyncWriteExt,
+    process::Command,
 };
 use tokio_util::io::ReaderStream;
 use tools::map::MapHttpExt;
@@ -147,36 +152,78 @@ pub async fn create_problem(
     zip_extract(&archive_path, &problem_path)
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
+    Command::new("chown")
+        .args([
+            "-R",
+            "1000:1000",
+            problem_path
+                .to_str()
+                .ok_or(AdaJudgeError::Internal)
+                .map_http()?,
+        ])
+        .status()
+        .await
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
     fs::remove_file(&archive_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     let config = match load_problem_config(&problem_path).await {
         Err(e) => {
-            std::fs::remove_dir_all(&problem_path)
-                .map_err(|_| AdaJudgeError::Internal)
-                .map_http()?;
-            return Err(e).map_http();
+            return Err(e).map_cleanup(&problem_path).await.map_http();
         }
         Ok(config) => config,
     };
-    validate_subgroups(&config).map_http()?;
+    validate_subgroups(&config)
+        .map_cleanup(&problem_path)
+        .await
+        .map_http()?;
     match config.owner_id {
-        None => return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId)).map_http()?,
+        None => {
+            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId))
+                .map_cleanup(&problem_path)
+                .await
+                .map_http()?;
+        }
         Some(owner_id) if owner_id != auth.id => {
-            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId)).map_http()?;
+            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId))
+                .map_cleanup(&problem_path)
+                .await
+                .map_http()?;
         }
         _ => {}
     }
     let contest = database::contests::get_contest(&state.db, config.contest_id)
         .await
+        .map_cleanup(&problem_path)
+        .await
         .map_http()?;
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && contest.co_authors.binary_search(&auth.id).is_err()
     {
-        return Err(AdaJudgeError::Forbidden).map_http()?;
+        return Err(AdaJudgeError::Forbidden)
+            .map_cleanup(&problem_path)
+            .await
+            .map_http()?;
     }
+    compile_checker(
+        &problem_path,
+        &PathBuf::from(&config.checker_path),
+        &config.checker_lang,
+    )
+    .await
+    .map_cleanup(&problem_path)
+    .await
+    .map_http()?;
+    zip_create_from_directory(&archive_path, &problem_path)
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_cleanup(&problem_path)
+        .await
+        .map_http()?;
     let problem_id = database::problems::create_problem(&state.db, auth.id, &config)
+        .await
+        .map_cleanup(&problem_path)
         .await
         .map_http()?;
     let new_problem_path = PathBuf::from(format!("/problems/{problem_id}"));
@@ -186,14 +233,8 @@ pub async fn create_problem(
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    compile_checker(
-        &new_problem_path,
-        &PathBuf::from(config.checker_path),
-        &config.checker_lang,
-    )
-    .await
-    .map_http()?;
-    zip_create_from_directory(&new_problem_archive_path, &new_problem_path)
+    fs::rename(&archive_path, &new_problem_archive_path)
+        .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
 
@@ -248,54 +289,97 @@ pub async fn update_problem(
     zip_extract(&archive_path, &problem_path)
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
+    Command::new("chown")
+        .args([
+            "-R",
+            "1000:1000",
+            problem_path
+                .to_str()
+                .ok_or(AdaJudgeError::Internal)
+                .map_http()?,
+        ])
+        .status()
+        .await
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
     fs::remove_file(&archive_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     let config = match load_problem_config(&problem_path).await {
         Err(e) => {
-            std::fs::remove_dir_all(&problem_path)
-                .map_err(|_| AdaJudgeError::Internal)
-                .map_http()?;
-            return Err(e).map_http();
+            return Err(e).map_cleanup(&problem_path).await.map_http();
         }
         Ok(config) => config,
     };
-    validate_subgroups(&config).map_http()?;
+    validate_subgroups(&config)
+        .map_cleanup(&problem_path)
+        .await
+        .map_http()?;
     match config.owner_id {
-        None => return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId)).map_http()?,
+        None => {
+            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId))
+                .map_cleanup(&problem_path)
+                .await
+                .map_http()?;
+        }
         Some(owner_id) if owner_id != auth.id => {
-            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId)).map_http()?;
+            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId))
+                .map_cleanup(&problem_path)
+                .await
+                .map_http()?;
         }
         _ => {}
     }
     let contest = database::contests::get_contest(&state.db, config.contest_id)
         .await
+        .map_cleanup(&problem_path)
+        .await
         .map_http()?;
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && !is_allowed(auth.id, config.owner_id, &auth.admin_level)
     {
-        return Err(AdaJudgeError::Forbidden).map_http()?;
+        return Err(AdaJudgeError::Forbidden)
+            .map_cleanup(&problem_path)
+            .await
+            .map_http()?;
     }
-    database::problems::update_problem(&state.db, auth.id, &config)
+    compile_checker(
+        &problem_path,
+        &PathBuf::from(&config.checker_path),
+        &config.checker_lang,
+    )
+    .await
+    .map_cleanup(&problem_path)
+    .await
+    .map_http()?;
+    zip_create_from_directory(&archive_path, &problem_path)
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_cleanup(&problem_path)
         .await
         .map_http()?;
     let new_problem_path = PathBuf::from(format!("/problems/{problem_id}"));
     let new_problem_archive_path = PathBuf::from(format!("/problems/{problem_id}.zip"));
-
+    fs::remove_dir_all(&new_problem_path)
+        .await
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
+    fs::remove_file(&new_problem_archive_path)
+        .await
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
     fs::rename(&problem_path, &new_problem_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    compile_checker(
-        &new_problem_path,
-        &PathBuf::from(config.checker_path),
-        &config.checker_lang,
-    )
-    .await
-    .map_http()?;
-    zip_create_from_directory(&new_problem_archive_path, &new_problem_path)
+    fs::rename(&archive_path, &new_problem_archive_path)
+        .await
         .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
+    database::problems::update_problem(&state.db, problem_id, &config)
+        .await
+        .map_cleanup(&problem_path)
+        .await
         .map_http()?;
 
     Ok(())

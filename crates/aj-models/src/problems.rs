@@ -81,7 +81,8 @@ pub struct Subgroup {
 impl Subgroup {
     #[must_use]
     pub fn should_skip(&self, subgroups_results: &[SubgroupResult]) -> bool {
-        self.depends_on
+        !self
+            .depends_on
             .iter()
             .all(|i| subgroups_results[*i].verdict == Verdict::Ok)
     }

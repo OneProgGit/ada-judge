@@ -24,6 +24,12 @@ RUN cargo build --release -p submissions-judger
 FROM debian:trixie-slim AS main
 WORKDIR /usr/local/bin
 
+# Install docker & other required system packages
+RUN apt-get update && apt-get install -y \
+    docker.io curl build-essential ca-certificates lld git \
+    xz-utils gcc g++ make libgmp-dev libffi-dev libncurses-dev libtinfo-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder-main /usr/src/app/target/release/ada-judge ./ada-judge
 CMD ["./ada-judge"]
 

@@ -1,4 +1,7 @@
-use std::{env, path::Path};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use aj_models::{
     errors::{AdaJudgeError, InvalidProblem},
@@ -24,11 +27,14 @@ pub async fn compile_checker(
         Language::FreePascal => "fpc",
         Language::Unknown => return Err(AdaJudgeError::BadRequest),
     };
-    let checker_source_path = problem_path
+    let checker_source_path = PathBuf::from("env")
         .join(checker_path)
         .to_string_lossy()
         .to_string();
-    let checker_path = problem_path.join("checker").to_string_lossy().to_string();
+    let checker_path = PathBuf::from("env")
+        .join("checker")
+        .to_string_lossy()
+        .to_string();
 
     let mut compile_cmd = Command::new("docker")
         .args([
@@ -49,7 +55,7 @@ pub async fn compile_checker(
             "-v",
             &format!(
                 "{}:/sandbox/env",
-                checker_path
+                problem_path
                     .to_host()
                     .map_err(|_| AdaJudgeError::Internal)?
                     .display()

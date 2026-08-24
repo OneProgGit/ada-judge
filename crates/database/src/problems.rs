@@ -348,7 +348,7 @@ pub async fn create_problem_question(
         &question.title,
         &question.text
     )
-    .fetch_one(pool)
+    .execute(pool)
     .await
     .map_err(|_| AdaJudgeError::Internal)?;
 

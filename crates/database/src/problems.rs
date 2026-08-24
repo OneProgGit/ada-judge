@@ -99,7 +99,8 @@ pub async fn get_problems(
                 from problems c
                 left join problems_subgroups v on v.problem_id = c.id
                 join users on users.id = c.owner_id
-                group by c.id, owner_login"#,
+                group by c.id, owner_login
+                order by c.id desc"#,
         )
         .fetch_all(pool)
         .await
@@ -141,7 +142,8 @@ pub async fn get_problems(
                 left join problems_subgroups v on v.problem_id = c.id
                 join users on users.id = c.owner_id
                 where c.owner_id = $1
-                group by c.id, owner_login"#,
+                group by c.id, owner_login
+                order by c.id desc"#,
             user_id,
         )
         .fetch_all(pool)

@@ -6,7 +6,7 @@ use crate::{app_state::AppState, crypt::verify_password};
 use aj_models::DeletionRequest;
 use aj_models::errors::{AdaJudgeError, AuthError, Deletion};
 use aj_models::users::{AdminLevel, LoginRequest, RegisterRequest};
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{Json, extract::State};
 use chrono::{Duration, Utc};
 use models::users::JwtClaims;
 use std::env;
@@ -37,7 +37,7 @@ pub async fn register(
 pub async fn login(
     State(state): State<AppState>,
     Json(user): Json<LoginRequest>,
-) -> Result<(StatusCode, Json<String>), ApiError> {
+) -> Result<Json<String>, ApiError> {
     let expected_user = database::users::get_user_by_login(&state.db, &user.login)
         .await
         .map_http()?;
@@ -61,10 +61,7 @@ pub async fn login(
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
 
-    Ok((
-        StatusCode::OK,
-        Json(create_jwt(&claims, &secret).map_http()?),
-    ))
+    Ok(Json(create_jwt(&claims, &secret).map_http()?))
 }
 
 pub async fn delete_my_account(

@@ -26,7 +26,8 @@ where
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.strip_prefix("Bearer "))
-            .ok_or(Err(AdaJudgeError::InvalidJwt).map_http()?)?;
+            .ok_or(AdaJudgeError::InvalidJwt)
+            .map_http()?;
 
         let secret = env::var("JWT_SECRET")
             .map_err(|_| AdaJudgeError::Internal)

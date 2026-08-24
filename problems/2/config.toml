@@ -6,7 +6,7 @@ contest_id = 1
 index = 1
 time_limit_ms = 1000
 memory_limit_mb = 256
-checker_path = "checker"
+checker_path = "checker.rs"
 checker_lang = "rust"
 tests_path = "tests"
 

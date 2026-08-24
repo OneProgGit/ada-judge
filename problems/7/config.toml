@@ -6,7 +6,7 @@ contest_id = 1
 index = 5
 time_limit_ms = 1000
 memory_limit_mb = 256
-checker_path = "checker"
+checker_path = "checker.rs"
 tests_path = "tests"
 
 [[subgroups]]

@@ -75,6 +75,7 @@ services:
       HOST_RUNS_DIR: ${PWD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP_HOURS: ${JWT_EXP_HOURS}
+      SANDBOX_IMAGE: ada-judge-sandbox
     ports:
       - "4444:4444"
     volumes:

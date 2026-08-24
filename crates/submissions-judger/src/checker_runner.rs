@@ -1,7 +1,4 @@
-use crate::{
-    constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA},
-    tools::ToHostExt,
-};
+use crate::constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA};
 use aj_models::{
     problems::ProblemConfig,
     verdicts::{TestingVerdict, Verdict},
@@ -9,6 +6,7 @@ use aj_models::{
 use models::testing::TestsPaths;
 use std::{env, path::Path};
 use tokio::process::Command;
+use tools::host::ToHostExt;
 
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_checker_verdict(

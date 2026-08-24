@@ -1,7 +1,4 @@
-use crate::{
-    constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA, VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
-    tools::ToHostExt,
-};
+use crate::constants::{CHECKER_OK, CHECKER_PE, CHECKER_WA, VERDICT_MLE, VERDICT_OK, VERDICT_TLE};
 use aj_models::{
     problems::ProblemConfig,
     verdicts::{TestingVerdict, Verdict},
@@ -16,6 +13,7 @@ use tokio::{
     fs::{self, File},
     process::Command,
 };
+use tools::host::ToHostExt;
 
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_interactive_verdict(

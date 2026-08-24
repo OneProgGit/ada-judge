@@ -51,6 +51,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
 mod app_state;
+mod checker_compiler;
 mod crypt;
 mod jwt;
 mod middleware;

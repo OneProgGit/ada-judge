@@ -62,6 +62,9 @@ pub enum InvalidProblem {
 
     #[error("owner id doesn't match or missing")]
     OwnerId,
+
+    #[error("checker compilation error")]
+    CheckerCompilationError,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]

@@ -23,6 +23,7 @@ impl<T> MapHttpExt<T> for Result<T, AdaJudgeError> {
                             StatusCode::BAD_REQUEST
                         }
                         InvalidProblem::MissingConfig
+                        | InvalidProblem::CheckerCompilationError
                         | InvalidProblem::TomlError { message: _ } => StatusCode::BAD_REQUEST,
                         InvalidProblem::OwnerId => StatusCode::FORBIDDEN,
                     },

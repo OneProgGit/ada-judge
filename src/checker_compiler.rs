@@ -3,47 +3,35 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aj_models::{testing::Language, verdicts::TestingVerdict};
-use models::testing::{SubmissionTask, TestsPaths};
+use aj_models::{
+    errors::{AdaJudgeError, InvalidProblem},
+    testing::Language,
+};
 use tokio::process::Command;
 use tools::host::ToHostExt;
 
-pub async fn compile_solution(
-    run_path: &Path,
-    tests_paths: &TestsPaths,
-    submission: &SubmissionTask,
-) -> Result<(), TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
+#[allow(clippy::too_many_lines)]
+pub async fn compile_checker(
+    checker_path: &Path,
+    checker_lang: &Language,
+) -> Result<(), AdaJudgeError> {
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| AdaJudgeError::Internal)?;
 
-    let compile_cmd = match submission.language {
+    let compile_cmd = match checker_lang {
         Language::C => "clang",
         Language::Cpp => "clang++",
         Language::Go => "go",
         Language::Rust => "rustc",
         Language::Python => "pyinstaller",
         Language::FreePascal => "fpc",
-        Language::Unknown => return Err(TestingVerdict::Fail),
+        Language::Unknown => return Err(AdaJudgeError::BadRequest),
     };
-    let solution_source_path = PathBuf::from("env")
-        .join(
-            tests_paths
-                .solution_source
-                .file_name()
-                .ok_or(TestingVerdict::Fail)?
-                .to_string_lossy()
-                .to_string(),
-        )
+    let checker_source_path = PathBuf::from("env")
+        .join(checker_path)
         .to_string_lossy()
         .to_string();
-    let solution_path = PathBuf::from("env")
-        .join(
-            tests_paths
-                .solution
-                .file_name()
-                .ok_or(TestingVerdict::Fail)?
-                .to_string_lossy()
-                .to_string(),
-        )
+    let checker_path = PathBuf::from("env")
+        .join("checker")
         .to_string_lossy()
         .to_string();
 
@@ -64,37 +52,43 @@ pub async fn compile_solution(
             "--security-opt",
             "no-new-privileges",
             "-v",
-            &format!("{}:/sandbox/env", run_path.to_host()?.display()),
+            &format!(
+                "{}:/sandbox/env",
+                checker_path
+                    .to_host()
+                    .map_err(|_| AdaJudgeError::Internal)?
+                    .display()
+            ),
             "-w",
             "/sandbox",
             &sandbox_image,
         ])
-        .args(match submission.language {
+        .args(match checker_lang {
             Language::C | Language::Cpp => vec![
                 compile_cmd,
                 "-O2",
                 "-pipe",
                 "-flto",
                 "-s",
-                &solution_source_path,
+                &checker_source_path,
                 "-o",
-                &solution_path,
+                &checker_path,
             ],
             Language::Go => vec![
                 compile_cmd,
                 "build",
                 "-o",
-                &solution_path,
-                &solution_source_path,
+                &checker_path,
+                &checker_source_path,
             ],
             Language::Rust => vec![
                 compile_cmd,
-                &solution_source_path,
+                &checker_source_path,
                 "-O",
                 "-C",
                 "lto",
                 "-o",
-                &solution_path,
+                &checker_path,
             ],
             Language::Python => vec![
                 compile_cmd,
@@ -107,21 +101,23 @@ pub async fn compile_solution(
                 "/sandbox/build",
                 "--specpath",
                 "/sandbox/build",
-                &solution_source_path,
+                &checker_source_path,
             ],
-            Language::FreePascal => vec![compile_cmd, "-O2", &solution_source_path],
+            Language::FreePascal => vec![compile_cmd, "-O2", &checker_source_path],
             Language::Unknown => unreachable!(),
         })
         .spawn()
-        .map_err(|_| TestingVerdict::CompilationError)?;
+        .map_err(|_| AdaJudgeError::InvalidProblem(InvalidProblem::CheckerCompilationError))?;
     let compilation_result = compile_cmd
         .wait()
         .await
-        .map_err(|_| TestingVerdict::CompilationError)?;
+        .map_err(|_| AdaJudgeError::InvalidProblem(InvalidProblem::CheckerCompilationError))?;
 
     _ = compile_cmd.kill();
     match compilation_result.code() {
         Some(0) => Ok(()),
-        _ => Err(TestingVerdict::CompilationError),
+        _ => Err(AdaJudgeError::InvalidProblem(
+            InvalidProblem::CheckerCompilationError,
+        )),
     }
 }

@@ -1,7 +1,4 @@
-use crate::{
-    constants::{VERDICT_MLE, VERDICT_OK, VERDICT_TLE},
-    tools::ToHostExt,
-};
+use crate::constants::{VERDICT_MLE, VERDICT_OK, VERDICT_TLE};
 use aj_models::{
     problems::ProblemConfig,
     verdicts::{TestingVerdict, Verdict},
@@ -9,6 +6,7 @@ use aj_models::{
 use models::testing::TestsPaths;
 use std::{env, path::Path, process::Stdio};
 use tokio::{fs::File, process::Command};
+use tools::host::ToHostExt;
 
 #[allow(clippy::cast_sign_loss)]
 pub async fn get_solution_verdict(

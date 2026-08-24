@@ -30,7 +30,6 @@ mod constants;
 mod interactive_runner;
 mod solution_compiler;
 mod solution_runner;
-mod tools;
 
 async fn get_test_verdict(
     config: &ProblemConfig,

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::{
-    api::ApiError, app_state::AppState, crypt::verify_password, middleware::auth::Auth,
-    tools::is_allowed,
+    api::ApiError, app_state::AppState, checker_compiler::compile_checker, crypt::verify_password,
+    middleware::auth::Auth, tools::is_allowed,
 };
 use aj_models::{
     DeletionRequest,
@@ -23,7 +23,7 @@ use tokio::{
 use tokio_util::io::ReaderStream;
 use tools::map::MapHttpExt;
 use uuid::Uuid;
-use zip_extensions::zip_extract::zip_extract;
+use zip_extensions::{zip_extract::zip_extract, zip_writer::zip_create_from_directory};
 
 pub async fn get_problems(
     State(state): State<AppState>,
@@ -182,12 +182,14 @@ pub async fn create_problem(
     let new_problem_path = PathBuf::from(format!("/problems/{problem_id}"));
     let new_problem_archive_path = PathBuf::from(format!("/problems/{problem_id}.zip"));
 
-    fs::rename(problem_path, new_problem_path)
+    fs::rename(&problem_path, new_problem_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    fs::rename(archive_path, new_problem_archive_path)
+    compile_checker(&PathBuf::from(config.checker_path), &config.checker_lang)
         .await
+        .map_http()?;
+    zip_create_from_directory(&new_problem_archive_path, &problem_path)
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
 
@@ -277,12 +279,11 @@ pub async fn update_problem(
     let new_problem_path = PathBuf::from(format!("/problems/{problem_id}"));
     let new_problem_archive_path = PathBuf::from(format!("/problems/{problem_id}.zip"));
 
-    fs::rename(problem_path, new_problem_path)
+    fs::rename(&problem_path, new_problem_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    fs::rename(archive_path, new_problem_archive_path)
-        .await
+    zip_create_from_directory(&new_problem_archive_path, &problem_path)
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
 

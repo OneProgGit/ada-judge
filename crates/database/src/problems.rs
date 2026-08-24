@@ -45,7 +45,7 @@ pub async fn get_problem(
                 ) as "subgroups!: Json<Vec<Subgroup>>"
             from problems c
             left join problems_subgroups v on v.problem_id = c.id
-            join users on users.id = c.owner_id
+            left join users on users.id = c.owner_id
             where c.id = $1
             group by c.id, owner_login
         "#,
@@ -98,7 +98,7 @@ pub async fn get_problems(
                     ) as "subgroups!: Json<Vec<Subgroup>>"
                 from problems c
                 left join problems_subgroups v on v.problem_id = c.id
-                join users on users.id = c.owner_id
+                left join users on users.id = c.owner_id
                 group by c.id, owner_login
                 order by c.id desc"#,
         )
@@ -140,7 +140,7 @@ pub async fn get_problems(
                     ) as "subgroups!: Json<Vec<Subgroup>>"
                 from problems c
                 left join problems_subgroups v on v.problem_id = c.id
-                join users on users.id = c.owner_id
+                left join users on users.id = c.owner_id
                 where c.owner_id = $1
                 group by c.id, owner_login
                 order by c.id desc"#,

@@ -147,7 +147,7 @@ pub async fn get_problems(
                 ) as "subgroups!: Json<Vec<Subgroup>>"
             from problems c
             left join problems_subgroups v on v.problem_id = c.id
-            join users on users.id = c.owner_id
+            left join users on users.id = c.owner_id
             where c.contest_id = $1
             group by c.id, owner_login
             order by index"#,
@@ -195,7 +195,7 @@ pub async fn get_contests(
                         '{}'
                     ) as "co_authors!" from contests c
                     left join contests_co_authors co on co.contest_id = c.id
-                    join users on users.id = c.owner_id
+                    left join users on users.id = c.owner_id
                     group by c.id, owner_login
                     order by c.id desc"#,
         )
@@ -230,7 +230,7 @@ pub async fn get_contests(
                         '{}'
                     ) as "co_authors!" from contests c
                     left join contests_co_authors co on co.contest_id = c.id
-                    join users on users.id = c.owner_id
+                    left join users on users.id = c.owner_id
                     where not c.hidden or c.owner_id = $1
                     or exists(
                         select 1 from contests_co_authors
@@ -272,7 +272,7 @@ pub async fn get_contests(
                         '{}'
                     ) as "co_authors!" from contests c
                     left join contests_co_authors co on co.contest_id = c.id
-                    join users on users.id = c.owner_id
+                    left join users on users.id = c.owner_id
                     where c.owner_id = $1
                     group by c.id, owner_login
                     order by c.id desc"#,
@@ -317,7 +317,7 @@ pub async fn get_contest(
                     '{}'
                 ) as "co_authors!" from contests c
                 left join contests_co_authors co on co.contest_id = c.id
-                join users on users.id = c.owner_id
+                left join users on users.id = c.owner_id
                 where c.id = $1
                 group by c.id, owner_login"#,
         contest_id

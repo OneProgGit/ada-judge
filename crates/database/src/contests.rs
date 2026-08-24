@@ -149,7 +149,7 @@ pub async fn get_problems(
             left join problems_subgroups v on v.problem_id = c.id
             join users on users.id = c.owner_id
             where c.contest_id = $1
-            group by c.id, v.problem_id, v.subgroup_index, owner_login
+            group by c.id, owner_login
             order by index"#,
         contest_id
     )

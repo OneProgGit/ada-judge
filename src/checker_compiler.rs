@@ -12,6 +12,7 @@ use tools::host::ToHostExt;
 
 #[allow(clippy::too_many_lines)]
 pub async fn compile_checker(
+    problem_path: &Path,
     checker_path: &Path,
     checker_lang: &Language,
 ) -> Result<(), AdaJudgeError> {
@@ -26,14 +27,11 @@ pub async fn compile_checker(
         Language::FreePascal => "fpc",
         Language::Unknown => return Err(AdaJudgeError::BadRequest),
     };
-    let checker_source_path = PathBuf::from("env")
+    let checker_source_path = problem_path
         .join(checker_path)
         .to_string_lossy()
         .to_string();
-    let checker_path = PathBuf::from("env")
-        .join("checker")
-        .to_string_lossy()
-        .to_string();
+    let checker_path = problem_path.join("checker").to_string_lossy().to_string();
 
     let mut compile_cmd = Command::new("docker")
         .args([

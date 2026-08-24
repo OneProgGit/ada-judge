@@ -187,7 +187,8 @@ pub async fn create_problem(
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     compile_checker(
-        &new_problem_path.join(PathBuf::from(config.checker_path)),
+        &new_problem_path,
+        &PathBuf::from(config.checker_path),
         &config.checker_lang,
     )
     .await
@@ -287,7 +288,8 @@ pub async fn update_problem(
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
     compile_checker(
-        &new_problem_path.join(PathBuf::from(config.checker_path)),
+        &new_problem_path,
+        &PathBuf::from(config.checker_path),
         &config.checker_lang,
     )
     .await

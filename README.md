@@ -37,7 +37,7 @@ REDIS_USER_PASSWORD=
 # Jwt settings
 JWT_SECRET=
 JWT_EXP_HOURS=
-# Sandbox image name for `submissions-judger`
+# Sandbox image name
 SANDBOX_IMAGE=
 # Number of parallel workers 
 WORKERS_COUNT=

@@ -119,8 +119,8 @@ pub async fn get_problems(
         DatabaseProblemConfig,
         r#"select
                 c.id,
-                c.owner_id,
-                users.login as owner_login,
+                c.owner_id as "owner_id?",
+                users.login as "owner_login?",
                 c.type as "type!: ProblemType",
                 c.testing_type as "testing_type!: ProblemTestingType",
                 c.contest_id as "contest_id!",
@@ -149,7 +149,7 @@ pub async fn get_problems(
             left join problems_subgroups v on v.problem_id = c.id
             left join users on users.id = c.owner_id
             where c.contest_id = $1
-            group by c.id, owner_login
+            group by c.id, users.login
             order by index"#,
         contest_id
     )
@@ -175,8 +175,8 @@ pub async fn get_contests(
             PublicContestConfig,
             r#"select
                     c.id,
-                    c.owner_id,
-                    users.login as owner_login,
+                    c.owner_id as "owner_id?",
+                    users.login as "owner_login?",
                     c.name_ru as "name_ru!",
                     c.name_en as "name_en!",
                     c.statements_url_ru as "statements_url_ru!",
@@ -196,7 +196,7 @@ pub async fn get_contests(
                     ) as "co_authors!" from contests c
                     left join contests_co_authors co on co.contest_id = c.id
                     left join users on users.id = c.owner_id
-                    group by c.id, owner_login
+                    group by c.id, users.login
                     order by c.id desc"#,
         )
         .fetch_all(pool)
@@ -210,8 +210,8 @@ pub async fn get_contests(
             PublicContestConfig,
             r#"select
                     c.id,
-                    c.owner_id,
-                    users.login as owner_login,
+                    c.owner_id as "owner_id?",
+                    users.login as "owner_login?",
                     c.name_ru as "name_ru!",
                     c.name_en as "name_en!",
                     c.statements_url_ru as "statements_url_ru!",
@@ -237,7 +237,7 @@ pub async fn get_contests(
                         where contest_id = c.id
                             and user_id = $1
                     )
-                    group by c.id, owner_login
+                    group by c.id, users.login
                     order by c.id desc"#,
             user_id
         )
@@ -252,8 +252,8 @@ pub async fn get_contests(
             PublicContestConfig,
             r#"select
                     c.id,
-                    c.owner_id,
-                    users.login as owner_login,
+                    c.owner_id as "owner_id?",
+                    users.login as "owner_login?",
                     c.name_ru as "name_ru!",
                     c.name_en as "name_en!",
                     c.statements_url_ru as "statements_url_ru!",
@@ -274,7 +274,7 @@ pub async fn get_contests(
                     left join contests_co_authors co on co.contest_id = c.id
                     left join users on users.id = c.owner_id
                     where c.owner_id = $1
-                    group by c.id, owner_login
+                    group by c.id, users.login
                     order by c.id desc"#,
             user_id,
         )
@@ -297,8 +297,8 @@ pub async fn get_contest(
         PublicContestConfig,
         r#"select
                 c.id,
-                c.owner_id,
-                users.login as owner_login,
+                c.owner_id as "owner_id?",
+                users.login as "owner_login?",
                 c.name_ru as "name_ru!",
                 c.name_en as "name_en!",
                 c.statements_url_ru as "statements_url_ru!",
@@ -319,7 +319,7 @@ pub async fn get_contest(
                 left join contests_co_authors co on co.contest_id = c.id
                 left join users on users.id = c.owner_id
                 where c.id = $1
-                group by c.id, owner_login"#,
+                group by c.id, users.login"#,
         contest_id
     )
     .fetch_one(pool)

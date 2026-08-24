@@ -70,8 +70,8 @@ pub async fn get_problems(
             DatabaseProblemConfig,
             r#"select
                     c.id,
-                    c.owner_id,
-                    users.login as owner_login,
+                    c.owner_id as "owner_id?",
+                    users.login as "owner_login?",
                     c.type as "type!: ProblemType",
                     c.testing_type as "testing_type!: ProblemTestingType",
                     c.contest_id as "contest_id!",
@@ -99,7 +99,7 @@ pub async fn get_problems(
                 from problems c
                 left join problems_subgroups v on v.problem_id = c.id
                 left join users on users.id = c.owner_id
-                group by c.id, owner_login
+                group by c.id, users.login
                 order by c.id desc"#,
         )
         .fetch_all(pool)
@@ -112,8 +112,8 @@ pub async fn get_problems(
             DatabaseProblemConfig,
             r#"select
                     c.id,
-                    c.owner_id,
-                    users.login as owner_login,
+                    c.owner_id as "owner_id?",
+                    users.login as "owner_login?",
                     c.type as "type!: ProblemType",
                     c.testing_type as "testing_type!: ProblemTestingType",
                     c.contest_id as "contest_id!",
@@ -142,7 +142,7 @@ pub async fn get_problems(
                 left join problems_subgroups v on v.problem_id = c.id
                 left join users on users.id = c.owner_id
                 where c.owner_id = $1
-                group by c.id, owner_login
+                group by c.id, users.login
                 order by c.id desc"#,
             user_id,
         )

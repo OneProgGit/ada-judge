@@ -105,6 +105,7 @@ fn validate_subgroups(config: &ProblemConfig) -> Result<(), AdaJudgeError> {
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn create_problem(
     State(state): State<AppState>,
     Auth(auth): Auth,
@@ -241,6 +242,7 @@ pub async fn create_problem(
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn update_problem(
     State(state): State<AppState>,
     Auth(auth): Auth,

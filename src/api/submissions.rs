@@ -112,6 +112,7 @@ pub async fn download_submission(
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn submit(
     State(state): State<AppState>,
     Auth(auth): Auth,

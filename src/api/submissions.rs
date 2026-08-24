@@ -33,6 +33,7 @@ pub async fn get_my_contest_submissions(
             .map_http()?,
     ))
 }
+
 pub async fn get_contest_submissions(
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,

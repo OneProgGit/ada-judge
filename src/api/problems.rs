@@ -407,6 +407,17 @@ pub async fn delete_problem(
             .await
             .map_http()?;
         if is_allowed(auth.id, problem.owner_id, &auth.admin_level) {
+            let submissions = database::submissions::get_problem_submissions(&state.db, problem_id)
+                .await
+                .map_http()?;
+            for submission in submissions {
+                let submission_id = submission.id;
+                fs::remove_dir_all(PathBuf::from(format!("/submissions_envs/{submission_id}")))
+                    .await
+                    .map_err(|_| AdaJudgeError::Internal)
+                    .map_http()?;
+            }
+
             database::problems::delete_problem(&state.db, problem_id)
                 .await
                 .map_http()?;

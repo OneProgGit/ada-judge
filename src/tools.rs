@@ -17,16 +17,13 @@ pub async fn is_contest_active(
     admin_level: AdminLevel,
 ) -> bool {
     let Ok(contest) = database::contests::get_contest(pool, contest_id).await else {
-        tracing::info!("1");
         return false;
     };
     let Ok(problem) = database::problems::get_problem(pool, problem_id).await else {
-        tracing::info!("2");
         return false;
     };
 
     let now = Utc::now();
-    tracing::info!("{admin_level:?} {user_id}");
 
     (now >= contest.starts_at
         && (now <= contest.finishes_at || contest.upsolving_enabled)

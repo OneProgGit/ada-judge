@@ -192,7 +192,7 @@ pub async fn delete_contest(
             for problem in problems {
                 let problem_id = problem.id;
                 let submissions =
-                    database::submissions::get_problem_submissions(&state.db, problem_id)
+                    database::submissions::get_problem_submissions(&state.db, None, problem_id)
                         .await
                         .map_http()?;
                 for submission in submissions {
@@ -251,7 +251,12 @@ pub async fn update_contest_post(
     let post = database::contests::get_contest_post(&state.db, post_id)
         .await
         .map_http()?;
-    if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
+    let contest = database::contests::get_contest(&state.db, post.contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, Some(post.owner_id), &auth.admin_level)
+        && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+    {
         return Err(AdaJudgeError::Forbidden).map_http()?;
     }
     database::contests::update_contest_post(&state.db, post_id, &request)
@@ -282,7 +287,12 @@ pub async fn delete_contest_post(
         let post = database::contests::get_contest_post(&state.db, post_id)
             .await
             .map_http()?;
-        if is_allowed(auth.id, Some(post.owner_id), &auth.admin_level) {
+        let contest = database::contests::get_contest(&state.db, post.contest_id)
+            .await
+            .map_http()?;
+        if is_allowed(auth.id, Some(post.owner_id), &auth.admin_level)
+            && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        {
             database::contests::delete_contest_post(&state.db, post_id)
                 .await
                 .map_http()?;

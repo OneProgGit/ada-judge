@@ -23,32 +23,38 @@ use tokio::{
 use tokio_util::io::ReaderStream;
 use tools::map::MapHttpExt;
 
-pub async fn get_my_contest_submissions(
+pub async fn get_my_problem_submissions(
     State(state): State<AppState>,
-    Path(contest_id): Path<i64>,
+    Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<Submission>>, ApiError> {
     Ok(Json(
-        database::submissions::get_contest_submissions(&state.db, Some(auth.id), contest_id)
+        database::submissions::get_problem_submissions(&state.db, Some(auth.id), problem_id)
             .await
             .map_http()?,
     ))
 }
 
-pub async fn get_contest_submissions(
+pub async fn get_problem_submissions(
     State(state): State<AppState>,
-    Path(contest_id): Path<i64>,
+    Path(problem_id): Path<i64>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<Submission>>, ApiError> {
-    let contest = database::contests::get_contest(&state.db, contest_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
         .await
         .map_http()?;
-    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+    let contest = database::contests::get_contest(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && contest.co_authors.binary_search(&auth.id).is_err()
+    {
         return Err(AdaJudgeError::Forbidden).map_http()?;
     }
 
     Ok(Json(
-        database::submissions::get_contest_submissions(&state.db, None, contest_id)
+        database::submissions::get_problem_submissions(&state.db, None, problem_id)
             .await
             .map_http()?,
     ))
@@ -62,7 +68,17 @@ pub async fn get_submission(
     let submission = database::submissions::get_submission(&state.db, submission_id)
         .await
         .map_http()?;
-    if is_allowed(auth.id, Some(submission.user_id), &auth.admin_level) {
+    let problem = database::problems::get_problem(&state.db, submission.problem_id)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest(&state.db, problem.contest_id)
+        .await
+        .map_http()?;
+    if is_allowed(auth.id, Some(submission.user_id), &auth.admin_level)
+        || is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+        || is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        || contest.co_authors.binary_search(&auth.id).is_ok()
+    {
         Ok(Json(submission))
     } else {
         Err(AdaJudgeError::Forbidden).map_http()?
@@ -88,6 +104,7 @@ pub async fn download_submission(
         || contest.solutions_hidden)
         && !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && contest.co_authors.binary_search(&auth.id).is_err()
     {
         Err(AdaJudgeError::Forbidden).map_http()?
     } else {
@@ -266,7 +283,7 @@ pub async fn retest_problem_submissions(
         .await
         .map_http()?;
 
-    for submission in database::submissions::get_problem_submissions(&state.db, problem_id)
+    for submission in database::submissions::get_problem_submissions(&state.db, None, problem_id)
         .await
         .map_http()?
     {

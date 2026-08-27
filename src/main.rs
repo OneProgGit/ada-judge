@@ -20,7 +20,7 @@ use crate::{
             get_problem_question_by_id, get_problems, update_problem,
         },
         submissions::{
-            download_submission, get_contest_submissions, get_my_contest_submissions,
+            download_submission, get_my_problem_submissions, get_problem_submissions,
             get_submission, retest_problem_submissions,
         },
         users::{
@@ -140,8 +140,8 @@ async fn main() {
         .route("/contests/{contest_id}/delete", delete(delete_contest))
         .route("/contests/my", get(get_my_contests))
         .route(
-            "/contests/{contest_id}/submissions",
-            get(get_contest_submissions),
+            "/problems/{problem_id}/submissions",
+            get(get_problem_submissions),
         )
         .route(
             "/contests/{contest_id}/posts/new",
@@ -208,8 +208,8 @@ async fn main() {
         .route("/register", post(register))
         .route("/login", post(login))
         .route(
-            "/contests/{contest_id}/submissions/my",
-            get(get_my_contest_submissions),
+            "/problems/{problem_id}/submissions/my",
+            get(get_my_problem_submissions),
         )
         .route("/submissions/{submission_id}", get(get_submission))
         .route(

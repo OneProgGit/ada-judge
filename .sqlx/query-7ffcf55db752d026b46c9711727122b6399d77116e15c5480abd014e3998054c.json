@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into problems_subgroups (problem_id, subgroup_index,\n                type, tests, score, depends_on) values ($1, $2, $3, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "subgroup_type",
+            "kind": {
+              "Enum": [
+                "sample",
+                "main"
+              ]
+            }
+          }
+        },
+        "Int4Array",
+        "Float8",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7ffcf55db752d026b46c9711727122b6399d77116e15c5480abd014e3998054c"
+}

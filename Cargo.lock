@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "ada-judge"
-version = "0.7.1"
+version = "1.0.0-alpha"
 dependencies = [
  "aj-models",
  "apalis",

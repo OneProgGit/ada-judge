@@ -8,7 +8,6 @@ use std::{env, path::Path, process::Stdio};
 use tokio::{fs::File, process::Command};
 use tools::host::ToHostExt;
 
-#[allow(clippy::cast_sign_loss)]
 pub async fn get_solution_verdict(
     config: &ProblemConfig,
     input_path: &Path,

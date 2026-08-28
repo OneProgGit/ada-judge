@@ -15,7 +15,6 @@ use tokio::{
 };
 use tools::host::ToHostExt;
 
-#[allow(clippy::cast_sign_loss)]
 pub async fn get_interactive_verdict(
     config: &ProblemConfig,
     answer_path: &Path,
@@ -190,7 +189,6 @@ pub async fn get_interactive_verdict(
     })
 }
 
-#[allow(clippy::cast_sign_loss)]
 pub async fn get_interactive_run_twice_verdict(
     config: &ProblemConfig,
     answer_path: &Path,

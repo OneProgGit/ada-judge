@@ -237,21 +237,21 @@ async fn test_subgroup(
     config: &ProblemConfig,
     tests_paths: &TestsPaths,
     subgroup_result: &mut SubgroupResult,
-) -> Result<(), TestingVerdict> {
+) -> Result<(), (TestingVerdict, i32)> {
     let mut score = 0.;
     let per_test_scoring = subgroup.score_per_test.is_some();
     let mut ok = true;
-    for test_id in &subgroup.tests {
-        let test_id = *test_id;
+    for test in &subgroup.tests {
+        let test = *test;
 
         database::submissions::create_test_result(
             pool,
             submission_id,
-            test_id,
+            test,
             if per_test_scoring { Some(0.) } else { None },
         )
         .await
-        .map_err(|_| TestingVerdict::Fail)?;
+        .map_err(|_| (TestingVerdict::Fail, test))?;
 
         if !ok {
             let test_result = TestResult {
@@ -262,18 +262,20 @@ async fn test_subgroup(
             database::submissions::update_test_testing_result(
                 pool,
                 submission_id,
-                test_id,
+                test,
                 &test_result,
             )
             .await
-            .map_err(|_| TestingVerdict::Fail)?;
+            .map_err(|_| (TestingVerdict::Fail, test))?;
 
             continue;
         }
 
-        let test_verdict = get_test_verdict(config, tests_paths, test_id).await?;
+        let test_verdict = get_test_verdict(config, tests_paths, test)
+            .await
+            .map_err(|e| (e, test))?;
 
-        subgroup_result.test = test_id;
+        subgroup_result.test = test;
         subgroup_result.verdict = test_verdict.clone();
 
         let test_result = TestResult {
@@ -287,14 +289,9 @@ async fn test_subgroup(
             },
         };
 
-        database::submissions::update_test_testing_result(
-            pool,
-            submission_id,
-            test_id,
-            &test_result,
-        )
-        .await
-        .map_err(|_| TestingVerdict::Fail)?;
+        database::submissions::update_test_testing_result(pool, submission_id, test, &test_result)
+            .await
+            .map_err(|_| (TestingVerdict::Fail, test))?;
 
         if subgroup_result.verdict != Verdict::Ok && !per_test_scoring {
             ok = false;
@@ -306,7 +303,7 @@ async fn test_subgroup(
         if per_test_scoring {
             subgroup_result.score = score;
         } else {
-            subgroup_result.score = subgroup.score.ok_or(TestingVerdict::Fail)?;
+            subgroup_result.score = subgroup.score.ok_or((TestingVerdict::Fail, 0))?;
         }
     }
 
@@ -325,14 +322,14 @@ pub async fn test_submission(
     let submission_id = submission.id;
     database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Compiling, 0.)
         .await
-        .map_db(&pool, submission_id)
+        .map_db(&pool, submission_id, None)
         .await?;
 
     let problem_id = submission.problem_id;
     let run_path = submission.run_dir.clone();
     let config = get_problem(&pool, problem_id)
         .await
-        .map_db(&pool, submission_id)
+        .map_db(&pool, submission_id, None)
         .await?
         .into();
     let tests_paths = TestsPaths::new(
@@ -343,7 +340,7 @@ pub async fn test_submission(
     );
     compile_solution(&run_path, &tests_paths, &submission)
         .await
-        .map_db(&pool, submission_id)
+        .map_db(&pool, submission_id, None)
         .await?;
 
     let mut total_score = 0.;
@@ -366,7 +363,7 @@ pub async fn test_submission(
         };
         database::submissions::create_subgroup_result(&pool, submission_id, subgroup_index)
             .await
-            .map_db(&pool, submission_id)
+            .map_db(&pool, submission_id, None)
             .await
             .map_err(|_| TestingVerdict::Fail)?;
 
@@ -397,18 +394,20 @@ pub async fn test_submission(
                 )
                 .await?;
             }
-        } else {
-            test_subgroup(
-                &pool,
-                submission_id,
-                subgroup,
-                &config,
-                &tests_paths,
-                &mut subgroup_result,
-            )
-            .await
-            .map_db(&pool, submission_id)
-            .await?;
+        } else if let Err((e, test)) = test_subgroup(
+            &pool,
+            submission_id,
+            subgroup,
+            &config,
+            &tests_paths,
+            &mut subgroup_result,
+        )
+        .await
+        {
+            Err(e)
+                .map_db(&pool, submission_id, Some((subgroup_index, test)))
+                .await
+                .map_err(|_| TestingVerdict::Fail)?;
         }
 
         total_score += subgroup_result.score;
@@ -421,7 +420,7 @@ pub async fn test_submission(
             &subgroup_result,
         )
         .await
-        .map_db(&pool, submission_id)
+        .map_db(&pool, submission_id, None)
         .await?;
     }
     database::submissions::update_submission(

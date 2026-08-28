@@ -8,7 +8,6 @@ use std::{env, path::Path};
 use tokio::process::Command;
 use tools::host::ToHostExt;
 
-#[allow(clippy::cast_sign_loss)]
 pub async fn get_checker_verdict(
     config: &ProblemConfig,
     input_path: &Path,
@@ -75,7 +74,6 @@ pub async fn get_checker_verdict(
     })
 }
 
-#[allow(clippy::cast_sign_loss)]
 pub async fn get_checker_run_twice_verdict(
     config: &ProblemConfig,
     answer_path: &Path,
@@ -143,7 +141,6 @@ pub async fn get_checker_run_twice_verdict(
     })
 }
 
-#[allow(clippy::cast_sign_loss)]
 pub async fn get_checker_run_twice_interactive_verdict(
     config: &ProblemConfig,
     answer_path: &Path,

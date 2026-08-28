@@ -103,18 +103,32 @@ pub async fn get_interactive_verdict(
         .spawn()
         .map_err(|_| TestingVerdict::Fail)?;
 
-    let (checker_to_solution_read, solution_to_checker_write) = tokio::join!(
-        File::open(&checker_to_solution_path),
-        File::create(&solution_to_checker_path)
-    );
-    let checker_to_solution_read = checker_to_solution_read
-        .map_err(|_| TestingVerdict::Fail)?
-        .into_std()
-        .await;
-    let solution_to_checker_write = solution_to_checker_write
-        .map_err(|_| TestingVerdict::Fail)?
-        .into_std()
-        .await;
+    let opened = tokio::select! {
+        opened = async {
+            tokio::join!(
+                File::open(&checker_to_solution_path),
+                File::create(&solution_to_checker_path)
+            )
+        } => Some(opened),
+        _ = checker_child.wait() => None
+    };
+
+    let (checker_to_solution_read, solution_to_checker_write) = if let Some((read, write)) = opened
+    {
+        (
+            read.map_err(|_| TestingVerdict::Fail)?.into_std().await,
+            write.map_err(|_| TestingVerdict::Fail)?.into_std().await,
+        )
+    } else {
+        let status = checker_child
+            .wait()
+            .await
+            .map_err(|_| TestingVerdict::Fail)?;
+        return match status.code() {
+            Some(VERDICT_TLE) => Ok(Verdict::TimeLimitExceeded),
+            _ => Err(TestingVerdict::Fail),
+        };
+    };
 
     let mut solution_child = Command::new("docker")
         .args([
@@ -273,18 +287,32 @@ pub async fn get_interactive_run_twice_verdict(
         .spawn()
         .map_err(|_| TestingVerdict::Fail)?;
 
-    let (checker_to_solution_read, solution_to_checker_write) = tokio::join!(
-        File::open(&checker_to_solution_path),
-        File::create(&solution_to_checker_path)
-    );
-    let checker_to_solution_read = checker_to_solution_read
-        .map_err(|_| TestingVerdict::Fail)?
-        .into_std()
-        .await;
-    let solution_to_checker_write = solution_to_checker_write
-        .map_err(|_| TestingVerdict::Fail)?
-        .into_std()
-        .await;
+    let opened = tokio::select! {
+        opened = async {
+            tokio::join!(
+                File::open(&checker_to_solution_path),
+                File::create(&solution_to_checker_path)
+            )
+        } => Some(opened),
+        _ = checker_child.wait() => None
+    };
+
+    let (checker_to_solution_read, solution_to_checker_write) = if let Some((read, write)) = opened
+    {
+        (
+            read.map_err(|_| TestingVerdict::Fail)?.into_std().await,
+            write.map_err(|_| TestingVerdict::Fail)?.into_std().await,
+        )
+    } else {
+        let status = checker_child
+            .wait()
+            .await
+            .map_err(|_| TestingVerdict::Fail)?;
+        return match status.code() {
+            Some(VERDICT_TLE) => Ok(Verdict::TimeLimitExceeded),
+            _ => Err(TestingVerdict::Fail),
+        };
+    };
 
     let mut solution_child = Command::new("docker")
         .args([

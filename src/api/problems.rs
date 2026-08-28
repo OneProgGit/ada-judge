@@ -23,7 +23,6 @@ use axum::{
 use tokio::{
     fs::{self, File, read_to_string},
     io::AsyncWriteExt,
-    process::Command,
 };
 use tokio_util::io::ReaderStream;
 use tools::map::MapHttpExt;
@@ -153,25 +152,6 @@ pub async fn create_problem(
     zip_extract(&archive_path, &problem_path)
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    let status = Command::new("chown")
-        .args([
-            "-R",
-            "1000:1000",
-            problem_path
-                .to_str()
-                .ok_or(AdaJudgeError::Internal)
-                .map_http()?,
-        ])
-        .status()
-        .await
-        .map_err(|_| AdaJudgeError::Internal)
-        .map_http()?;
-    if status.code().is_some_and(|code| code != 0) {
-        return Err(AdaJudgeError::Internal)
-            .map_cleanup(&problem_path)
-            .await
-            .map_http()?;
-    }
     fs::remove_file(&archive_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)
@@ -297,25 +277,6 @@ pub async fn update_problem(
     zip_extract(&archive_path, &problem_path)
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    let status = Command::new("chown")
-        .args([
-            "-R",
-            "1000:1000",
-            problem_path
-                .to_str()
-                .ok_or(AdaJudgeError::Internal)
-                .map_http()?,
-        ])
-        .status()
-        .await
-        .map_err(|_| AdaJudgeError::Internal)
-        .map_http()?;
-    if status.code().is_some_and(|code| code != 0) {
-        return Err(AdaJudgeError::Internal)
-            .map_cleanup(&problem_path)
-            .await
-            .map_http()?;
-    }
     fs::remove_file(&archive_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)

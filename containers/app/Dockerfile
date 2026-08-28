@@ -31,6 +31,18 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder-main /usr/src/app/target/release/ada-judge ./ada-judge
+
+ARG DOCKER_GID
+
+RUN groupadd --gid 1000 runner \
+    && useradd \
+        --uid 1000 \
+        --gid 1000 \
+        --create-home \
+        --shell /bin/bash runner
+
+USER 1000:1000
+
 CMD ["./ada-judge"]
 
 FROM debian:trixie-slim AS submissions-judger
@@ -43,4 +55,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder-submissions-judger /usr/src/app/target/release/submissions-judger ./submissions-judger
+
+ARG DOCKER_GID
+
+RUN groupadd --gid 1000 runner \
+    && useradd \
+        --uid 1000 \
+        --gid 1000 \
+        --create-home \
+        --shell /bin/bash runner
+
+USER 1000:1000
+
 CMD ["./submissions-judger"]

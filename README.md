@@ -48,7 +48,7 @@ After that, create `submissions_envs` directory.
 Build and run `ada-judge` with `docker compose`:
 ```bash
 docker compose build
-docker compose up -d
+DOCKER_GID=$(stat -c '%g' /var/run/docker.sock) docker compose up -d
 ```
 
 Now, you can start using `ada-judge`!

@@ -15,7 +15,6 @@ use axum::{
 use database::tools::MapDbExt;
 use models::testing::SubmissionTask;
 use std::path::PathBuf;
-use tokio::process::Command;
 use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
@@ -218,19 +217,6 @@ pub async fn submit(
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    let status = Command::new("chown")
-        .args([
-            "-R",
-            "1000:1000",
-            run_dir.to_str().ok_or(AdaJudgeError::Internal).map_http()?,
-        ])
-        .status()
-        .await
-        .map_err(|_| AdaJudgeError::Internal)
-        .map_http()?;
-    if status.code().is_some_and(|code| code != 0) {
-        return Err(AdaJudgeError::Internal).map_http()?;
-    }
 
     let submission_task = SubmissionTask {
         problem_path: PathBuf::from("/problems").join(problem_id.to_string()),

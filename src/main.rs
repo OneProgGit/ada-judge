@@ -46,7 +46,10 @@ use axum::{
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
@@ -255,6 +258,7 @@ async fn main() {
         .merge(owner_routes)
         .layer(Extension(Auth))
         .layer(cors)
+        .layer(TraceLayer::new_for_http())
         .with_state(state);
 
     let listener = TcpListener::bind("0.0.0.0:4444")

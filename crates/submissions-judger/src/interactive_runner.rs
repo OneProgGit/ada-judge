@@ -45,6 +45,9 @@ pub async fn get_interactive_verdict(
         if !status.success() {
             return Err(TestingVerdict::Fail);
         }
+        if !status.success() {
+            return Err(TestingVerdict::Fail);
+        }
     }
 
     let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;

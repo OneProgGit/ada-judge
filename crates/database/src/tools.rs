@@ -18,8 +18,8 @@ pub trait MapDbExt<T> {
 
 impl<T: Send> MapDbExt<T> for Result<T, TestingVerdict> {
     async fn map_db(self, pool: &PgPool, submission_id: i64, subgroup: Option<(i32, i32)>) -> Self {
-        if self.is_err() {
-            update_submission(pool, submission_id, &TestingVerdict::Fail, 0.)
+        if let Err(verdict) = &self {
+            update_submission(pool, submission_id, verdict, 0.)
                 .await
                 .map_err(|_| TestingVerdict::Fail)?;
             if let Some(subgroup) = subgroup {

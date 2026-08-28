@@ -39,6 +39,8 @@ services:
       dockerfile: ./containers/app/Dockerfile
       context: .
       target: submissions-judger
+    group_add:
+      - ${DOCKER_GID}
     deploy:
       replicas: ${WORKERS_COUNT}
     depends_on:
@@ -62,6 +64,8 @@ services:
       dockerfile: ./containers/app/Dockerfile
       context: .
       target: main
+    group_add:
+      - ${DOCKER_GID}
     depends_on:
       postgres:
         condition: service_started

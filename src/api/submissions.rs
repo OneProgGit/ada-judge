@@ -193,7 +193,7 @@ pub async fn submit(
     fs::create_dir(run_dir.clone())
         .await
         .map_err(|_| AdaJudgeError::Internal)
-        .map_db(&state.db, submission_id)
+        .map_db(&state.db, submission_id, None)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
@@ -201,7 +201,7 @@ pub async fn submit(
     let mut run_file = File::create(run_path)
         .await
         .map_err(|_| AdaJudgeError::Internal)
-        .map_db(&state.db, submission_id)
+        .map_db(&state.db, submission_id, None)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
@@ -209,7 +209,7 @@ pub async fn submit(
         .write_all(&file_stream)
         .await
         .map_err(|_| AdaJudgeError::Internal)
-        .map_db(&state.db, submission_id)
+        .map_db(&state.db, submission_id, None)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
@@ -247,7 +247,7 @@ pub async fn submit(
         .push(submission_task)
         .await
         .map_err(|_| AdaJudgeError::Internal)
-        .map_db(&state.db, submission_id)
+        .map_db(&state.db, submission_id, None)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
@@ -302,7 +302,7 @@ pub async fn retest_problem_submissions(
             .push(submission_task)
             .await
             .map_err(|_| AdaJudgeError::Internal)
-            .map_db(&state.db, submission.id)
+            .map_db(&state.db, submission.id, None)
             .await
             .map_err(|_| AdaJudgeError::Forbidden)
             .map_http()?;

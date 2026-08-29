@@ -54,7 +54,10 @@ pub async fn delete_user(pool: &PgPool, id: i64) -> Result<(), AdaJudgeError> {
     sqlx::query!(r#"delete from users where id = $1"#, id)
         .execute(pool)
         .await
-        .map_err(|_| AdaJudgeError::Internal)?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?;
 
     Ok(())
 }
@@ -71,7 +74,10 @@ pub async fn change_admin_level(
     )
     .execute(pool)
     .await
-    .map_err(|_| AdaJudgeError::Internal)?;
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })?;
 
     Ok(())
 }
@@ -106,5 +112,8 @@ pub async fn get_user_by_id(pool: &PgPool, id: i64) -> Result<DatabaseUser, AdaJ
     )
     .fetch_one(pool)
     .await
-    .map_err(|_| AdaJudgeError::Internal)
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })
 }

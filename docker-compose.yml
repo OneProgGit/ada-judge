@@ -34,11 +34,13 @@ services:
       - redisdata:/data
   sandbox:
     build: ./containers/sandbox
+    image: docker.io/oneprogboy/ada-judge-sandbox:latest
   submissions-judger:
     build:
       dockerfile: ./containers/app/Dockerfile
       context: .
       target: submissions-judger
+    image: docker.io/oneprogboy/ada-judge-submissions-judger:latest
     group_add:
       - ${DOCKER_GID}
     deploy:
@@ -64,6 +66,7 @@ services:
       dockerfile: ./containers/app/Dockerfile
       context: .
       target: main
+    image: docker.io/oneprogboy/ada-judge-main:latest
     group_add:
       - ${DOCKER_GID}
     depends_on:

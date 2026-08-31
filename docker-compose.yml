@@ -56,7 +56,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://${REDIS_USER}:${REDIS_USER_PASSWORD}@redis:6379/0
       HOST_RUNS_DIR: ${PWD}
-      SANDBOX_IMAGE: ada-judge-sandbox
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./submissions_envs:/submissions_envs
@@ -82,7 +82,7 @@ services:
       HOST_RUNS_DIR: ${PWD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP_HOURS: ${JWT_EXP_HOURS}
-      SANDBOX_IMAGE: ada-judge-sandbox
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE}
     ports:
       - "4444:4444"
     volumes:

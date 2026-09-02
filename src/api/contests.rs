@@ -101,10 +101,30 @@ pub async fn get_contests(
     } else {
         GetContestsMode::NotHidden(auth.id)
     };
+    let now = Utc::now();
     Ok(Json(
         database::contests::get_contests(&state.db, mode)
             .await
-            .map_http()?,
+            .map_http()?
+            .into_iter()
+            .map(|mut contest| {
+                if now < contest.starts_at
+                    && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+                    && contest.co_authors.binary_search(&auth.id).is_err()
+                {
+                    contest.statements_url_ru = String::default();
+                    contest.statements_url_en = String::default();
+                }
+                if now < contest.finishes_at
+                    && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+                    && contest.co_authors.binary_search(&auth.id).is_err()
+                {
+                    contest.editorial_url_ru = String::default();
+                    contest.editorial_url_en = String::default();
+                }
+                contest
+            })
+            .collect(),
     ))
 }
 

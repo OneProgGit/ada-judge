@@ -1,4 +1,6 @@
-<img src="brand/ada-judge.png" alt="ada-judge logo">
+<img src="brand/ada-judge.png" alt="ada-judge logo" width=180px height=auto>
+
+# ada-judge
 
 [![stars](https://img.shields.io/gitea/stars/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge&logo=codeberg)](https://codeberg.org/oneprog/ada-judge)
 [![release](https://img.shields.io/gitea/v/release/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge)](https://codeberg.org/oneprog/ada-judge/releases)

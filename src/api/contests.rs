@@ -26,6 +26,7 @@ use axum::{
 };
 use chrono::Utc;
 use database::contests::GetContestsMode;
+use futures_util::{SinkExt, StreamExt};
 use tokio::{fs, sync::broadcast};
 use tools::map::MapHttpExt;
 
@@ -33,24 +34,72 @@ pub async fn contest_ws(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,
-) -> Response {
-    ws.on_upgrade(move |socket| handle_contest_socket(socket, state, contest_id))
+    Auth(auth): Auth,
+) -> Result<Response, ApiError> {
+    let contest = database::contests::get_contest(&state.db, contest_id)
+        .await
+        .map_http()?;
+    Ok(ws.on_upgrade(move |socket| {
+        handle_contest_socket(
+            socket,
+            state,
+            contest_id,
+            if is_allowed(auth.id, Some(contest_id), &auth.admin_level)
+                || contest.co_authors.binary_search(&auth.id).is_ok()
+            {
+                None
+            } else {
+                Some(auth.id)
+            },
+        )
+    }))
 }
 
-async fn handle_contest_socket(mut socket: WebSocket, state: AppState, contest_id: i64) {
-    let tx = state
+async fn handle_contest_socket(
+    socket: WebSocket,
+    state: AppState,
+    contest_id: i64,
+    user_id: Option<i64>,
+) {
+    let (mut ws_tx, mut ws_rx) = socket.split();
+    let contest_tx = state
         .contests_subs
         .entry(contest_id)
         .or_insert_with(|| broadcast::channel(256).0)
         .clone();
-    let mut rx = tx.subscribe();
+    let mut contest_rx = contest_tx.subscribe();
+    let questions_tx = state
+        .questions_subs
+        .entry((user_id, contest_id))
+        .or_insert_with(|| broadcast::channel(256).0)
+        .clone();
+    let mut questions_rx = questions_tx.subscribe();
 
-    while let Ok(event) = rx.recv().await {
-        let json = serde_json::to_string(&event).expect("serde failed");
-
-        if socket.send(Message::Text(json.into())).await.is_err() {
-            break;
+    let mut send_task = tokio::spawn(async move {
+        loop {
+            let event = tokio::select! {
+                Ok(e) = contest_rx.recv() => e,
+                Ok(e) = questions_rx.recv() => e,
+                else => break,
+            };
+            let json = serde_json::to_string(&event).expect("serde failed");
+            if ws_tx.send(Message::Text(json.into())).await.is_err() {
+                break;
+            }
         }
+    });
+
+    let mut recv_task = tokio::spawn(async move {
+        while let Some(Ok(msg)) = ws_rx.next().await {
+            if matches!(msg, Message::Close(_)) {
+                break;
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = &mut send_task => recv_task.abort(),
+        _ = &mut recv_task => send_task.abort(),
     }
 }
 

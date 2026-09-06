@@ -87,5 +87,5 @@ pub enum ContestEvent {
     ProblemDeleted(i64),
     NewProblemQuestion(ProblemQuestion),
     ProblemQuestionDeleted(i64),
-    ProblemQuestionAnswered(String),
+    ProblemQuestionAnswered(ProblemQuestion),
 }

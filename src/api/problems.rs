@@ -448,9 +448,23 @@ pub async fn create_problem_question(
     Auth(auth): Auth,
     Json(request): Json<ProblemQuestionRequest>,
 ) -> Result<(), ApiError> {
-    database::problems::create_problem_question(&state.db, auth.id, problem_id, &request)
+    let id = database::problems::create_problem_question(&state.db, auth.id, problem_id, &request)
         .await
         .map_http()?;
+    let question = database::problems::get_problem_question(&state.db, id)
+        .await
+        .map_http()?;
+    let problem = database::problems::get_problem(&state.db, question.problem_id)
+        .await
+        .map_http()?;
+    state
+        .questions_subs
+        .get(&(Some(auth.id), problem.contest_id))
+        .map(|tx| tx.send(ContestEvent::NewProblemQuestion(question.clone())));
+    state
+        .questions_subs
+        .get(&(None, problem.contest_id))
+        .map(|tx| tx.send(ContestEvent::NewProblemQuestion(question)));
     Ok(())
 }
 
@@ -477,6 +491,17 @@ pub async fn answer_problem_question(
     database::problems::answer_problem_question(&state.db, question_id, &request)
         .await
         .map_http()?;
+    let question = database::problems::get_problem_question(&state.db, question_id)
+        .await
+        .map_http()?;
+    state
+        .questions_subs
+        .get(&(Some(auth.id), contest.id))
+        .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question.clone())));
+    state
+        .questions_subs
+        .get(&(None, contest.id))
+        .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question)));
 
     Ok(())
 }
@@ -503,9 +528,20 @@ pub async fn delete_problem_question(
             .await
             .map_http()?;
         if is_allowed(auth.id, Some(question.owner_id), &auth.admin_level) {
+            let problem = database::problems::get_problem(&state.db, question.problem_id)
+                .await
+                .map_http()?;
             database::problems::delete_problem_question(&state.db, question_id)
                 .await
                 .map_http()?;
+            state
+                .questions_subs
+                .get(&(Some(auth.id), problem.contest_id))
+                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question_id)));
+            state
+                .questions_subs
+                .get(&(None, problem.contest_id))
+                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question_id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

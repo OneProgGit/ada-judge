@@ -85,10 +85,6 @@ pub enum ContestEvent {
     NewProblem(PublicProblemConfig),
     ProblemUpdated(PublicProblemConfig),
     ProblemDeleted(i64),
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub enum QuestionEvent {
     NewProblemQuestion(ProblemQuestion),
     ProblemQuestionDeleted(i64),
     ProblemQuestionAnswered(String),

@@ -101,6 +101,13 @@ async fn handle_contest_socket(
         _ = &mut send_task => recv_task.abort(),
         _ = &mut recv_task => send_task.abort(),
     }
+
+    if contest_tx.receiver_count() == 0 {
+        state.contests_subs.remove(&contest_id);
+    }
+    if questions_tx.receiver_count() == 0 {
+        state.questions_subs.remove(&(user_id, contest_id));
+    }
 }
 
 pub async fn get_contest_leaderboard(

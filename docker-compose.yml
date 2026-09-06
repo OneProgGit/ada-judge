@@ -35,6 +35,7 @@ services:
   sandbox:
     build: ./containers/sandbox
     image: docker.io/oneprogboy/ada-judge-sandbox:latest
+    platform: linux/amd64
   submissions-judger:
     build:
       dockerfile: ./containers/app/Dockerfile

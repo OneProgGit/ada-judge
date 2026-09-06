@@ -8,7 +8,7 @@ use crate::problems::{ProblemQuestion, PublicProblemConfig};
 pub struct LeaderboardRow {
     pub user_id: i64,
     pub user_login: String,
-    pub scores: Vec<f64>,
+    pub scores: Vec<Option<f64>>,
     pub total_score: f64,
 }
 

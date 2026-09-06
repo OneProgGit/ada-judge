@@ -96,7 +96,7 @@ async fn main() {
         db: pg_pool.clone(),
         apalis_backend: Arc::new(Mutex::new(apalis_backend.clone())),
         contests_subs: Arc::new(DashMap::new()),
-        //questions_subs: DashMap::new(),
+        questions_subs: DashMap::new(),
     };
 
     let cors = CorsLayer::new()

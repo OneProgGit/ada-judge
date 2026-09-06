@@ -87,11 +87,10 @@ pub async fn get_leaderboard(
                 u.user_id as "user_id!",
                 u.login as user_login,
                 array_agg(
-                    coalesce(b.score, 0::double precision)
+                    b.score::double precision
                     order by p.index
-                )
-                as "scores!",
-                sum(coalesce(b.score, 0)) as "total_score!"
+                ) as "scores!: Vec<Option<f64>>",
+                sum(b.score) as "total_score!"
             from users u
             cross join contest_problems p
             left join best b

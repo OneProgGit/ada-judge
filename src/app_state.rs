@@ -10,6 +10,6 @@ use tokio::sync::{Mutex, broadcast};
 pub struct AppState {
     pub db: PgPool,
     pub apalis_backend: Arc<Mutex<RedisStorage<SubmissionTask>>>,
-    pub contests_subs: DashMap<i64, broadcast::Sender<ContestEvent>>,
+    pub contests_subs: Arc<DashMap<i64, broadcast::Sender<ContestEvent>>>,
     //pub questions_subs: DashMap<(Option<i64>, i64), broadcast::Sender<QuestionEvent>>,
 }

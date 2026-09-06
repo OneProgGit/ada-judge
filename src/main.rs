@@ -95,7 +95,7 @@ async fn main() {
     let state = AppState {
         db: pg_pool.clone(),
         apalis_backend: Arc::new(Mutex::new(apalis_backend.clone())),
-        contests_subs: DashMap::new(),
+        contests_subs: Arc::new(DashMap::new()),
         //questions_subs: DashMap::new(),
     };
 

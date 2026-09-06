@@ -21,9 +21,9 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 argon2 = { version = "0.6.0" }
 jsonwebtoken = { version = "11.0.0", features = ["aws_lc_rs"] }
-tower-http = { version = "0.7.0", features = ["cors", "trace"] }
+tower-http = { version = "0.7.1", features = ["cors", "trace"] }
 zip-extensions = "0.14.1"
-toml = "1.1.4+spec-1.1.0"
+toml = "1.1.5+spec-1.1.0"
 uuid = { version = "1.26.0", features = ["v4"] }
 tokio-util = { version = "0.7.19", features = ["io"] }
 

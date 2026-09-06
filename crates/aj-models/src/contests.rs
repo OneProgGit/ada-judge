@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::problems::{ProblemQuestion, PublicProblemConfig};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct LeaderboardRow {
@@ -71,4 +73,23 @@ pub struct ContestPost {
     pub text_ru: String,
     pub text_en: String,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub enum ContestEvent {
+    NewPost(ContestPost),
+    PostUpdated(ContestPost),
+    PostDeleted(i64),
+    ContestUpdated(PublicContestConfig),
+    ContestDeleted,
+    NewProblem(PublicProblemConfig),
+    ProblemChanged(PublicProblemConfig),
+    ProblemDeleted(i64),
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub enum QuestionEvent {
+    NewProblemQuestion(ProblemQuestion),
+    ProblemQuestionDeleted(i64),
+    ProblemQuestionAnswered(String),
 }

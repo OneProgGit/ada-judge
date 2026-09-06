@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 use std::path::PathBuf;
 
 use crate::{
@@ -7,20 +9,50 @@ use crate::{
 use aj_models::{
     DeletionRequest,
     contests::{
-        ContestPost, ContestPostRequest, ContestRequest, LeaderboardRow, PublicContestConfig,
+        ContestEvent, ContestPost, ContestPostRequest, ContestRequest, LeaderboardRow,
+        PublicContestConfig,
     },
     errors::{AdaJudgeError, Contest, Deletion},
-    problems::PublicProblemConfig,
+    problems::{ProblemQuestion, PublicProblemConfig},
     users::AdminLevel,
 };
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{
+        Path, State, WebSocketUpgrade,
+        ws::{Message, WebSocket},
+    },
+    response::Response,
 };
 use chrono::Utc;
 use database::contests::GetContestsMode;
-use tokio::fs;
+use tokio::{fs, sync::broadcast};
 use tools::map::MapHttpExt;
+
+pub async fn contest_ws(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    Path(contest_id): Path<i64>,
+) -> Response {
+    ws.on_upgrade(move |socket| handle_contest_socket(socket, state, contest_id))
+}
+
+async fn handle_contest_socket(mut socket: WebSocket, state: AppState, contest_id: i64) {
+    let tx = state
+        .contests_subs
+        .entry(contest_id)
+        .or_insert_with(|| broadcast::channel(256).0)
+        .clone();
+    let mut rx = tx.subscribe();
+
+    while let Ok(event) = rx.recv().await {
+        let json = serde_json::to_string(&event).expect("serde failed");
+
+        if socket.send(Message::Text(json.into())).await.is_err() {
+            break;
+        }
+    }
+}
 
 pub async fn get_contest_leaderboard(
     State(state): State<AppState>,
@@ -179,6 +211,13 @@ pub async fn update_contest(
         database::contests::update_contest(&state.db, contest_id, &request)
             .await
             .map_http()?;
+        let contest = database::contests::get_contest(&state.db, contest_id)
+            .await
+            .map_http()?;
+        state
+            .contests_subs
+            .get(&contest_id)
+            .map(|tx| tx.send(ContestEvent::ContestUpdated(contest)));
 
         Ok(())
     }
@@ -235,6 +274,10 @@ pub async fn delete_contest(
             database::contests::delete_contest(&state.db, contest_id)
                 .await
                 .map_http()?;
+            state
+                .contests_subs
+                .get(&contest_id)
+                .map(|tx| tx.send(ContestEvent::ContestDeleted));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -256,9 +299,16 @@ pub async fn create_contest_post(
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
         return Err(AdaJudgeError::Forbidden).map_http()?;
     }
-    database::contests::create_contest_post(&state.db, auth.id, contest_id, &request)
+    let id = database::contests::create_contest_post(&state.db, auth.id, contest_id, &request)
         .await
         .map_http()?;
+    let post = database::contests::get_contest_post(&state.db, id)
+        .await
+        .map_http()?;
+    state
+        .contests_subs
+        .get(&contest_id)
+        .map(|tx| tx.send(ContestEvent::NewPost(post)));
     Ok(())
 }
 
@@ -282,6 +332,13 @@ pub async fn update_contest_post(
     database::contests::update_contest_post(&state.db, post_id, &request)
         .await
         .map_http()?;
+    let post = database::contests::get_contest_post(&state.db, post_id)
+        .await
+        .map_http()?;
+    state
+        .contests_subs
+        .get(&contest.id)
+        .map(|tx| tx.send(ContestEvent::PostUpdated(post)));
 
     Ok(())
 }
@@ -316,6 +373,10 @@ pub async fn delete_contest_post(
             database::contests::delete_contest_post(&state.db, post_id)
                 .await
                 .map_http()?;
+            state
+                .contests_subs
+                .get(&contest.id)
+                .map(|tx| tx.send(ContestEvent::PostDeleted(post_id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -351,6 +412,39 @@ pub async fn get_contest_posts(
 
     Ok(Json(
         database::contests::get_contest_posts(&state.db, contest_id)
+            .await
+            .map_http()?,
+    ))
+}
+
+pub async fn get_all_contest_problems_questions(
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+    Path(contest_id): Path<i64>,
+) -> Result<Json<Vec<ProblemQuestion>>, ApiError> {
+    let contest = database::contests::get_contest(&state.db, contest_id)
+        .await
+        .map_http()?;
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && contest.co_authors.binary_search(&auth.id).is_err()
+    {
+        return Err(AdaJudgeError::Forbidden).map_http()?;
+    }
+
+    Ok(Json(
+        database::contests::get_problems_questions(&state.db, None, contest_id)
+            .await
+            .map_http()?,
+    ))
+}
+
+pub async fn get_my_contest_problems_questions(
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+    Path(contest_id): Path<i64>,
+) -> Result<Json<Vec<ProblemQuestion>>, ApiError> {
+    Ok(Json(
+        database::contests::get_problems_questions(&state.db, Some(auth.id), contest_id)
             .await
             .map_http()?,
     ))

@@ -3,7 +3,7 @@ use aj_models::{
         ContestPost, ContestPostRequest, ContestRequest, LeaderboardRow, PublicContestConfig,
     },
     errors::AdaJudgeError,
-    problems::{ProblemTestingType, ProblemType, PublicProblemConfig, Subgroup},
+    problems::{ProblemQuestion, ProblemTestingType, ProblemType, PublicProblemConfig, Subgroup},
     testing::Language,
 };
 use models::problems::DatabaseProblemConfig;
@@ -452,10 +452,10 @@ pub async fn create_contest_post(
     user_id: i64,
     contest_id: i64,
     post: &ContestPostRequest,
-) -> Result<(), AdaJudgeError> {
-    sqlx::query!(
+) -> Result<i64, AdaJudgeError> {
+    let post_id = sqlx::query_scalar!(
         r#"insert into contests_posts (owner_id, contest_id, title_ru,
-            text_ru, title_en, text_en) values ($1, $2, $3, $4, $5, $6)"#,
+            text_ru, title_en, text_en) values ($1, $2, $3, $4, $5, $6) returning id"#,
         user_id,
         contest_id,
         &post.title_ru,
@@ -463,11 +463,11 @@ pub async fn create_contest_post(
         &post.title_en,
         &post.text_en
     )
-    .execute(pool)
+    .fetch_one(pool)
     .await
     .map_err(|_| AdaJudgeError::Internal)?;
 
-    Ok(())
+    Ok(post_id)
 }
 
 pub async fn update_contest_post(
@@ -553,4 +553,60 @@ pub async fn get_contest_posts(
     })?;
 
     Ok(posts)
+}
+
+pub async fn get_problems_questions(
+    pool: &PgPool,
+    user_id: Option<i64>,
+    contest_id: i64,
+) -> Result<Vec<ProblemQuestion>, AdaJudgeError> {
+    let questions = match user_id {
+        None => sqlx::query_as!(
+            ProblemQuestion,
+            r#"select c.id as "id!",
+            c.owner_id as "owner_id!",
+            users.login as "owner_login",
+            c.problem_id as "problem_id!",
+            c.title,
+            c.text,
+            c.answer,
+            c.created_at
+            from problems_questions c
+            join users on users.id = c.owner_id
+            join problems on problems.id = c.problem_id
+            where problems.contest_id = $1 order by c.id desc"#,
+            contest_id
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
+        Some(user_id) => sqlx::query_as!(
+            ProblemQuestion,
+            r#"select c.id as "id!",
+            c.owner_id as "owner_id!",
+            users.login as "owner_login",
+            c.problem_id as "problem_id!",
+            c.title,
+            c.text,
+            c.answer,
+            c.created_at
+            from problems_questions c
+            join users on users.id = c.owner_id
+            join problems on problems.id = c.problem_id
+            where c.owner_id = $1 and problems.contest_id = $2 order by c.id desc"#,
+            user_id,
+            contest_id
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?,
+    };
+
+    Ok(questions)
 }

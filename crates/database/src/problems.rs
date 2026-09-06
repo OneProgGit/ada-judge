@@ -340,19 +340,19 @@ pub async fn create_problem_question(
     user_id: i64,
     problem_id: i64,
     question: &ProblemQuestionRequest,
-) -> Result<(), AdaJudgeError> {
-    sqlx::query!(
-        r#"insert into problems_questions (owner_id, problem_id, title, text) values ($1, $2, $3, $4)"#,
+) -> Result<i64, AdaJudgeError> {
+    let question_id = sqlx::query_scalar!(
+        r#"insert into problems_questions (owner_id, problem_id, title, text) values ($1, $2, $3, $4) returning id"#,
         user_id,
         problem_id,
         &question.title,
         &question.text
     )
-    .execute(pool)
+    .fetch_one(pool)
     .await
     .map_err(|_| AdaJudgeError::Internal)?;
 
-    Ok(())
+    Ok(question_id)
 }
 
 pub async fn answer_problem_question(
@@ -415,58 +415,4 @@ pub async fn get_problem_question(
         sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
         _ => AdaJudgeError::Internal,
     })
-}
-
-pub async fn get_problem_questions(
-    pool: &PgPool,
-    user_id: Option<i64>,
-    problem_id: i64,
-) -> Result<Vec<ProblemQuestion>, AdaJudgeError> {
-    let questions = match user_id {
-        None => sqlx::query_as!(
-            ProblemQuestion,
-            r#"select c.id as "id!",
-            c.owner_id as "owner_id!",
-            users.login as "owner_login",
-            c.problem_id as "problem_id!",
-            c.title,
-            c.text,
-            c.answer,
-            c.created_at
-            from problems_questions c
-            join users on users.id = c.owner_id
-            where c.problem_id = $1 order by c.id desc"#,
-            problem_id
-        )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
-            _ => AdaJudgeError::Internal,
-        })?,
-        Some(user_id) => sqlx::query_as!(
-            ProblemQuestion,
-            r#"select c.id as "id!",
-            c.owner_id as "owner_id!",
-            users.login as "owner_login",
-            c.problem_id as "problem_id!",
-            c.title,
-            c.text,
-            c.answer,
-            c.created_at
-            from problems_questions c
-            join users on users.id = c.owner_id
-            where c.owner_id = $1 and c.problem_id = $2 order by c.id desc"#,
-            user_id,
-            problem_id
-        )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
-            _ => AdaJudgeError::Internal,
-        })?,
-    };
-
-    Ok(questions)
 }

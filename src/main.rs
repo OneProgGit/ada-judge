@@ -8,15 +8,15 @@ use crate::{
     api::{
         auth::{delete_my_account, login, register},
         contests::{
-            create_contest, create_contest_post, delete_contest, delete_contest_post,
-            get_contest_by_id, get_contest_leaderboard, get_contest_post_by_id, get_contest_posts,
-            get_contest_problems, get_contests, get_my_contests, get_problem_by_id, update_contest,
+            contest_ws, create_contest, create_contest_post, delete_contest, delete_contest_post,
+            get_all_contest_problems_questions, get_contest_by_id, get_contest_leaderboard,
+            get_contest_post_by_id, get_contest_posts, get_contest_problems, get_contests,
+            get_my_contest_problems_questions, get_my_contests, get_problem_by_id, update_contest,
             update_contest_post,
         },
         problems::{
             answer_problem_question, create_problem, create_problem_question, delete_problem,
-            delete_problem_question, download_problem, get_all_problem_questions,
-            get_my_problem_questions, get_my_problems, get_problem_by_id_admin,
+            delete_problem_question, download_problem, get_my_problems, get_problem_by_id_admin,
             get_problem_question_by_id, get_problems, update_problem,
         },
         submissions::{
@@ -43,6 +43,7 @@ use axum::{
     http::{Method, header},
     routing::{delete, get, patch, post},
 };
+use dashmap::DashMap;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
@@ -94,6 +95,8 @@ async fn main() {
     let state = AppState {
         db: pg_pool.clone(),
         apalis_backend: Arc::new(Mutex::new(apalis_backend.clone())),
+        contests_subs: DashMap::new(),
+        questions_subs: DashMap::new(),
     };
 
     let cors = CorsLayer::new()
@@ -107,15 +110,16 @@ async fn main() {
         ])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
-    let contest_problems_routes_1 = Router::new()
+    let contest_started_routes_1 = Router::new()
         .route("/contests/{contest_id}/problems", get(get_contest_problems))
+        .route("/contests/{contest_id}/ws", get(contest_ws))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             ensure_contest_started_1,
         ))
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
-    let contest_problems_routes_2 = Router::new()
+    let contest_started_routes_2 = Router::new()
         .route(
             "/contests/{contest_id}/problems/{problem_id}",
             get(get_problem_by_id),
@@ -167,8 +171,8 @@ async fn main() {
         )
         .route("/problems/{problem_id}/download", get(download_problem))
         .route(
-            "/problems/{problem_id}/questions",
-            get(get_all_problem_questions),
+            "/contests/{contest_id}/questions",
+            get(get_all_contest_problems_questions),
         )
         .route(
             "/problems/questions/{question_id}/answer",
@@ -239,8 +243,8 @@ async fn main() {
             delete(delete_problem_question),
         )
         .route(
-            "/problems/{problem_id}/questions/my",
-            get(get_my_problem_questions),
+            "/contests/{contest_id}/questions/my",
+            get(get_my_contest_problems_questions),
         )
         .route(
             "/problems/questions/{question_id}",
@@ -250,8 +254,8 @@ async fn main() {
 
     let app = Router::new()
         .merge(default_routes)
-        .merge(contest_problems_routes_1)
-        .merge(contest_problems_routes_2)
+        .merge(contest_started_routes_1)
+        .merge(contest_started_routes_2)
         .merge(leaderboard_routes)
         .merge(admin_routes)
         .merge(heavy_problem_routes)

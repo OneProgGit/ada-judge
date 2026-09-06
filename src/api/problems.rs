@@ -516,42 +516,6 @@ pub async fn get_problem_question_by_id(
     Ok(Json(question))
 }
 
-pub async fn get_all_problem_questions(
-    State(state): State<AppState>,
-    Auth(auth): Auth,
-    Path(problem_id): Path<i64>,
-) -> Result<Json<Vec<ProblemQuestion>>, ApiError> {
-    let problem = database::problems::get_problem(&state.db, problem_id)
-        .await
-        .map_http()?;
-    let contest = database::contests::get_contest(&state.db, problem.contest_id)
-        .await
-        .map_http()?;
-    if !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
-        && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
-    {
-        return Err(AdaJudgeError::Forbidden).map_http()?;
-    }
-
-    Ok(Json(
-        database::problems::get_problem_questions(&state.db, None, problem_id)
-            .await
-            .map_http()?,
-    ))
-}
-
-pub async fn get_my_problem_questions(
-    State(state): State<AppState>,
-    Auth(auth): Auth,
-    Path(problem_id): Path<i64>,
-) -> Result<Json<Vec<ProblemQuestion>>, ApiError> {
-    Ok(Json(
-        database::problems::get_problem_questions(&state.db, Some(auth.id), problem_id)
-            .await
-            .map_http()?,
-    ))
-}
-
 pub async fn download_problem(
     State(state): State<AppState>,
     Path(problem_id): Path<i64>,

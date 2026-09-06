@@ -26,6 +26,7 @@ zip-extensions = "0.14.1"
 toml = "1.1.5+spec-1.1.0"
 uuid = { version = "1.26.0", features = ["v4"] }
 tokio-util = { version = "0.7.19", features = ["io"] }
+dashmap = "6.2.1"
 
 [workspace]
 members = [
@@ -43,7 +44,7 @@ aj-models = { path = "crates/aj-models", features = ["sqlx"] }
 models = { path = "crates/models" }
 tools = { path = "crates/tools" }
 database = { path = "crates/database" }
-axum = { version = "0.8.9", features = ["json", "multipart"] }
+axum = { version = "0.8.9", features = ["json", "multipart", "ws"] }
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "process", "macros"] }
 sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "chrono", "macros"] }
 apalis-redis = "1.0.0-rc.8"

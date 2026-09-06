@@ -1,0 +1,242 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n                c.id,\n                c.owner_id as \"owner_id?\",\n                users.login as \"owner_login?\",\n                c.type as \"type!: ProblemType\",\n                c.testing_type as \"testing_type!: ProblemTestingType\",\n                c.contest_id as \"contest_id!\",\n                c.index,\n                c.name_ru,\n                c.name_en,\n                c.time_limit_ms,\n                c.memory_limit_mb,\n                c.checker_path,\n                c.checker_lang as \"checker_lang!: Language\",\n                c.tests_path,\n                c.created_at,\n                coalesce(\n                    json_agg(\n                        json_build_object(\n                            'type', v.type,\n                            'tests', v.tests,\n                            'score', v.score,\n                            'score_per_test', v.score_per_test,\n                            'depends_on', v.depends_on\n                        ) order by v.subgroup_index\n                    ) filter (where v.problem_id is not null),\n                    '[]'\n                ) as \"subgroups!: Json<Vec<Subgroup>>\"\n            from problems c\n            left join problems_subgroups v on v.problem_id = c.id\n            left join users on users.id = c.owner_id\n            where c.id = $1\n            group by c.id, users.login\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_id?",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "owner_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "owner_login?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "login"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type!: ProblemType",
+        "type_info": {
+          "Custom": {
+            "name": "problem_type",
+            "kind": {
+              "Enum": [
+                "default",
+                "interactive",
+                "run_twice",
+                "run_twice_interactive",
+                "run_twice_first_interactive",
+                "run_twice_second_interactive"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "testing_type!: ProblemTestingType",
+        "type_info": {
+          "Custom": {
+            "name": "problem_testing_type",
+            "kind": {
+              "Enum": [
+                "ioi",
+                "ioi_merge_subgroups"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "testing_type"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "contest_id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "contest_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "index",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "index"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "name_ru",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "name_ru"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "name_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "time_limit_ms",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "time_limit_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "memory_limit_mb",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "memory_limit_mb"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "checker_path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "checker_path"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "checker_lang!: Language",
+        "type_info": {
+          "Custom": {
+            "name": "language",
+            "kind": {
+              "Enum": [
+                "cpp",
+                "c",
+                "go",
+                "rust",
+                "unknown",
+                "python",
+                "free_pascal"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "checker_lang"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "tests_path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "tests_path"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "subgroups!: Json<Vec<Subgroup>>",
+        "type_info": "Json",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "8c6e498f12c931af356f4db082196b4d3353f64ee9a220769d6e677ead7aa232"
+}

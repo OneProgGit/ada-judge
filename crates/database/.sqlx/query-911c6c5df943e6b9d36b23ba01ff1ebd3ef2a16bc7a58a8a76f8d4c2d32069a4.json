@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from problems_subgroups where problem_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "911c6c5df943e6b9d36b23ba01ff1ebd3ef2a16bc7a58a8a76f8d4c2d32069a4"
+}

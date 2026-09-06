@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from submissions_subgroups_results r\n            using submissions s\n            where r.submission_id = s.id\n            and s.problem_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3ef078d0ea926ae52c8fe01d433904aeebe130343aeb4a358b05bff05c08ad71"
+}

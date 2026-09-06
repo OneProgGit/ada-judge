@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update submissions set verdict = $1, score = $2 where id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "testing_verdict",
+            "kind": {
+              "Enum": [
+                "ok",
+                "partial_solution",
+                "pending",
+                "compiling",
+                "compilation_error",
+                "testing",
+                "fail"
+              ]
+            }
+          }
+        },
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "76c4ef8666aea7712862eb7eeb5514749d6f3b0497e698b8200bc70da5cf2caa"
+}

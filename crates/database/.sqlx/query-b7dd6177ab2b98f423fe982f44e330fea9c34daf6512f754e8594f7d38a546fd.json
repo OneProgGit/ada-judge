@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update contests set name_ru = $1, name_en = $2, starts_at = $3,\n                    finishes_at = $4, statements_url_ru = $5, editorial_url_ru = $6, statements_url_en = $7,\n                    editorial_url_en = $8, hidden = $9, upsolving_enabled = $10,\n                    solutions_hidden = $11, leaderboard_hidden = $12 where id = $13",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b7dd6177ab2b98f423fe982f44e330fea9c34daf6512f754e8594f7d38a546fd"
+}

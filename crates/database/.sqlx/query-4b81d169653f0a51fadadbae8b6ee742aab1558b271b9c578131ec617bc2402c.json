@@ -1,0 +1,156 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n                    c.id,\n                    c.problem_id as \"problem_id!\",\n                    c.user_id as \"user_id!\",\n                    users.login as user_login,\n                    c.language as \"language!: Language\",\n                    c.verdict as \"verdict!: TestingVerdict\",\n                    c.score,\n                    c.created_at,\n                    coalesce(s.subgroups_results, '[]') as \"subgroups_results!: Json<Vec<SubgroupResult>>\",\n                    coalesce(t.tests_results, '[]') as \"tests_results!: Json<Vec<TestResult>>\"\n                from submissions c\n                left join lateral (\n                    select json_agg(\n                        json_build_object(\n                            'verdict', verdict,\n                            'test', test,\n                            'score', score\n                        ) order by subgroup_index\n                    ) as subgroups_results\n                    from submissions_subgroups_results\n                    where submission_id = c.id\n                ) s on true\n                left join lateral (\n                    select json_agg(\n                        json_build_object(\n                            'verdict', verdict,\n                            'score', score\n                        ) order by test\n                    ) as tests_results\n                    from submissions_tests_results\n                    where submission_id = c.id\n                ) t on true\n                join users on users.id = c.user_id\n                    join problems p on p.id = c.problem_id\n                where c.problem_id = $1 order by c.id desc",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "problem_id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "problem_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "user_login",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "login"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "language!: Language",
+        "type_info": {
+          "Custom": {
+            "name": "language",
+            "kind": {
+              "Enum": [
+                "cpp",
+                "c",
+                "go",
+                "rust",
+                "unknown",
+                "python",
+                "free_pascal"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "language"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "verdict!: TestingVerdict",
+        "type_info": {
+          "Custom": {
+            "name": "testing_verdict",
+            "kind": {
+              "Enum": [
+                "ok",
+                "partial_solution",
+                "pending",
+                "compiling",
+                "compilation_error",
+                "testing",
+                "fail"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "verdict"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "score",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "score"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "subgroups_results!: Json<Vec<SubgroupResult>>",
+        "type_info": "Json",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "tests_results!: Json<Vec<TestResult>>",
+        "type_info": "Json",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "4b81d169653f0a51fadadbae8b6ee742aab1558b271b9c578131ec617bc2402c"
+}

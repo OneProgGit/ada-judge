@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from contests_co_authors where contest_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f15464ebd5d2658ba954615bb414d24746f99e5a5a6a1047fd2d5eac58707576"
+}

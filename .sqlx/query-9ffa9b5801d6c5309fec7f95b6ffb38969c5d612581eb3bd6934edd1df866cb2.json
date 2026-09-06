@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select c.id as \"id!\",\n            c.owner_id as \"owner_id!\",\n            users.login as \"owner_login\",\n            c.problem_id as \"problem_id!\",\n            c.title,\n            c.text,\n            c.answer,\n            c.created_at\n            from problems_questions c\n            join users on users.id = c.owner_id\n            where c.owner_id = $1 and c.problem_id = $2 order by c.id desc",
+  "query": "select c.id as \"id!\",\n            c.owner_id as \"owner_id!\",\n            users.login as \"owner_login\",\n            c.problem_id as \"problem_id!\",\n            c.title,\n            c.text,\n            c.answer,\n            c.created_at\n            from problems_questions c\n            join users on users.id = c.owner_id\n            join problems on problems.id = c.problem_id\n            where c.owner_id = $1 and problems.contest_id = $2 order by c.id desc",
   "describe": {
     "columns": [
       {
@@ -109,5 +109,5 @@
       false
     ]
   },
-  "hash": "3692a2fc6f81860093eb7a7668472bb9b74aae65586913af4252dd5bb7d4aba6"
+  "hash": "9ffa9b5801d6c5309fec7f95b6ffb38969c5d612581eb3bd6934edd1df866cb2"
 }

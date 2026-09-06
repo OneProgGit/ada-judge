@@ -83,7 +83,7 @@ pub enum ContestEvent {
     ContestUpdated(PublicContestConfig),
     ContestDeleted,
     NewProblem(PublicProblemConfig),
-    ProblemChanged(PublicProblemConfig),
+    ProblemUpdated(PublicProblemConfig),
     ProblemDeleted(i64),
 }
 

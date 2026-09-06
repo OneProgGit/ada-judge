@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 use std::path::PathBuf;
 
 use crate::{
@@ -10,6 +12,7 @@ use crate::{
 };
 use aj_models::{
     DeletionRequest,
+    contests::ContestEvent,
     errors::{AdaJudgeError, Deletion, InvalidProblem},
     problems::{ProblemConfig, ProblemQuestion, ProblemQuestionRequest, PublicProblemConfig},
 };
@@ -225,6 +228,14 @@ pub async fn create_problem(
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
 
+    let problem = database::problems::get_problem(&state.db, problem_id)
+        .await
+        .map_http()?;
+    state
+        .contests_subs
+        .get(&contest.id)
+        .map(|tx| tx.send(ContestEvent::NewProblem(problem.into())));
+
     Ok(())
 }
 
@@ -357,6 +368,14 @@ pub async fn update_problem(
         .await
         .map_http()?;
 
+    let problem = database::problems::get_problem(&state.db, problem_id)
+        .await
+        .map_http()?;
+    state
+        .contests_subs
+        .get(&contest.id)
+        .map(|tx| tx.send(ContestEvent::ProblemUpdated(problem.into())));
+
     Ok(())
 }
 
@@ -410,6 +429,10 @@ pub async fn delete_problem(
                 .await
                 .map_err(|_| AdaJudgeError::Internal)
                 .map_http()?;
+            state
+                .contests_subs
+                .get(&contest.id)
+                .map(|tx| tx.send(ContestEvent::ProblemDeleted(problem_id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

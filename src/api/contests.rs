@@ -368,7 +368,7 @@ pub async fn delete_contest_post(
             .await
             .map_http()?;
         if is_allowed(auth.id, Some(post.owner_id), &auth.admin_level)
-            && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+            || is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         {
             database::contests::delete_contest_post(&state.db, post_id)
                 .await

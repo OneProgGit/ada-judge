@@ -41,6 +41,7 @@ services:
       context: .
       target: submissions-judger
     image: docker.io/oneprogboy/ada-judge-submissions-judger:latest
+    platform: linux/amd64
     group_add:
       - ${DOCKER_GID}
     deploy:
@@ -67,6 +68,7 @@ services:
       context: .
       target: main
     image: docker.io/oneprogboy/ada-judge-main:latest
+    platform: linux/amd64
     group_add:
       - ${DOCKER_GID}
     depends_on:

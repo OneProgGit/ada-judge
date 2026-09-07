@@ -379,6 +379,7 @@ pub async fn update_problem(
     Ok(())
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 pub async fn delete_problem(
     State(state): State<AppState>,
     Path(problem_id): Path<i64>,
@@ -432,7 +433,7 @@ pub async fn delete_problem(
             state
                 .contests_subs
                 .get(&contest.id)
-                .map(|tx| tx.send(ContestEvent::ProblemDeleted(problem_id)));
+                .map(|tx| tx.send(ContestEvent::ProblemDeleted(problem.index as usize)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

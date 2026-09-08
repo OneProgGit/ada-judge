@@ -574,7 +574,7 @@ pub async fn get_problems_questions(
             ProblemQuestion,
             r#"select c.id as "id!",
             row_number() over (
-                partition by c.problem_id
+                partition by problems.contest_id
                 order by c.id
             ) as "index!",
             c.owner_id as "owner_id!",

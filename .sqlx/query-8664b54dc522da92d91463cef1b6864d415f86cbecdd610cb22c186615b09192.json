@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select c.id as \"id!\",\n            row_number() over (\n                partition by c.problem_id\n                order by c.id\n            ) as \"index!\",\n            c.owner_id as \"owner_id!\",\n            users.login as \"owner_login\",\n            c.problem_id as \"problem_id!\",\n            c.title,\n            c.text,\n            c.answer,\n            c.created_at\n            from problems_questions c\n            join users on users.id = c.owner_id\n            join problems on problems.id = c.problem_id\n            where problems.contest_id = $1 order by c.id desc",
+  "query": "select c.id as \"id!\",\n            row_number() over (\n                partition by problems.contest_id\n                order by c.id\n            ) as \"index!\",\n            c.owner_id as \"owner_id!\",\n            users.login as \"owner_login\",\n            c.problem_id as \"problem_id!\",\n            c.title,\n            c.text,\n            c.answer,\n            c.created_at\n            from problems_questions c\n            join users on users.id = c.owner_id\n            join problems on problems.id = c.problem_id\n            where problems.contest_id = $1 order by c.id desc",
   "describe": {
     "columns": [
       {
@@ -115,5 +115,5 @@
       false
     ]
   },
-  "hash": "5dea1c05d2f1c1c6ca9532b43997366565f9f4e51d0e3f49197c5fa5275c73c4"
+  "hash": "8664b54dc522da92d91463cef1b6864d415f86cbecdd610cb22c186615b09192"
 }

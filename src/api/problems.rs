@@ -507,6 +507,7 @@ pub async fn answer_problem_question(
     Ok(())
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 pub async fn delete_problem_question(
     State(state): State<AppState>,
     Path(question_id): Path<i64>,
@@ -538,11 +539,19 @@ pub async fn delete_problem_question(
             state
                 .questions_subs
                 .get(&(Some(auth.id), problem.contest_id))
-                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question_id)));
+                .map(|tx| {
+                    tx.send(ContestEvent::ProblemQuestionDeleted(
+                        question.index as usize,
+                    ))
+                });
             state
                 .questions_subs
                 .get(&(None, problem.contest_id))
-                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question_id)));
+                .map(|tx| {
+                    tx.send(ContestEvent::ProblemQuestionDeleted(
+                        question.index as usize,
+                    ))
+                });
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

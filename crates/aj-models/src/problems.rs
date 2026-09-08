@@ -110,6 +110,7 @@ pub struct ProblemQuestionRequest {
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct ProblemQuestion {
     pub id: i64,
+    pub index: i64,
     pub owner_id: i64,
     pub owner_login: String,
     pub problem_id: i64,

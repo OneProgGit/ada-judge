@@ -399,6 +399,7 @@ pub async fn update_contest_post(
     Ok(())
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 pub async fn delete_contest_post(
     State(state): State<AppState>,
     Path(post_id): Path<i64>,
@@ -432,7 +433,7 @@ pub async fn delete_contest_post(
             state
                 .contests_subs
                 .get(&contest.id)
-                .map(|tx| tx.send(ContestEvent::PostDeleted(post_id)));
+                .map(|tx| tx.send(ContestEvent::PostDeleted(post.index as usize)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

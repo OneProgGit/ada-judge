@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select c.id as \"id!\",\n            c.owner_id as \"owner_id!\",\n            users.login as \"owner_login\",\n            c.problem_id as \"problem_id!\",\n            c.title,\n            c.text,\n            c.answer,\n            c.created_at\n            from problems_questions c\n            join users on users.id = c.owner_id\n            join problems on problems.id = c.problem_id\n            where problems.contest_id = $1 order by c.id desc",
+  "query": "select c.id as \"id!\",\n        row_number() over (\n            partition by c.problem_id\n            order by c.id\n        ) as \"index!\",\n        c.owner_id as \"owner_id!\",\n        users.login as \"owner_login\",\n        c.problem_id as \"problem_id!\",\n        c.title,\n        c.text,\n        c.answer,\n        c.created_at\n        from problems_questions c\n        join users on users.id = c.owner_id\n        where c.id = $1",
   "describe": {
     "columns": [
       {
@@ -16,6 +16,12 @@
       },
       {
         "ordinal": 1,
+        "name": "index!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
         "name": "owner_id!",
         "type_info": "Int8",
         "origin": {
@@ -26,7 +32,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "owner_login",
         "type_info": "Text",
         "origin": {
@@ -37,7 +43,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "problem_id!",
         "type_info": "Int8",
         "origin": {
@@ -48,7 +54,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "title",
         "type_info": "Text",
         "origin": {
@@ -59,7 +65,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "text",
         "type_info": "Text",
         "origin": {
@@ -70,7 +76,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "answer",
         "type_info": "Text",
         "origin": {
@@ -81,7 +87,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -99,6 +105,7 @@
     },
     "nullable": [
       false,
+      null,
       true,
       false,
       true,
@@ -108,5 +115,5 @@
       false
     ]
   },
-  "hash": "2488f54638f349015955a633a14867eba26268858aee673e54557718b95bd9ac"
+  "hash": "94c884a0da759edcf937d625164fa472a8a9da2fd5674fe7dfad3d1470fa575d"
 }

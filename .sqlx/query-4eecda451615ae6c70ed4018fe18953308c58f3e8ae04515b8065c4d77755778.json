@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select c.id as \"id!\",\n        c.owner_id as \"owner_id!\",\n        users.login as \"owner_login\",\n        c.contest_id as \"contest_id!\",\n        c.title_ru, c.title_en,\n        c.text_ru, c.text_en, c.created_at\n        from contests_posts c\n        join users on users.id = c.owner_id\n        where c.id = $1",
+  "query": "select c.id as \"id!\",\n        row_number() over (\n            partition by c.contest_id\n            order by c.id\n        ) as \"index!\",\n        c.owner_id as \"owner_id!\",\n        users.login as \"owner_login\",\n        c.contest_id as \"contest_id!\",\n        c.title_ru, c.title_en,\n        c.text_ru, c.text_en, c.created_at\n        from contests_posts c\n        join users on users.id = c.owner_id where c.contest_id = $1 order by c.id desc",
   "describe": {
     "columns": [
       {
@@ -16,6 +16,12 @@
       },
       {
         "ordinal": 1,
+        "name": "index!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
         "name": "owner_id!",
         "type_info": "Int8",
         "origin": {
@@ -26,7 +32,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "owner_login",
         "type_info": "Text",
         "origin": {
@@ -37,7 +43,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "contest_id!",
         "type_info": "Int8",
         "origin": {
@@ -48,7 +54,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "title_ru",
         "type_info": "Text",
         "origin": {
@@ -59,7 +65,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "title_en",
         "type_info": "Text",
         "origin": {
@@ -70,7 +76,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "text_ru",
         "type_info": "Text",
         "origin": {
@@ -81,7 +87,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "text_en",
         "type_info": "Text",
         "origin": {
@@ -92,7 +98,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -110,6 +116,7 @@
     },
     "nullable": [
       false,
+      null,
       true,
       false,
       true,
@@ -120,5 +127,5 @@
       false
     ]
   },
-  "hash": "97505b774ec452e430a40609edc2a20c476886f53f39dd4b9679e200db6a64b6"
+  "hash": "4eecda451615ae6c70ed4018fe18953308c58f3e8ae04515b8065c4d77755778"
 }

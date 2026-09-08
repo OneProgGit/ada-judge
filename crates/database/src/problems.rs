@@ -397,6 +397,10 @@ pub async fn get_problem_question(
     sqlx::query_as!(
         ProblemQuestion,
         r#"select c.id as "id!",
+        row_number() over (
+            partition by c.problem_id
+            order by c.id
+        ) as "index!",
         c.owner_id as "owner_id!",
         users.login as "owner_login",
         c.problem_id as "problem_id!",

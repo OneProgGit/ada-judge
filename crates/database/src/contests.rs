@@ -510,6 +510,10 @@ pub async fn get_contest_post(pool: &PgPool, post_id: i64) -> Result<ContestPost
     sqlx::query_as!(
         ContestPost,
         r#"select c.id as "id!",
+        row_number() over (
+            partition by c.contest_id
+            order by c.id
+        ) as "index!",
         c.owner_id as "owner_id!",
         users.login as "owner_login",
         c.contest_id as "contest_id!",
@@ -535,6 +539,10 @@ pub async fn get_contest_posts(
     let posts = sqlx::query_as!(
         ContestPost,
         r#"select c.id as "id!",
+        row_number() over (
+            partition by c.contest_id
+            order by c.id
+        ) as "index!",
         c.owner_id as "owner_id!",
         users.login as "owner_login",
         c.contest_id as "contest_id!",
@@ -563,6 +571,10 @@ pub async fn get_problems_questions(
         None => sqlx::query_as!(
             ProblemQuestion,
             r#"select c.id as "id!",
+            row_number() over (
+                partition by c.problem_id
+                order by c.id
+            ) as "index!",
             c.owner_id as "owner_id!",
             users.login as "owner_login",
             c.problem_id as "problem_id!",
@@ -585,6 +597,10 @@ pub async fn get_problems_questions(
         Some(user_id) => sqlx::query_as!(
             ProblemQuestion,
             r#"select c.id as "id!",
+            row_number() over (
+                partition by c.problem_id
+                order by c.id
+            ) as "index!",
             c.owner_id as "owner_id!",
             users.login as "owner_login",
             c.problem_id as "problem_id!",

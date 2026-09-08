@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select c.id as \"id!\",\n            row_number() over (\n                partition by problems.contest_id\n                order by c.id\n            ) as \"index!\",\n            c.owner_id as \"owner_id!\",\n            users.login as \"owner_login\",\n            c.problem_id as \"problem_id!\",\n            c.title,\n            c.text,\n            c.answer,\n            c.created_at\n            from problems_questions c\n            join users on users.id = c.owner_id\n            join problems on problems.id = c.problem_id\n            where problems.contest_id = $1 order by c.id desc",
+  "query": "select * from (\n            select c.id as \"id!\",\n            row_number() over (\n                partition by c.contest_id\n                order by c.id\n            ) - 1 as \"index!\",\n            c.owner_id as \"owner_id!\",\n            users.login as \"owner_login\",\n            c.contest_id as \"contest_id!\",\n            c.title_ru, c.title_en,\n            c.text_ru, c.text_en, c.created_at\n            from contests_posts c\n            join users on users.id = c.owner_id\n        ) q\n        where q.\"id!\" = $1",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "problems_questions",
+            "table": "contests_posts",
             "name": "id"
           }
         }
@@ -26,7 +26,7 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "problems_questions",
+            "table": "contests_posts",
             "name": "owner_id"
           }
         }
@@ -44,55 +44,66 @@
       },
       {
         "ordinal": 4,
-        "name": "problem_id!",
+        "name": "contest_id!",
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "problems_questions",
-            "name": "problem_id"
+            "table": "contests_posts",
+            "name": "contest_id"
           }
         }
       },
       {
         "ordinal": 5,
-        "name": "title",
+        "name": "title_ru",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "problems_questions",
-            "name": "title"
+            "table": "contests_posts",
+            "name": "title_ru"
           }
         }
       },
       {
         "ordinal": 6,
-        "name": "text",
+        "name": "title_en",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "problems_questions",
-            "name": "text"
+            "table": "contests_posts",
+            "name": "title_en"
           }
         }
       },
       {
         "ordinal": 7,
-        "name": "answer",
+        "name": "text_ru",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "problems_questions",
-            "name": "answer"
+            "table": "contests_posts",
+            "name": "text_ru"
           }
         }
       },
       {
         "ordinal": 8,
+        "name": "text_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contests_posts",
+            "name": "text_en"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "problems_questions",
+            "table": "contests_posts",
             "name": "created_at"
           }
         }
@@ -112,8 +123,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "8664b54dc522da92d91463cef1b6864d415f86cbecdd610cb22c186615b09192"
+  "hash": "5d07ce685249dd260b3aae5d7496f9be4e848a722f362c12d8463c4ce27c5c84"
 }

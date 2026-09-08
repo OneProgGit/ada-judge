@@ -399,9 +399,9 @@ pub async fn get_problem_question(
         r#"select * from (
             select c.id as "id!",
                 row_number() over (
-                    partition by c.problem_id
+                    partition by problems.contest_id
                     order by c.id
-                ) as "index!",
+                ) - 1 as "index!",
                 c.owner_id as "owner_id!",
                 users.login as "owner_login",
                 c.problem_id as "problem_id!",
@@ -410,6 +410,7 @@ pub async fn get_problem_question(
                 c.answer,
                 c.created_at
                 from problems_questions c
+                join problems on problems.id = c.problem_id
                 join users on users.id = c.owner_id
         ) q
         where q."id!" = $1"#,

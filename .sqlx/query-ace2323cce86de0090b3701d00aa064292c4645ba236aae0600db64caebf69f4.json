@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select c.id as \"id!\",\n        c.owner_id as \"owner_id!\",\n        users.login as \"owner_login\",\n        c.contest_id as \"contest_id!\",\n        c.title_ru, c.title_en,\n        c.text_ru, c.text_en, c.created_at\n        from contests_posts c\n        join users on users.id = c.owner_id\n        where c.id = $1",
+  "query": "select * from (\n            select c.id as \"id!\",\n                row_number() over (\n                    partition by problems.contest_id\n                    order by c.id\n                ) - 1 as \"index!\",\n                c.owner_id as \"owner_id!\",\n                users.login as \"owner_login\",\n                c.problem_id as \"problem_id!\",\n                c.title,\n                c.text,\n                c.answer,\n                c.created_at\n                from problems_questions c\n                join problems on problems.id = c.problem_id\n                join users on users.id = c.owner_id\n        ) q\n        where q.\"id!\" = $1",
   "describe": {
     "columns": [
       {
@@ -9,24 +9,30 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "contests_posts",
+            "table": "problems_questions",
             "name": "id"
           }
         }
       },
       {
         "ordinal": 1,
+        "name": "index!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
         "name": "owner_id!",
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "contests_posts",
+            "table": "problems_questions",
             "name": "owner_id"
           }
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "owner_login",
         "type_info": "Text",
         "origin": {
@@ -37,57 +43,46 @@
         }
       },
       {
-        "ordinal": 3,
-        "name": "contest_id!",
+        "ordinal": 4,
+        "name": "problem_id!",
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "contests_posts",
-            "name": "contest_id"
-          }
-        }
-      },
-      {
-        "ordinal": 4,
-        "name": "title_ru",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "contests_posts",
-            "name": "title_ru"
+            "table": "problems_questions",
+            "name": "problem_id"
           }
         }
       },
       {
         "ordinal": 5,
-        "name": "title_en",
+        "name": "title",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "contests_posts",
-            "name": "title_en"
+            "table": "problems_questions",
+            "name": "title"
           }
         }
       },
       {
         "ordinal": 6,
-        "name": "text_ru",
+        "name": "text",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "contests_posts",
-            "name": "text_ru"
+            "table": "problems_questions",
+            "name": "text"
           }
         }
       },
       {
         "ordinal": 7,
-        "name": "text_en",
+        "name": "answer",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "contests_posts",
-            "name": "text_en"
+            "table": "problems_questions",
+            "name": "answer"
           }
         }
       },
@@ -97,7 +92,7 @@
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "contests_posts",
+            "table": "problems_questions",
             "name": "created_at"
           }
         }
@@ -110,15 +105,15 @@
     },
     "nullable": [
       false,
+      null,
       true,
       false,
       true,
-      false,
       false,
       false,
       false,
       false
     ]
   },
-  "hash": "97505b774ec452e430a40609edc2a20c476886f53f39dd4b9679e200db6a64b6"
+  "hash": "ace2323cce86de0090b3701d00aa064292c4645ba236aae0600db64caebf69f4"
 }

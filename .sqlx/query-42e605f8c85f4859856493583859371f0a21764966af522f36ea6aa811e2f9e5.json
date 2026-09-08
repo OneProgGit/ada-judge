@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select c.id as \"id!\",\n        row_number() over (\n            partition by c.contest_id\n            order by c.id\n        ) as \"index!\",\n        c.owner_id as \"owner_id!\",\n        users.login as \"owner_login\",\n        c.contest_id as \"contest_id!\",\n        c.title_ru, c.title_en,\n        c.text_ru, c.text_en, c.created_at\n        from contests_posts c\n        join users on users.id = c.owner_id where c.contest_id = $1 order by c.id desc",
+  "query": "select c.id as \"id!\",\n        row_number() over (\n            partition by c.contest_id\n            order by c.id\n        ) - 1 as \"index!\",\n        c.owner_id as \"owner_id!\",\n        users.login as \"owner_login\",\n        c.contest_id as \"contest_id!\",\n        c.title_ru, c.title_en,\n        c.text_ru, c.text_en, c.created_at\n        from contests_posts c\n        join users on users.id = c.owner_id where c.contest_id = $1 order by c.id desc",
   "describe": {
     "columns": [
       {
@@ -127,5 +127,5 @@
       false
     ]
   },
-  "hash": "4eecda451615ae6c70ed4018fe18953308c58f3e8ae04515b8065c4d77755778"
+  "hash": "42e605f8c85f4859856493583859371f0a21764966af522f36ea6aa811e2f9e5"
 }

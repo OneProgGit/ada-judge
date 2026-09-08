@@ -396,21 +396,23 @@ pub async fn get_problem_question(
 ) -> Result<ProblemQuestion, AdaJudgeError> {
     sqlx::query_as!(
         ProblemQuestion,
-        r#"select c.id as "id!",
-        row_number() over (
-            partition by c.problem_id
-            order by c.id
-        ) as "index!",
-        c.owner_id as "owner_id!",
-        users.login as "owner_login",
-        c.problem_id as "problem_id!",
-        c.title,
-        c.text,
-        c.answer,
-        c.created_at
-        from problems_questions c
-        join users on users.id = c.owner_id
-        where c.id = $1"#,
+        r#"select * from (
+            select c.id as "id!",
+                row_number() over (
+                    partition by c.problem_id
+                    order by c.id
+                ) as "index!",
+                c.owner_id as "owner_id!",
+                users.login as "owner_login",
+                c.problem_id as "problem_id!",
+                c.title,
+                c.text,
+                c.answer,
+                c.created_at
+                from problems_questions c
+                join users on users.id = c.owner_id
+        ) q
+        where q."id!" = $1"#,
         question_id
     )
     .fetch_one(pool)

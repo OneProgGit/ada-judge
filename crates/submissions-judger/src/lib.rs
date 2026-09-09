@@ -408,6 +408,7 @@ pub async fn test_submission(
                 .map_db(&pool, submission_id, Some((subgroup_index, test)))
                 .await
                 .map_err(|_| TestingVerdict::Fail)?;
+            return Err(TestingVerdict::Fail.into());
         }
 
         total_score += subgroup_result.score;

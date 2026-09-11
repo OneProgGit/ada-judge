@@ -31,7 +31,7 @@ impl<T: Send> MapDbExt<T> for Result<T, TestingVerdict> {
                     &SubgroupResult {
                         verdict: Verdict::Fail,
                         test,
-                        score: 0.,
+                        score: None,
                     },
                 )
                 .await
@@ -73,7 +73,7 @@ impl<T: Send> MapDbExt<T> for Result<T, AdaJudgeError> {
                     &SubgroupResult {
                         verdict: Verdict::Fail,
                         test,
-                        score: 0.,
+                        score: None,
                     },
                 )
                 .await

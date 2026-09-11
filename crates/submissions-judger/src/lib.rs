@@ -301,9 +301,9 @@ async fn test_subgroup(
     }
     if ok && subgroup.r#type != SubgroupType::Sample {
         if per_test_scoring {
-            subgroup_result.score = score;
+            subgroup_result.score = Some(score);
         } else {
-            subgroup_result.score = subgroup.score.ok_or((TestingVerdict::Fail, 0))?;
+            subgroup_result.score = Some(subgroup.score.ok_or((TestingVerdict::Fail, 0))?);
         }
     }
 
@@ -359,7 +359,7 @@ pub async fn test_submission(
         let mut subgroup_result = SubgroupResult {
             verdict: Verdict::Testing,
             test: 0,
-            score: 0.,
+            score: None,
         };
         database::submissions::create_subgroup_result(&pool, submission_id, subgroup_index)
             .await
@@ -410,7 +410,7 @@ pub async fn test_submission(
                 .map_err(|_| TestingVerdict::Fail)?;
         }
 
-        total_score += subgroup_result.score;
+        total_score += subgroup_result.score.unwrap_or(0.);
         subgroups_results.push(subgroup_result.clone());
 
         database::submissions::update_subgroup_result(

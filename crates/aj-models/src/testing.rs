@@ -51,7 +51,7 @@ pub struct TestingResult {
 pub struct SubgroupResult {
     pub verdict: Verdict,
     pub test: i32,
-    pub score: f64,
+    pub score: Option<f64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

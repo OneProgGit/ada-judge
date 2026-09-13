@@ -7,8 +7,6 @@ use aj_models::DeletionRequest;
 use aj_models::errors::{AdaJudgeError, AuthError, Deletion};
 use aj_models::users::{AdminLevel, LoginRequest, RegisterRequest};
 use axum::{Json, extract::State};
-use axum_extra::extract::CookieJar;
-use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::{Duration, Utc};
 use models::users::JwtClaims;
 use std::env;
@@ -64,45 +62,6 @@ pub async fn login(
         .map_http()?;
 
     Ok(Json(create_jwt(&claims, &secret).map_http()?))
-}
-
-#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-pub async fn login_cookie(
-    State(state): State<AppState>,
-    Json(user): Json<LoginRequest>,
-) -> Result<CookieJar, ApiError> {
-    let expected_user = database::users::get_user_by_login(&state.db, &user.login)
-        .await
-        .map_http()?;
-    let is_valid_password =
-        verify_password(&expected_user.password_hash, &user.password).map_http()?;
-
-    if !is_valid_password {
-        return Err(AdaJudgeError::Auth(AuthError::InvalidLoginOrPassword)).map_http()?;
-    }
-    let jwt_exp_hours = env::var("JWT_EXP_HOURS");
-
-    let jwt_exp_hours = match jwt_exp_hours {
-        Ok(s) => s.parse().map_err(|_| AdaJudgeError::Internal).map_http()?,
-        Err(_) => 24,
-    };
-    let claims = JwtClaims {
-        id: expected_user.id,
-        exp: (Utc::now() + Duration::hours(jwt_exp_hours)).timestamp() as usize,
-    };
-    let secret = env::var("JWT_SECRET")
-        .map_err(|_| AdaJudgeError::Internal)
-        .map_http()?;
-    let token = create_jwt(&claims, &secret).map_http()?;
-
-    let cookie = Cookie::build(("token", token))
-        .http_only(true)
-        .secure(true)
-        .same_site(SameSite::Lax)
-        .path("/")
-        .build();
-
-    Ok(CookieJar::new().add(cookie))
 }
 
 pub async fn delete_my_account(

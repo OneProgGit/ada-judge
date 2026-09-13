@@ -62,7 +62,7 @@ pub async fn create_subgroup_result(
             submission_id,
             Verdict::Testing as Verdict,
             0,
-            0.,
+            None::<f64>,
         )
         .execute(pool)
         .await

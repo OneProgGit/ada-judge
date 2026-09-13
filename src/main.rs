@@ -6,7 +6,7 @@
 
 use crate::{
     api::{
-        auth::{delete_my_account, login, register},
+        auth::{delete_my_account, login, login_cookie, register},
         contests::{
             contest_ws, create_contest, create_contest_post, delete_contest, delete_contest_post,
             get_all_contest_problems_questions, get_contest_by_id, get_contest_leaderboard,
@@ -214,6 +214,7 @@ async fn main() {
     let default_routes = Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .route("/login/cookie", post(login_cookie))
         .route(
             "/problems/{problem_id}/submissions/my",
             get(get_my_problem_submissions),

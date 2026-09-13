@@ -5,6 +5,7 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
 };
+use axum_extra::extract::{CookieJar, cookie::Cookie};
 use models::users::DatabaseUser;
 use std::env;
 use tools::map::MapHttpExt;
@@ -21,11 +22,14 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = AppState::from_ref(state);
 
+        let jar = CookieJar::from_headers(&parts.headers);
+
         let token = parts
             .headers
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.strip_prefix("Bearer "))
+            .or_else(|| jar.get("token").map(Cookie::value))
             .ok_or(AdaJudgeError::InvalidJwt)
             .map_http()?;
 

@@ -53,3 +53,5 @@ DOCKER_GID=$(stat -c '%g' /var/run/docker.sock) docker compose up -d
 ```
 
 Now, you can start using `ada-judge`!
+
+There's also more detailed [documentation](https://aj-book.oneprog.org) available only in Russian.

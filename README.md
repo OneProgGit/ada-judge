@@ -47,9 +47,8 @@ WORKERS_COUNT=
 DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB}
 ```
 After that, create `submissions_envs` directory.
-Build and run `ada-judge` with `docker compose`:
+Run `ada-judge` with `docker compose`:
 ```bash
-docker compose build
 DOCKER_GID=$(stat -c '%g' /var/run/docker.sock) docker compose up -d
 ```
 

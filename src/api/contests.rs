@@ -28,6 +28,7 @@ use chrono::Utc;
 use database::contests::GetContestsMode;
 use futures_util::{SinkExt, StreamExt};
 use tokio::{fs, sync::broadcast};
+use tokio_util::sync::CancellationToken;
 use tools::map::MapHttpExt;
 
 pub async fn contest_ws(
@@ -62,12 +63,13 @@ async fn handle_contest_socket(
     user_id: Option<i64>,
 ) {
     let (mut ws_tx, mut ws_rx) = socket.split();
+    let cancel = CancellationToken::new();
     let contest_tx = state
         .contests_subs
         .entry(contest_id)
-        .or_insert_with(|| broadcast::channel(256).0)
+        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
         .clone();
-    let mut contest_rx = contest_tx.subscribe();
+    let mut contest_rx = contest_tx.0.subscribe();
     let questions_tx = state
         .questions_subs
         .entry((user_id, contest_id))
@@ -78,6 +80,7 @@ async fn handle_contest_socket(
     let mut send_task = tokio::spawn(async move {
         loop {
             let event = tokio::select! {
+                () = cancel.cancelled() => break,
                 Ok(e) = contest_rx.recv() => e,
                 Ok(e) = questions_rx.recv() => e,
                 else => break,
@@ -102,7 +105,7 @@ async fn handle_contest_socket(
         _ = &mut recv_task => send_task.abort(),
     }
 
-    if contest_tx.receiver_count() == 0 {
+    if contest_tx.0.receiver_count() == 0 {
         state.contests_subs.remove(&contest_id);
     }
     if questions_tx.receiver_count() == 0 {
@@ -273,7 +276,8 @@ pub async fn update_contest(
         state
             .contests_subs
             .get(&contest_id)
-            .map(|tx| tx.send(ContestEvent::ContestUpdated(contest)));
+            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest)));
+        state.contests_subs.get(&contest_id).map(|tx| tx.1.cancel());
 
         Ok(())
     }
@@ -333,7 +337,8 @@ pub async fn delete_contest(
             state
                 .contests_subs
                 .get(&contest_id)
-                .map(|tx| tx.send(ContestEvent::ContestDeleted));
+                .map(|tx| tx.0.send(ContestEvent::ContestDeleted));
+            state.contests_subs.get(&contest_id).map(|tx| tx.1.cancel());
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -364,7 +369,7 @@ pub async fn create_contest_post(
     state
         .contests_subs
         .get(&contest_id)
-        .map(|tx| tx.send(ContestEvent::NewPost(post)));
+        .map(|tx| tx.0.send(ContestEvent::NewPost(post)));
     Ok(())
 }
 
@@ -394,7 +399,7 @@ pub async fn update_contest_post(
     state
         .contests_subs
         .get(&contest.id)
-        .map(|tx| tx.send(ContestEvent::PostUpdated(post)));
+        .map(|tx| tx.0.send(ContestEvent::PostUpdated(post)));
 
     Ok(())
 }
@@ -433,7 +438,7 @@ pub async fn delete_contest_post(
             state
                 .contests_subs
                 .get(&contest.id)
-                .map(|tx| tx.send(ContestEvent::PostDeleted(post.index as usize)));
+                .map(|tx| tx.0.send(ContestEvent::PostDeleted(post.index as usize)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

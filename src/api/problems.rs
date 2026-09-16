@@ -234,7 +234,7 @@ pub async fn create_problem(
     state
         .contests_subs
         .get(&contest.id)
-        .map(|tx| tx.send(ContestEvent::NewProblem(problem.into())));
+        .map(|tx| tx.0.send(ContestEvent::NewProblem(problem.into())));
 
     Ok(())
 }
@@ -374,7 +374,7 @@ pub async fn update_problem(
     state
         .contests_subs
         .get(&contest.id)
-        .map(|tx| tx.send(ContestEvent::ProblemUpdated(problem.into())));
+        .map(|tx| tx.0.send(ContestEvent::ProblemUpdated(problem.into())));
 
     Ok(())
 }
@@ -430,10 +430,9 @@ pub async fn delete_problem(
                 .await
                 .map_err(|_| AdaJudgeError::Internal)
                 .map_http()?;
-            state
-                .contests_subs
-                .get(&contest.id)
-                .map(|tx| tx.send(ContestEvent::ProblemDeleted(problem.index as usize)));
+            state.contests_subs.get(&contest.id).map(|tx| {
+                tx.0.send(ContestEvent::ProblemDeleted(problem.index as usize))
+            });
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

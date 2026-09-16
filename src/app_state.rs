@@ -5,8 +5,9 @@ use models::testing::SubmissionTask;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::sync::{Mutex, broadcast};
+use tokio_util::sync::CancellationToken;
 
-type ContestsSubsType = DashMap<i64, broadcast::Sender<ContestEvent>>;
+type ContestsSubsType = DashMap<i64, (broadcast::Sender<ContestEvent>, CancellationToken)>;
 type QuestionsSubsType = DashMap<(Option<i64>, i64), broadcast::Sender<ContestEvent>>;
 
 #[derive(Clone)]

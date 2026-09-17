@@ -45,7 +45,7 @@ async fn main() {
         .backend(backend)
         .data(pg_pool)
         .retry(RetryPolicy::retries(0))
-        .concurrency(20)
+        .concurrency(5)
         .build(test_submission);
 
     worker.run().await.expect("worker failed");

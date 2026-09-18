@@ -496,7 +496,7 @@ pub async fn answer_problem_question(
         .map_http()?;
     state
         .questions_subs
-        .get(&(Some(auth.id), contest.id))
+        .get(&(Some(question.owner_id), contest.id))
         .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question.clone())));
     state
         .questions_subs

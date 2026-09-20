@@ -19,6 +19,7 @@ chrono.workspace = true
 aj-models.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+apalis-core.workspace = true
 argon2 = { version = "0.6.0" }
 jsonwebtoken = { version = "11.1.0", features = ["aws_lc_rs"] }
 tower-http = { version = "0.7.1", features = ["cors", "trace"] }
@@ -50,8 +51,9 @@ database = { path = "crates/database" }
 axum = { version = "0.8.9", features = ["json", "multipart", "ws"] }
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "process", "macros"] }
 sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "chrono", "macros"] }
-apalis-redis = "0.7.4"
-apalis = "0.7.4"
+apalis-redis = "=1.0.0-rc.8"
+apalis = "=1.0.0-rc.9"
+apalis-core = "=1.0.0-rc.9"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 chrono = { version = "0.4.45", features = ["serde"] }

@@ -3,7 +3,7 @@ use crate::tools::{is_allowed, is_contest_active};
 use crate::{app_state::AppState, middleware::auth::Auth};
 use aj_models::errors::AdaJudgeError;
 use aj_models::testing::{Submission, SubmissonRequest};
-use apalis::prelude::TaskSink;
+use apalis::prelude::Storage;
 use axum::body::Body;
 use axum::http::header;
 use axum::response::IntoResponse;

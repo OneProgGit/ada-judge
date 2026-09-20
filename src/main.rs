@@ -43,6 +43,7 @@ use axum::{
     http::{Method, header},
     routing::{delete, get, patch, post},
 };
+use axum_governor::{GovernorConfigBuilder, GovernorLayer, PeerIp, Quota, nz};
 use dashmap::DashMap;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, sync::Arc};
@@ -252,6 +253,13 @@ async fn main() {
         )
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
 
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(32u32)))
+        .finish()
+        .expect("faild to build governor config");
+
     let app = Router::new()
         .merge(default_routes)
         .merge(contest_started_routes_1)
@@ -263,6 +271,7 @@ async fn main() {
         .layer(Extension(Auth))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .layer(GovernorLayer::new(governor_config))
         .with_state(state);
 
     let listener = TcpListener::bind("0.0.0.0:4444")

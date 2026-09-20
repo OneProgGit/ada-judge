@@ -3,7 +3,10 @@
 use std::path::PathBuf;
 
 use crate::{
-    api::ApiError, app_state::AppState, crypt::verify_password, middleware::auth::Auth,
+    api::ApiError,
+    app_state::AppState,
+    crypt::verify_password,
+    middleware::{auth::Auth, contests::ensure_contest_started_common},
     tools::is_allowed,
 };
 use aj_models::{
@@ -277,7 +280,9 @@ pub async fn update_contest(
             .contests_subs
             .get(&contest_id)
             .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest)));
-        state.contests_subs.get(&contest_id).map(|tx| tx.1.cancel());
+        if let Some(tx) = state.contests_subs.get(&contest_id) {
+            tx.1.cancel();
+        }
 
         Ok(())
     }
@@ -338,7 +343,9 @@ pub async fn delete_contest(
                 .contests_subs
                 .get(&contest_id)
                 .map(|tx| tx.0.send(ContestEvent::ContestDeleted));
-            state.contests_subs.get(&contest_id).map(|tx| tx.1.cancel());
+            if let Some(tx) = state.contests_subs.get(&contest_id) {
+                tx.1.cancel();
+            }
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -357,7 +364,9 @@ pub async fn create_contest_post(
     let contest = database::contests::get_contest(&state.db, contest_id)
         .await
         .map_http()?;
-    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+    if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        && contest.co_authors.binary_search(&auth.id).is_err()
+    {
         return Err(AdaJudgeError::Forbidden).map_http()?;
     }
     let id = database::contests::create_contest_post(&state.db, auth.id, contest_id, &request)
@@ -450,8 +459,20 @@ pub async fn delete_contest_post(
 
 pub async fn get_contest_post_by_id(
     State(state): State<AppState>,
+    Auth(auth): Auth,
     Path(post_id): Path<i64>,
 ) -> Result<Json<ContestPost>, ApiError> {
+    let post = database::contests::get_contest_post(&state.db, post_id)
+        .await
+        .map_http()?;
+
+    if ensure_contest_started_common(&state.db, auth.id, post.contest_id, auth.admin_level)
+        .await
+        .is_err()
+    {
+        return Err(AdaJudgeError::Forbidden).map_http()?;
+    }
+
     Ok(Json(
         database::contests::get_contest_post(&state.db, post_id)
             .await
@@ -464,11 +485,10 @@ pub async fn get_contest_posts(
     Auth(auth): Auth,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<Vec<ContestPost>>, ApiError> {
-    let contest = database::contests::get_contest(&state.db, contest_id)
+    if ensure_contest_started_common(&state.db, auth.id, contest_id, auth.admin_level)
         .await
-        .map_http()?;
-
-    if contest.hidden && !is_allowed(auth.id, contest.owner_id, &auth.admin_level) {
+        .is_err()
+    {
         return Err(AdaJudgeError::Forbidden).map_http()?;
     }
 
@@ -505,6 +525,13 @@ pub async fn get_my_contest_problems_questions(
     Auth(auth): Auth,
     Path(contest_id): Path<i64>,
 ) -> Result<Json<Vec<ProblemQuestion>>, ApiError> {
+    if ensure_contest_started_common(&state.db, auth.id, contest_id, auth.admin_level)
+        .await
+        .is_err()
+    {
+        return Err(AdaJudgeError::Forbidden).map_http()?;
+    }
+
     Ok(Json(
         database::contests::get_problems_questions(&state.db, Some(auth.id), contest_id)
             .await

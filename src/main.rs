@@ -46,7 +46,7 @@ use axum::{
 use axum_governor::{GovernorConfigBuilder, GovernorLayer, PeerIp, Quota, nz};
 use dashmap::DashMap;
 use sqlx::postgres::PgPoolOptions;
-use std::{env, sync::Arc};
+use std::{env, net::SocketAddr, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -278,7 +278,10 @@ async fn main() {
         .await
         .expect("failed to bind TCP listener");
 
-    axum::serve(listener, app)
-        .await
-        .expect("failed to serve application");
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .expect("failed to serve application");
 }

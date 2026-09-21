@@ -256,7 +256,7 @@ async fn main() {
     let governor_config = GovernorConfigBuilder::default()
         .with_extractor(PeerIp::default())
         .expect_connect_info()
-        .quota_default(Quota::requests_per_minute(nz!(32u32)))
+        .quota_default(Quota::requests_per_minute(nz!(60u32)))
         .finish()
         .expect("faild to build governor config");
 

@@ -99,13 +99,13 @@ async fn handle_contest_socket(
     user_id: Option<i64>,
 ) {
     let (mut ws_tx, mut ws_rx) = socket.split();
-    let cancel = CancellationToken::new();
-    let contest_tx = state
+    let entry = state
         .contests_subs
         .entry((ContestsSubScope::Contest(contest_id), None))
-        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
-        .clone();
-    let mut contest_rx = contest_tx.0.subscribe();
+        .or_insert_with(|| (broadcast::channel(256).0, CancellationToken::new()));
+    let (contest_tx, cancel) = (entry.value().0.clone(), entry.value().1.clone());
+    drop(entry);
+    let mut contest_rx = contest_tx.subscribe();
     let questions_tx = state
         .questions_subs
         .entry((user_id, contest_id))
@@ -117,8 +117,14 @@ async fn handle_contest_socket(
         loop {
             let event = tokio::select! {
                 () = cancel.cancelled() => break,
-                Ok(e) = contest_rx.recv() => e,
-                Ok(e) = questions_rx.recv() => e,
+                res = contest_rx.recv() => match res {
+                    Ok(e) => e,
+                    Err(_) => break,
+                },
+                res = questions_rx.recv() => match res {
+                    Ok(e) => e,
+                    Err(_) => break,
+                },
                 else => break,
             };
             let json = serde_json::to_string(&event).expect("serde failed");
@@ -141,7 +147,7 @@ async fn handle_contest_socket(
         _ = &mut recv_task => send_task.abort(),
     }
 
-    if contest_tx.0.receiver_count() == 0 {
+    if contest_tx.receiver_count() == 0 {
         state
             .contests_subs
             .remove(&(ContestsSubScope::Contest(contest_id), None));
@@ -153,26 +159,34 @@ async fn handle_contest_socket(
 
 async fn handle_not_hidden_contests_socket(socket: WebSocket, state: AppState, user_id: i64) {
     let (mut ws_tx, mut ws_rx) = socket.split();
-    let cancel = CancellationToken::new();
-    let contests_none_tx = state
+    let entry = state
         .contests_subs
         .entry((ContestsSubScope::NotHidden, None))
-        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
-        .clone();
-    let mut contests_none_rx = contests_none_tx.0.subscribe();
-    let contests_user_tx = state
+        .or_insert_with(|| (broadcast::channel(256).0, CancellationToken::new()));
+    let (contests_none_tx, cancel_none) = (entry.value().0.clone(), entry.value().1.clone());
+    drop(entry);
+    let mut contests_none_rx = contests_none_tx.subscribe();
+    let entry = state
         .contests_subs
         .entry((ContestsSubScope::NotHidden, Some(user_id)))
-        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
-        .clone();
-    let mut contests_user_rx = contests_user_tx.0.subscribe();
+        .or_insert_with(|| (broadcast::channel(256).0, CancellationToken::new()));
+    let (contests_user_tx, cancel_user) = (entry.value().0.clone(), entry.value().1.clone());
+    drop(entry);
+    let mut contests_user_rx = contests_user_tx.subscribe();
 
     let mut send_task = tokio::spawn(async move {
         loop {
             let event = tokio::select! {
-                () = cancel.cancelled() => break,
-                Ok(e) = contests_none_rx.recv() => e,
-                Ok(e) = contests_user_rx.recv() => e,
+                () = cancel_none.cancelled() => break,
+                () = cancel_user.cancelled() => break,
+                res = contests_none_rx.recv() => match res {
+                    Ok(e) => e,
+                    Err(_) => break,
+                },
+                res = contests_user_rx.recv() => match res {
+                    Ok(e) => e,
+                    Err(_) => break,
+                },
                 else => break,
             };
             let json = serde_json::to_string(&event).expect("serde failed");
@@ -195,12 +209,12 @@ async fn handle_not_hidden_contests_socket(socket: WebSocket, state: AppState, u
         _ = &mut recv_task => send_task.abort(),
     }
 
-    if contests_none_tx.0.receiver_count() == 0 {
+    if contests_none_tx.receiver_count() == 0 {
         state
             .contests_subs
             .remove(&(ContestsSubScope::NotHidden, None));
     }
-    if contests_user_tx.0.receiver_count() == 0 {
+    if contests_user_tx.receiver_count() == 0 {
         state
             .contests_subs
             .remove(&(ContestsSubScope::NotHidden, Some(user_id)));
@@ -215,18 +229,22 @@ async fn handle_contests_socket(
 ) {
     let (mut ws_tx, mut ws_rx) = socket.split();
     let cancel = CancellationToken::new();
-    let contests_tx = state
+    let entry = state
         .contests_subs
         .entry((scope.clone(), user_id))
-        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
-        .clone();
-    let mut contests_rx = contests_tx.0.subscribe();
+        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()));
+    let (contests_tx, cancel) = (entry.value().0.clone(), entry.value().1.clone());
+    drop(entry);
+    let mut contests_rx = contests_tx.subscribe();
 
     let mut send_task = tokio::spawn(async move {
         loop {
             let event = tokio::select! {
                 () = cancel.cancelled() => break,
-                Ok(e) = contests_rx.recv() => e,
+                res = contests_rx.recv() => match res {
+                    Ok(e) => e,
+                    Err(_) => break,
+                },
                 else => break,
             };
             let json = serde_json::to_string(&event).expect("serde failed");
@@ -249,7 +267,7 @@ async fn handle_contests_socket(
         _ = &mut recv_task => send_task.abort(),
     }
 
-    if contests_tx.0.receiver_count() == 0 {
+    if contests_tx.receiver_count() == 0 {
         state.contests_subs.remove(&(scope, user_id));
     }
 }
@@ -610,26 +628,10 @@ pub async fn delete_contest(
                 .map(|tx| tx.1.cancel());
             state
                 .contests_subs
-                .get(&(ContestsSubScope::All, None))
-                .map(|tx| tx.1.cancel());
+                .remove(&(ContestsSubScope::Contest(contest_id), None));
             state
-                .contests_subs
-                .get(&(ContestsSubScope::User, Some(auth.id)))
-                .map(|tx| tx.1.cancel());
-            state
-                .contests_subs
-                .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
-                .map(|tx| tx.1.cancel());
-            for co_author in contest.co_authors {
-                state
-                    .contests_subs
-                    .get(&(ContestsSubScope::User, Some(co_author)))
-                    .map(|tx| tx.1.cancel());
-                state
-                    .contests_subs
-                    .get(&(ContestsSubScope::NotHidden, Some(co_author)))
-                    .map(|tx| tx.1.cancel());
-            }
+                .questions_subs
+                .retain(|(_, cid), _| *cid != contest_id);
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

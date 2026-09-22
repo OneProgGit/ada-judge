@@ -61,7 +61,8 @@ async fn handle_contests_socket(socket: WebSocket, state: AppState, contest_id: 
     let contests_tx = state
         .contests_subs
         .entry(contest_id)
-        .or_insert_with(|| broadcast::channel(256).0);
+        .or_insert_with(|| broadcast::channel(256).0)
+        .clone();
     let mut contests_rx = contests_tx.subscribe();
 
     let mut send_task = tokio::spawn(async move {
@@ -92,7 +93,6 @@ async fn handle_contests_socket(socket: WebSocket, state: AppState, contest_id: 
         _ = &mut send_task => recv_task.abort(),
         _ = &mut recv_task => send_task.abort(),
     }
-
     if contests_tx.receiver_count() == 0 {
         state.contests_subs.remove(&contest_id);
     }

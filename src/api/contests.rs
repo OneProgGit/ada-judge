@@ -32,22 +32,12 @@ use chrono::Utc;
 use database::contests::GetContestsScope;
 use futures_util::{SinkExt, StreamExt};
 use tokio::{fs, sync::broadcast};
-use tokio_util::sync::CancellationToken;
 use tools::map::MapHttpExt;
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum ContestsSubScope {
-    User,
-    NotHidden,
-    All,
-    Contest(i64),
-}
 
 pub async fn contest_ws(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,
-    Auth(auth): Auth,
 ) -> Result<Response, ApiError> {
     Ok(ws.on_upgrade(move |socket| handle_contests_socket(socket, state, Some(contest_id))))
 }
@@ -55,7 +45,6 @@ pub async fn contest_ws(
 pub async fn my_contests_ws(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
-    Auth(auth): Auth,
 ) -> Result<Response, ApiError> {
     Ok(ws.on_upgrade(move |socket| handle_contests_socket(socket, state, None)))
 }
@@ -63,26 +52,21 @@ pub async fn my_contests_ws(
 pub async fn contests_ws(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
-    Auth(auth): Auth,
 ) -> Result<Response, ApiError> {
     Ok(ws.on_upgrade(move |socket| handle_contests_socket(socket, state, None)))
 }
 
 async fn handle_contests_socket(socket: WebSocket, state: AppState, contest_id: Option<i64>) {
     let (mut ws_tx, mut ws_rx) = socket.split();
-    let cancel = CancellationToken::new();
-    let entry = state
+    let contests_tx = state
         .contests_subs
         .entry(contest_id)
-        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()));
-    let (contests_tx, cancel) = (entry.value().0.clone(), entry.value().1.clone());
-    drop(entry);
+        .or_insert_with(|| broadcast::channel(256).0);
     let mut contests_rx = contests_tx.subscribe();
 
     let mut send_task = tokio::spawn(async move {
         loop {
             let event = tokio::select! {
-                () = cancel.cancelled() => break,
                 res = contests_rx.recv() => match res {
                     Ok(e) => e,
                     Err(_) => break,
@@ -247,7 +231,7 @@ pub async fn create_contest(
         state
             .contests_subs
             .get(&None)
-            .map(|tx| tx.0.send(ContestEvent::NewContest(id)));
+            .map(|tx| tx.send(ContestEvent::NewContest(id)));
         Ok(())
     }
 }
@@ -278,11 +262,11 @@ pub async fn update_contest(
         state
             .contests_subs
             .get(&None)
-            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest_id)));
+            .map(|tx| tx.send(ContestEvent::ContestUpdated(contest_id)));
         state
             .contests_subs
             .get(&Some(contest_id))
-            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest_id)));
+            .map(|tx| tx.send(ContestEvent::ContestUpdated(contest_id)));
         Ok(())
     }
 }
@@ -342,9 +326,8 @@ pub async fn delete_contest(
             state
                 .contests_subs
                 .get(&Some(contest_id))
-                .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+                .map(|tx| tx.send(ContestEvent::ContestDeleted(contest_id)));
             state.contests_subs.remove(&Some(contest_id));
-            state.questions_subs.remove(&contest_id);
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -374,7 +357,7 @@ pub async fn create_contest_post(
     state
         .contests_subs
         .get(&Some(contest_id))
-        .map(|tx| tx.0.send(ContestEvent::NewPost(id)));
+        .map(|tx| tx.send(ContestEvent::NewPost(id)));
     Ok(())
 }
 
@@ -401,7 +384,7 @@ pub async fn update_contest_post(
     state
         .contests_subs
         .get(&Some(post_id))
-        .map(|tx| tx.0.send(ContestEvent::PostUpdated(post_id)));
+        .map(|tx| tx.send(ContestEvent::PostUpdated(post_id)));
 
     Ok(())
 }
@@ -440,7 +423,7 @@ pub async fn delete_contest_post(
             state
                 .contests_subs
                 .get(&Some(contest.id))
-                .map(|tx| tx.0.send(ContestEvent::PostDeleted(post.id)));
+                .map(|tx| tx.send(ContestEvent::PostDeleted(post.id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

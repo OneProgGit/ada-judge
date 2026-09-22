@@ -5,11 +5,8 @@ use models::testing::SubmissionTask;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::sync::{Mutex, broadcast};
-use tokio_util::sync::CancellationToken;
 
-use crate::api::contests::ContestsSubScope;
-
-type ContestsSubsType = DashMap<Option<i64>, (broadcast::Sender<ContestEvent>, CancellationToken)>;
+type ContestsSubsType = DashMap<Option<i64>, broadcast::Sender<ContestEvent>>;
 
 #[derive(Clone)]
 pub struct AppState {

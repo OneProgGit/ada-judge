@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    api::{ApiError, contests::ContestsSubScope},
+    api::ApiError,
     app_state::AppState,
     checker_compiler::compile_checker,
     crypt::verify_password,
@@ -230,7 +230,7 @@ pub async fn create_problem(
     state
         .contests_subs
         .get(&Some(contest.id))
-        .map(|tx| tx.0.send(ContestEvent::NewProblem(problem_id)));
+        .map(|tx| tx.send(ContestEvent::NewProblem(problem_id)));
 
     Ok(())
 }
@@ -366,7 +366,7 @@ pub async fn update_problem(
     state
         .contests_subs
         .get(&Some(contest.id))
-        .map(|tx| tx.0.send(ContestEvent::ProblemUpdated(problem_id)));
+        .map(|tx| tx.send(ContestEvent::ProblemUpdated(problem_id)));
 
     Ok(())
 }
@@ -425,7 +425,7 @@ pub async fn delete_problem(
             state
                 .contests_subs
                 .get(&Some(contest.id))
-                .map(|tx| tx.0.send(ContestEvent::ProblemDeleted(problem_id)));
+                .map(|tx| tx.send(ContestEvent::ProblemDeleted(problem_id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -451,7 +451,7 @@ pub async fn create_problem_question(
         .await
         .map_http()?;
     state
-        .questions_subs
+        .contests_subs
         .get(&Some(problem.contest_id))
         .map(|tx| tx.send(ContestEvent::NewProblemQuestion(id)));
     Ok(())
@@ -480,11 +480,8 @@ pub async fn answer_problem_question(
     database::problems::answer_problem_question(&state.db, question_id, &request)
         .await
         .map_http()?;
-    let question = database::problems::get_problem_question(&state.db, question_id)
-        .await
-        .map_http()?;
     state
-        .questions_subs
+        .contests_subs
         .get(&Some(problem.id))
         .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question_id)));
 
@@ -521,7 +518,7 @@ pub async fn delete_problem_question(
                 .await
                 .map_http()?;
             state
-                .questions_subs
+                .contests_subs
                 .get(&Some(problem.contest_id))
                 .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question_id)));
             Ok(())

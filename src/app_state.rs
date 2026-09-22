@@ -9,14 +9,11 @@ use tokio_util::sync::CancellationToken;
 
 use crate::api::contests::ContestsSubScope;
 
-type ContestsSubsType =
-    DashMap<(ContestsSubScope, Option<i64>), (broadcast::Sender<ContestEvent>, CancellationToken)>;
-type QuestionsSubsType = DashMap<(Option<i64>, i64), broadcast::Sender<ContestEvent>>;
+type ContestsSubsType = DashMap<Option<i64>, (broadcast::Sender<ContestEvent>, CancellationToken)>;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: PgPool,
     pub apalis_backend: Arc<Mutex<RedisStorage<SubmissionTask>>>,
     pub contests_subs: Arc<ContestsSubsType>,
-    pub questions_subs: Arc<QuestionsSubsType>,
 }

@@ -77,16 +77,16 @@ pub struct ContestPost {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub enum ContestEvent {
-    NewPost(ContestPost),
-    PostUpdated(ContestPost),
+    NewPost(i64),
+    PostUpdated(i64),
     PostDeleted(i64),
-    NewContest(PublicContestConfig),
-    ContestUpdated(PublicContestConfig),
+    NewContest(i64),
+    ContestUpdated(i64),
     ContestDeleted(i64),
-    NewProblem(PublicProblemConfig),
-    ProblemUpdated(PublicProblemConfig),
+    NewProblem(i64),
+    ProblemUpdated(i64),
     ProblemDeleted(i64),
-    NewProblemQuestion(ProblemQuestion),
+    NewProblemQuestion(i64),
     ProblemQuestionDeleted(i64),
-    ProblemQuestionAnswered(ProblemQuestion),
+    ProblemQuestionAnswered(i64),
 }

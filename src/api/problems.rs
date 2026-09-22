@@ -227,14 +227,10 @@ pub async fn create_problem(
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-
-    let problem = database::problems::get_problem(&state.db, problem_id)
-        .await
-        .map_http()?;
     state
         .contests_subs
-        .get(&(ContestsSubScope::Contest(contest.id), None))
-        .map(|tx| tx.0.send(ContestEvent::NewProblem(problem.into())));
+        .get(&Some(contest.id))
+        .map(|tx| tx.0.send(ContestEvent::NewProblem(problem_id)));
 
     Ok(())
 }
@@ -367,14 +363,10 @@ pub async fn update_problem(
         .map_cleanup(&new_problem_path)
         .await
         .map_http()?;
-
-    let problem = database::problems::get_problem(&state.db, problem_id)
-        .await
-        .map_http()?;
     state
         .contests_subs
-        .get(&(ContestsSubScope::Contest(contest.id), None))
-        .map(|tx| tx.0.send(ContestEvent::ProblemUpdated(problem.into())));
+        .get(&Some(contest.id))
+        .map(|tx| tx.0.send(ContestEvent::ProblemUpdated(problem_id)));
 
     Ok(())
 }
@@ -432,8 +424,8 @@ pub async fn delete_problem(
                 .map_http()?;
             state
                 .contests_subs
-                .get(&(ContestsSubScope::Contest(contest.id), None))
-                .map(|tx| tx.0.send(ContestEvent::ProblemDeleted(problem.id)));
+                .get(&Some(contest.id))
+                .map(|tx| tx.0.send(ContestEvent::ProblemDeleted(problem_id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -460,12 +452,8 @@ pub async fn create_problem_question(
         .map_http()?;
     state
         .questions_subs
-        .get(&(Some(auth.id), problem.contest_id))
-        .map(|tx| tx.send(ContestEvent::NewProblemQuestion(question.clone())));
-    state
-        .questions_subs
-        .get(&(None, problem.contest_id))
-        .map(|tx| tx.send(ContestEvent::NewProblemQuestion(question)));
+        .get(&Some(problem.contest_id))
+        .map(|tx| tx.send(ContestEvent::NewProblemQuestion(id)));
     Ok(())
 }
 
@@ -497,12 +485,8 @@ pub async fn answer_problem_question(
         .map_http()?;
     state
         .questions_subs
-        .get(&(Some(question.owner_id), contest.id))
-        .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question.clone())));
-    state
-        .questions_subs
-        .get(&(None, contest.id))
-        .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question)));
+        .get(&Some(problem.id))
+        .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question_id)));
 
     Ok(())
 }
@@ -538,12 +522,8 @@ pub async fn delete_problem_question(
                 .map_http()?;
             state
                 .questions_subs
-                .get(&(Some(auth.id), problem.contest_id))
-                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question.id)));
-            state
-                .questions_subs
-                .get(&(None, problem.contest_id))
-                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question.id)));
+                .get(&Some(problem.contest_id))
+                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question_id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

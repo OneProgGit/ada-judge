@@ -395,19 +395,23 @@ pub async fn create_contest(
             .contests_subs
             .get(&(ContestsSubScope::User, Some(auth.id)))
             .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
-        state
-            .contests_subs
-            .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
-            .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+        if contest.hidden {
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
+                .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+        }
         for co_author in contest.co_authors.clone() {
             state
                 .contests_subs
                 .get(&(ContestsSubScope::User, Some(co_author)))
                 .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
-            state
-                .contests_subs
-                .get(&(ContestsSubScope::NotHidden, Some(co_author)))
-                .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+            if contest.hidden {
+                state
+                    .contests_subs
+                    .get(&(ContestsSubScope::NotHidden, Some(co_author)))
+                    .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+            }
         }
         if !contest.hidden {
             state
@@ -457,19 +461,23 @@ pub async fn update_contest(
             .contests_subs
             .get(&(ContestsSubScope::User, Some(auth.id)))
             .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
-        state
-            .contests_subs
-            .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
-            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+        if contest.hidden {
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
+                .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+        }
         for co_author in contest.co_authors.clone() {
             state
                 .contests_subs
                 .get(&(ContestsSubScope::User, Some(co_author)))
                 .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
-            state
-                .contests_subs
-                .get(&(ContestsSubScope::NotHidden, Some(co_author)))
-                .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+            if contest.hidden {
+                state
+                    .contests_subs
+                    .get(&(ContestsSubScope::NotHidden, Some(co_author)))
+                    .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+            }
         }
         if !contest.hidden {
             state
@@ -572,19 +580,23 @@ pub async fn delete_contest(
                 .contests_subs
                 .get(&(ContestsSubScope::User, Some(auth.id)))
                 .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
-            state
-                .contests_subs
-                .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
-                .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+            if contest.hidden {
+                state
+                    .contests_subs
+                    .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
+                    .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+            }
             for co_author in contest.co_authors.clone() {
                 state
                     .contests_subs
                     .get(&(ContestsSubScope::User, Some(co_author)))
                     .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
-                state
-                    .contests_subs
-                    .get(&(ContestsSubScope::NotHidden, Some(co_author)))
-                    .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+                if contest.hidden {
+                    state
+                        .contests_subs
+                        .get(&(ContestsSubScope::NotHidden, Some(co_author)))
+                        .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+                }
             }
             if !contest.hidden {
                 state

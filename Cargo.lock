@@ -56,7 +56,7 @@ dependencies = [
 
 [[package]]
 name = "aj-models"
-version = "0.10.10"
+version = "0.10.11"
 dependencies = [
  "chrono",
  "serde",
@@ -2564,6 +2564,7 @@ dependencies = [
  "aj-models",
  "axum",
  "models",
+ "tracing",
 ]
 
 [[package]]

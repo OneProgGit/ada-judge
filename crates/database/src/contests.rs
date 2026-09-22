@@ -9,7 +9,7 @@ use aj_models::{
 use models::problems::DatabaseProblemConfig;
 use sqlx::{PgPool, types::Json};
 
-pub enum GetContestsMode {
+pub enum GetContestsScope {
     User(i64),
     NotHidden(i64),
     All,
@@ -167,10 +167,10 @@ pub async fn get_problems(
 
 pub async fn get_contests(
     pool: &PgPool,
-    mode: GetContestsMode,
+    scope: GetContestsScope,
 ) -> Result<Vec<PublicContestConfig>, AdaJudgeError> {
-    let contests = match mode {
-        GetContestsMode::All => sqlx::query_as!(
+    let contests = match scope {
+        GetContestsScope::All => sqlx::query_as!(
             PublicContestConfig,
             r#"select
                     c.id,
@@ -205,7 +205,7 @@ pub async fn get_contests(
             _ => AdaJudgeError::Internal,
         })?,
 
-        GetContestsMode::NotHidden(user_id) => sqlx::query_as!(
+        GetContestsScope::NotHidden(user_id) => sqlx::query_as!(
             PublicContestConfig,
             r#"select
                     c.id,
@@ -247,7 +247,7 @@ pub async fn get_contests(
             _ => AdaJudgeError::Internal,
         })?,
 
-        GetContestsMode::User(user_id) => sqlx::query_as!(
+        GetContestsScope::User(user_id) => sqlx::query_as!(
             PublicContestConfig,
             r#"select
                     c.id,
@@ -333,7 +333,7 @@ pub async fn create_contest(
     pool: &PgPool,
     user_id: i64,
     contest: &ContestRequest,
-) -> Result<(), AdaJudgeError> {
+) -> Result<i64, AdaJudgeError> {
     let mut tx = pool.begin().await.map_err(|_| AdaJudgeError::Internal)?;
 
     let contest_id: i64 = sqlx::query_scalar!(
@@ -372,7 +372,7 @@ pub async fn create_contest(
 
     tx.commit().await.map_err(|_| AdaJudgeError::Internal)?;
 
-    Ok(())
+    Ok(contest_id)
 }
 
 pub async fn update_contest(
@@ -511,10 +511,6 @@ pub async fn get_contest_post(pool: &PgPool, post_id: i64) -> Result<ContestPost
         ContestPost,
         r#"select * from (
             select c.id as "id!",
-            row_number() over (
-                partition by c.contest_id
-                order by c.id
-            ) - 1 as "index!",
             c.owner_id as "owner_id!",
             users.login as "owner_login",
             c.contest_id as "contest_id!",
@@ -541,10 +537,6 @@ pub async fn get_contest_posts(
     let posts = sqlx::query_as!(
         ContestPost,
         r#"select c.id as "id!",
-        row_number() over (
-            partition by c.contest_id
-            order by c.id
-        ) - 1 as "index!",
         c.owner_id as "owner_id!",
         users.login as "owner_login",
         c.contest_id as "contest_id!",
@@ -573,10 +565,6 @@ pub async fn get_problems_questions(
         None => sqlx::query_as!(
             ProblemQuestion,
             r#"select c.id as "id!",
-            row_number() over (
-                partition by problems.contest_id
-                order by c.id
-            ) - 1 as "index!",
             c.owner_id as "owner_id!",
             users.login as "owner_login",
             c.problem_id as "problem_id!",
@@ -599,10 +587,6 @@ pub async fn get_problems_questions(
         Some(user_id) => sqlx::query_as!(
             ProblemQuestion,
             r#"select c.id as "id!",
-            row_number() over (
-                partition by c.problem_id
-                order by c.id
-            ) - 1 as "index!",
             c.owner_id as "owner_id!",
             users.login as "owner_login",
             c.problem_id as "problem_id!",

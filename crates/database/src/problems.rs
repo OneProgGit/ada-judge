@@ -398,10 +398,6 @@ pub async fn get_problem_question(
         ProblemQuestion,
         r#"select * from (
             select c.id as "id!",
-                row_number() over (
-                    partition by problems.contest_id
-                    order by c.id
-                ) - 1 as "index!",
                 c.owner_id as "owner_id!",
                 users.login as "owner_login",
                 c.problem_id as "problem_id!",

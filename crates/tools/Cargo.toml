@@ -8,3 +8,4 @@ publish = false
 models.workspace = true
 axum.workspace = true
 aj-models.workspace = true
+tracing.workspace = true

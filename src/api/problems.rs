@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    api::ApiError,
+    api::{ApiError, contests::ContestsSubScope},
     app_state::AppState,
     checker_compiler::compile_checker,
     crypt::verify_password,
@@ -233,7 +233,7 @@ pub async fn create_problem(
         .map_http()?;
     state
         .contests_subs
-        .get(&contest.id)
+        .get(&(ContestsSubScope::Contest(contest.id), None))
         .map(|tx| tx.0.send(ContestEvent::NewProblem(problem.into())));
 
     Ok(())
@@ -373,7 +373,7 @@ pub async fn update_problem(
         .map_http()?;
     state
         .contests_subs
-        .get(&contest.id)
+        .get(&(ContestsSubScope::Contest(contest.id), None))
         .map(|tx| tx.0.send(ContestEvent::ProblemUpdated(problem.into())));
 
     Ok(())
@@ -430,9 +430,10 @@ pub async fn delete_problem(
                 .await
                 .map_err(|_| AdaJudgeError::Internal)
                 .map_http()?;
-            state.contests_subs.get(&contest.id).map(|tx| {
-                tx.0.send(ContestEvent::ProblemDeleted(problem.index as usize))
-            });
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::Contest(contest.id), None))
+                .map(|tx| tx.0.send(ContestEvent::ProblemDeleted(problem.id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -538,19 +539,11 @@ pub async fn delete_problem_question(
             state
                 .questions_subs
                 .get(&(Some(auth.id), problem.contest_id))
-                .map(|tx| {
-                    tx.send(ContestEvent::ProblemQuestionDeleted(
-                        question.index as usize,
-                    ))
-                });
+                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question.id)));
             state
                 .questions_subs
                 .get(&(None, problem.contest_id))
-                .map(|tx| {
-                    tx.send(ContestEvent::ProblemQuestionDeleted(
-                        question.index as usize,
-                    ))
-                });
+                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question.id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

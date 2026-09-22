@@ -10,42 +10,45 @@ impl<T> MapHttpExt<T> for Result<T, AdaJudgeError> {
     fn map_http(self) -> Result<T, (StatusCode, Json<AdaJudgeError>)> {
         match self {
             Ok(value) => Ok(value),
-            Err(e) => Err((
-                match &e {
-                    AdaJudgeError::NotFound => StatusCode::NOT_FOUND,
-                    AdaJudgeError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
-                    AdaJudgeError::InvalidProblem(kind) => match kind {
-                        InvalidProblem::SubgroupConflict {
-                            subgroup: _,
-                            depends_on: _,
-                        } => StatusCode::CONFLICT,
-                        InvalidProblem::InvalidSubgroupScoring { subgroup: _ } => {
-                            StatusCode::BAD_REQUEST
-                        }
-                        InvalidProblem::MissingConfig
-                        | InvalidProblem::CheckerCompilationError
-                        | InvalidProblem::TomlError { message: _ } => StatusCode::BAD_REQUEST,
-                        InvalidProblem::OwnerId => StatusCode::FORBIDDEN,
+            Err(e) => {
+                tracing::error!("{e}");
+                Err((
+                    match &e {
+                        AdaJudgeError::NotFound => StatusCode::NOT_FOUND,
+                        AdaJudgeError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
+                        AdaJudgeError::InvalidProblem(kind) => match kind {
+                            InvalidProblem::SubgroupConflict {
+                                subgroup: _,
+                                depends_on: _,
+                            } => StatusCode::CONFLICT,
+                            InvalidProblem::InvalidSubgroupScoring { subgroup: _ } => {
+                                StatusCode::BAD_REQUEST
+                            }
+                            InvalidProblem::MissingConfig
+                            | InvalidProblem::CheckerCompilationError
+                            | InvalidProblem::TomlError { message: _ } => StatusCode::BAD_REQUEST,
+                            InvalidProblem::OwnerId => StatusCode::FORBIDDEN,
+                        },
+                        AdaJudgeError::InvalidJwt => StatusCode::UNAUTHORIZED,
+                        AdaJudgeError::Auth(kind) => match kind {
+                            AuthError::AlreadyExists => StatusCode::CONFLICT,
+                            AuthError::InvalidLoginOrPassword | AuthError::PasswordsDontMatch => {
+                                StatusCode::BAD_REQUEST
+                            }
+                        },
+                        AdaJudgeError::Deletion(kind) => match kind {
+                            Deletion::InvalidLoginOrPassword
+                            | Deletion::MissingDeletionConfirmation => StatusCode::BAD_REQUEST,
+                        },
+                        AdaJudgeError::Forbidden => StatusCode::FORBIDDEN,
+                        AdaJudgeError::Contest(kind) => match kind {
+                            Contest::Time => StatusCode::BAD_REQUEST,
+                        },
+                        AdaJudgeError::BadRequest => StatusCode::BAD_REQUEST,
                     },
-                    AdaJudgeError::InvalidJwt => StatusCode::UNAUTHORIZED,
-                    AdaJudgeError::Auth(kind) => match kind {
-                        AuthError::AlreadyExists => StatusCode::CONFLICT,
-                        AuthError::InvalidLoginOrPassword | AuthError::PasswordsDontMatch => {
-                            StatusCode::BAD_REQUEST
-                        }
-                    },
-                    AdaJudgeError::Deletion(kind) => match kind {
-                        Deletion::InvalidLoginOrPassword
-                        | Deletion::MissingDeletionConfirmation => StatusCode::BAD_REQUEST,
-                    },
-                    AdaJudgeError::Forbidden => StatusCode::FORBIDDEN,
-                    AdaJudgeError::Contest(kind) => match kind {
-                        Contest::Time => StatusCode::BAD_REQUEST,
-                    },
-                    AdaJudgeError::BadRequest => StatusCode::BAD_REQUEST,
-                },
-                Json(e),
-            )),
+                    Json(e),
+                ))
+            }
         }
     }
 }

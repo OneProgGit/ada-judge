@@ -65,7 +65,6 @@ pub struct ContestPostRequest {
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct ContestPost {
     pub id: i64,
-    pub index: i64,
     pub owner_id: i64,
     pub owner_login: String,
     pub contest_id: i64,
@@ -80,13 +79,14 @@ pub struct ContestPost {
 pub enum ContestEvent {
     NewPost(ContestPost),
     PostUpdated(ContestPost),
-    PostDeleted(usize),
+    PostDeleted(i64),
+    NewContest(PublicContestConfig),
     ContestUpdated(PublicContestConfig),
-    ContestDeleted,
+    ContestDeleted(i64),
     NewProblem(PublicProblemConfig),
     ProblemUpdated(PublicProblemConfig),
-    ProblemDeleted(usize),
+    ProblemDeleted(i64),
     NewProblemQuestion(ProblemQuestion),
-    ProblemQuestionDeleted(usize),
+    ProblemQuestionDeleted(i64),
     ProblemQuestionAnswered(ProblemQuestion),
 }

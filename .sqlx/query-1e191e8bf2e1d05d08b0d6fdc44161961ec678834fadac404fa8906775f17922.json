@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select c.id as \"id!\",\n        row_number() over (\n            partition by c.contest_id\n            order by c.id\n        ) - 1 as \"index!\",\n        c.owner_id as \"owner_id!\",\n        users.login as \"owner_login\",\n        c.contest_id as \"contest_id!\",\n        c.title_ru, c.title_en,\n        c.text_ru, c.text_en, c.created_at\n        from contests_posts c\n        join users on users.id = c.owner_id where c.contest_id = $1 order by c.id desc",
+  "query": "select * from (\n            select c.id as \"id!\",\n            c.owner_id as \"owner_id!\",\n            users.login as \"owner_login\",\n            c.contest_id as \"contest_id!\",\n            c.title_ru, c.title_en,\n            c.text_ru, c.text_en, c.created_at\n            from contests_posts c\n            join users on users.id = c.owner_id\n        ) q\n        where q.\"id!\" = $1",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,6 @@
       },
       {
         "ordinal": 1,
-        "name": "index!",
-        "type_info": "Int8",
-        "origin": "Expression"
-      },
-      {
-        "ordinal": 2,
         "name": "owner_id!",
         "type_info": "Int8",
         "origin": {
@@ -32,7 +26,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 2,
         "name": "owner_login",
         "type_info": "Text",
         "origin": {
@@ -43,7 +37,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "contest_id!",
         "type_info": "Int8",
         "origin": {
@@ -54,7 +48,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "title_ru",
         "type_info": "Text",
         "origin": {
@@ -65,7 +59,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "title_en",
         "type_info": "Text",
         "origin": {
@@ -76,7 +70,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "text_ru",
         "type_info": "Text",
         "origin": {
@@ -87,7 +81,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "text_en",
         "type_info": "Text",
         "origin": {
@@ -98,7 +92,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -116,7 +110,6 @@
     },
     "nullable": [
       false,
-      null,
       true,
       false,
       true,
@@ -127,5 +120,5 @@
       false
     ]
   },
-  "hash": "42e605f8c85f4859856493583859371f0a21764966af522f36ea6aa811e2f9e5"
+  "hash": "1e191e8bf2e1d05d08b0d6fdc44161961ec678834fadac404fa8906775f17922"
 }

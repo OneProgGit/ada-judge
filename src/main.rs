@@ -8,11 +8,11 @@ use crate::{
     api::{
         auth::{delete_my_account, login, register},
         contests::{
-            contest_ws, create_contest, create_contest_post, delete_contest, delete_contest_post,
-            get_all_contest_problems_questions, get_contest_by_id, get_contest_leaderboard,
-            get_contest_post_by_id, get_contest_posts, get_contest_problems, get_contests,
-            get_my_contest_problems_questions, get_my_contests, get_problem_by_id, update_contest,
-            update_contest_post,
+            contest_ws, contests_ws, create_contest, create_contest_post, delete_contest,
+            delete_contest_post, get_all_contest_problems_questions, get_contest_by_id,
+            get_contest_leaderboard, get_contest_post_by_id, get_contest_posts,
+            get_contest_problems, get_contests, get_my_contest_problems_questions, get_my_contests,
+            get_problem_by_id, my_contests_ws, update_contest, update_contest_post,
         },
         problems::{
             answer_problem_question, create_problem, create_problem_question, delete_problem,
@@ -147,6 +147,7 @@ async fn main() {
         .route("/contests/{contest_id}/update", patch(update_contest))
         .route("/contests/{contest_id}/delete", delete(delete_contest))
         .route("/contests/my", get(get_my_contests))
+        .route("/contests/my/ws", get(my_contests_ws))
         .route(
             "/problems/{problem_id}/submissions",
             get(get_problem_submissions),
@@ -228,6 +229,7 @@ async fn main() {
         .route("/users/me", get(get_my_user_profile))
         .route("/users/me/delete_account", delete(delete_my_account))
         .route("/contests", get(get_contests))
+        .route("/contests/ws", get(contests_ws))
         .route("/contests/{contest_id}", get(get_contest_by_id))
         .route(
             "/contests/{contest_id}/problems/{problem_id}/submit",

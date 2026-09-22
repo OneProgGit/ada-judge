@@ -1,4 +1,5 @@
 #![allow(clippy::result_large_err)]
+#![allow(clippy::option_map_unit_fn)]
 
 use std::path::PathBuf;
 
@@ -28,11 +29,19 @@ use axum::{
     response::Response,
 };
 use chrono::Utc;
-use database::contests::GetContestsMode;
+use database::contests::GetContestsScope;
 use futures_util::{SinkExt, StreamExt};
 use tokio::{fs, sync::broadcast};
 use tokio_util::sync::CancellationToken;
 use tools::map::MapHttpExt;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum ContestsSubScope {
+    User,
+    NotHidden,
+    All,
+    Contest(i64),
+}
 
 pub async fn contest_ws(
     ws: WebSocketUpgrade,
@@ -59,6 +68,30 @@ pub async fn contest_ws(
     }))
 }
 
+pub async fn my_contests_ws(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+) -> Result<Response, ApiError> {
+    Ok(ws.on_upgrade(move |socket| {
+        handle_contests_socket(socket, state, ContestsSubScope::User, Some(auth.id))
+    }))
+}
+
+pub async fn contests_ws(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    Auth(auth): Auth,
+) -> Result<Response, ApiError> {
+    if auth.admin_level == AdminLevel::Owner {
+        Ok(ws.on_upgrade(move |socket| {
+            handle_contests_socket(socket, state, ContestsSubScope::All, None)
+        }))
+    } else {
+        Ok(ws.on_upgrade(move |socket| handle_not_hidden_contests_socket(socket, state, auth.id)))
+    }
+}
+
 async fn handle_contest_socket(
     socket: WebSocket,
     state: AppState,
@@ -69,7 +102,7 @@ async fn handle_contest_socket(
     let cancel = CancellationToken::new();
     let contest_tx = state
         .contests_subs
-        .entry(contest_id)
+        .entry((ContestsSubScope::Contest(contest_id), None))
         .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
         .clone();
     let mut contest_rx = contest_tx.0.subscribe();
@@ -109,10 +142,115 @@ async fn handle_contest_socket(
     }
 
     if contest_tx.0.receiver_count() == 0 {
-        state.contests_subs.remove(&contest_id);
+        state
+            .contests_subs
+            .remove(&(ContestsSubScope::Contest(contest_id), None));
     }
     if questions_tx.receiver_count() == 0 {
         state.questions_subs.remove(&(user_id, contest_id));
+    }
+}
+
+async fn handle_not_hidden_contests_socket(socket: WebSocket, state: AppState, user_id: i64) {
+    let (mut ws_tx, mut ws_rx) = socket.split();
+    let cancel = CancellationToken::new();
+    let contests_none_tx = state
+        .contests_subs
+        .entry((ContestsSubScope::NotHidden, None))
+        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
+        .clone();
+    let mut contests_none_rx = contests_none_tx.0.subscribe();
+    let contests_user_tx = state
+        .contests_subs
+        .entry((ContestsSubScope::NotHidden, Some(user_id)))
+        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
+        .clone();
+    let mut contests_user_rx = contests_user_tx.0.subscribe();
+
+    let mut send_task = tokio::spawn(async move {
+        loop {
+            let event = tokio::select! {
+                () = cancel.cancelled() => break,
+                Ok(e) = contests_none_rx.recv() => e,
+                Ok(e) = contests_user_rx.recv() => e,
+                else => break,
+            };
+            let json = serde_json::to_string(&event).expect("serde failed");
+            if ws_tx.send(Message::Text(json.into())).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let mut recv_task = tokio::spawn(async move {
+        while let Some(Ok(msg)) = ws_rx.next().await {
+            if matches!(msg, Message::Close(_)) {
+                break;
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = &mut send_task => recv_task.abort(),
+        _ = &mut recv_task => send_task.abort(),
+    }
+
+    if contests_none_tx.0.receiver_count() == 0 {
+        state
+            .contests_subs
+            .remove(&(ContestsSubScope::NotHidden, None));
+    }
+    if contests_user_tx.0.receiver_count() == 0 {
+        state
+            .contests_subs
+            .remove(&(ContestsSubScope::NotHidden, Some(user_id)));
+    }
+}
+
+async fn handle_contests_socket(
+    socket: WebSocket,
+    state: AppState,
+    scope: ContestsSubScope,
+    user_id: Option<i64>,
+) {
+    let (mut ws_tx, mut ws_rx) = socket.split();
+    let cancel = CancellationToken::new();
+    let contests_tx = state
+        .contests_subs
+        .entry((scope.clone(), user_id))
+        .or_insert_with(|| (broadcast::channel(256).0, cancel.clone()))
+        .clone();
+    let mut contests_rx = contests_tx.0.subscribe();
+
+    let mut send_task = tokio::spawn(async move {
+        loop {
+            let event = tokio::select! {
+                () = cancel.cancelled() => break,
+                Ok(e) = contests_rx.recv() => e,
+                else => break,
+            };
+            let json = serde_json::to_string(&event).expect("serde failed");
+            if ws_tx.send(Message::Text(json.into())).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let mut recv_task = tokio::spawn(async move {
+        while let Some(Ok(msg)) = ws_rx.next().await {
+            if matches!(msg, Message::Close(_)) {
+                break;
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = &mut send_task => recv_task.abort(),
+        _ = &mut recv_task => send_task.abort(),
+    }
+
+    if contests_tx.0.receiver_count() == 0 {
+        state.contests_subs.remove(&(scope, user_id));
     }
 }
 
@@ -190,14 +328,14 @@ pub async fn get_contests(
     State(state): State<AppState>,
     Auth(auth): Auth,
 ) -> Result<Json<Vec<PublicContestConfig>>, ApiError> {
-    let mode = if auth.admin_level == AdminLevel::Owner {
-        GetContestsMode::All
+    let scope = if auth.admin_level == AdminLevel::Owner {
+        GetContestsScope::All
     } else {
-        GetContestsMode::NotHidden(auth.id)
+        GetContestsScope::NotHidden(auth.id)
     };
     let now = Utc::now();
     Ok(Json(
-        database::contests::get_contests(&state.db, mode)
+        database::contests::get_contests(&state.db, scope)
             .await
             .map_http()?
             .into_iter()
@@ -227,7 +365,7 @@ pub async fn get_my_contests(
     Auth(auth): Auth,
 ) -> Result<Json<Vec<PublicContestConfig>>, ApiError> {
     Ok(Json(
-        database::contests::get_contests(&state.db, GetContestsMode::User(auth.id))
+        database::contests::get_contests(&state.db, GetContestsScope::User(auth.id))
             .await
             .map_http()?,
     ))
@@ -243,9 +381,40 @@ pub async fn create_contest(
     } else {
         let mut request = request;
         request.co_authors.sort_unstable();
-        database::contests::create_contest(&state.db, auth.id, &request)
+        let id = database::contests::create_contest(&state.db, auth.id, &request)
             .await
             .map_http()?;
+        let contest = database::contests::get_contest(&state.db, id)
+            .await
+            .map_http()?;
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::All, None))
+            .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::User, Some(auth.id)))
+            .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
+            .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+        for co_author in contest.co_authors.clone() {
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::User, Some(co_author)))
+                .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, Some(co_author)))
+                .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+        }
+        if !contest.hidden {
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, None))
+                .map(|tx| tx.0.send(ContestEvent::NewContest(contest.clone())));
+        }
         Ok(())
     }
 }
@@ -278,16 +447,68 @@ pub async fn update_contest(
             .map_http()?;
         state
             .contests_subs
-            .get(&contest_id)
-            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest)));
-        if let Some(tx) = state.contests_subs.get(&contest_id) {
-            tx.1.cancel();
+            .get(&(ContestsSubScope::Contest(contest_id), None))
+            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::All, None))
+            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::User, Some(auth.id)))
+            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
+            .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+        for co_author in contest.co_authors.clone() {
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::User, Some(co_author)))
+                .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, Some(co_author)))
+                .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+        }
+        if !contest.hidden {
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, None))
+                .map(|tx| tx.0.send(ContestEvent::ContestUpdated(contest.clone())));
+        }
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::Contest(contest_id), None))
+            .map(|tx| tx.1.cancel());
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::All, None))
+            .map(|tx| tx.1.cancel());
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::User, Some(auth.id)))
+            .map(|tx| tx.1.cancel());
+        state
+            .contests_subs
+            .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
+            .map(|tx| tx.1.cancel());
+        for co_author in contest.co_authors {
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::User, Some(co_author)))
+                .map(|tx| tx.1.cancel());
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, Some(co_author)))
+                .map(|tx| tx.1.cancel());
         }
 
         Ok(())
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn delete_contest(
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,
@@ -341,10 +562,61 @@ pub async fn delete_contest(
                 .map_http()?;
             state
                 .contests_subs
-                .get(&contest_id)
-                .map(|tx| tx.0.send(ContestEvent::ContestDeleted));
-            if let Some(tx) = state.contests_subs.get(&contest_id) {
-                tx.1.cancel();
+                .get(&(ContestsSubScope::Contest(contest_id), None))
+                .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::All, None))
+                .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::User, Some(auth.id)))
+                .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
+                .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+            for co_author in contest.co_authors.clone() {
+                state
+                    .contests_subs
+                    .get(&(ContestsSubScope::User, Some(co_author)))
+                    .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+                state
+                    .contests_subs
+                    .get(&(ContestsSubScope::NotHidden, Some(co_author)))
+                    .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+            }
+            if !contest.hidden {
+                state
+                    .contests_subs
+                    .get(&(ContestsSubScope::NotHidden, None))
+                    .map(|tx| tx.0.send(ContestEvent::ContestDeleted(contest_id)));
+            }
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::Contest(contest_id), None))
+                .map(|tx| tx.1.cancel());
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::All, None))
+                .map(|tx| tx.1.cancel());
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::User, Some(auth.id)))
+                .map(|tx| tx.1.cancel());
+            state
+                .contests_subs
+                .get(&(ContestsSubScope::NotHidden, Some(auth.id)))
+                .map(|tx| tx.1.cancel());
+            for co_author in contest.co_authors {
+                state
+                    .contests_subs
+                    .get(&(ContestsSubScope::User, Some(co_author)))
+                    .map(|tx| tx.1.cancel());
+                state
+                    .contests_subs
+                    .get(&(ContestsSubScope::NotHidden, Some(co_author)))
+                    .map(|tx| tx.1.cancel());
             }
             Ok(())
         } else {
@@ -377,7 +649,7 @@ pub async fn create_contest_post(
         .map_http()?;
     state
         .contests_subs
-        .get(&contest_id)
+        .get(&(ContestsSubScope::Contest(contest_id), None))
         .map(|tx| tx.0.send(ContestEvent::NewPost(post)));
     Ok(())
 }
@@ -407,7 +679,7 @@ pub async fn update_contest_post(
         .map_http()?;
     state
         .contests_subs
-        .get(&contest.id)
+        .get(&(ContestsSubScope::Contest(contest.id), None))
         .map(|tx| tx.0.send(ContestEvent::PostUpdated(post)));
 
     Ok(())
@@ -446,8 +718,8 @@ pub async fn delete_contest_post(
                 .map_http()?;
             state
                 .contests_subs
-                .get(&contest.id)
-                .map(|tx| tx.0.send(ContestEvent::PostDeleted(post.index as usize)));
+                .get(&(ContestsSubScope::Contest(contest.id), None))
+                .map(|tx| tx.0.send(ContestEvent::PostDeleted(post.id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

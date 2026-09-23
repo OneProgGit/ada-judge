@@ -383,7 +383,7 @@ pub async fn update_contest_post(
         .map_http()?;
     state
         .contests_subs
-        .get(&Some(post_id))
+        .get(&Some(post.contest_id))
         .map(|tx| tx.send(ContestEvent::PostUpdated(post_id)));
 
     Ok(())

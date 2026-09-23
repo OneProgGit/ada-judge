@@ -482,7 +482,7 @@ pub async fn answer_problem_question(
         .map_http()?;
     state
         .contests_subs
-        .get(&Some(problem.id))
+        .get(&Some(problem.contest_id))
         .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question_id)));
 
     Ok(())

@@ -510,10 +510,16 @@ pub async fn delete_problem_question(
         let question = database::problems::get_problem_question(&state.db, question_id)
             .await
             .map_http()?;
-        if is_allowed(auth.id, Some(question.owner_id), &auth.admin_level) {
-            let problem = database::problems::get_problem(&state.db, question.problem_id)
-                .await
-                .map_http()?;
+        let problem = database::problems::get_problem(&state.db, question.problem_id)
+            .await
+            .map_http()?;
+        let contest = database::contests::get_contest(&state.db, problem.contest_id)
+            .await
+            .map_http()?;
+        if is_allowed(auth.id, Some(question.owner_id), &auth.admin_level)
+            || is_allowed(auth.id, problem.owner_id, &auth.admin_level)
+            || is_allowed(auth.id, contest.owner_id, &auth.admin_level)
+        {
             database::problems::delete_problem_question(&state.db, question_id)
                 .await
                 .map_http()?;

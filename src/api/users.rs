@@ -83,7 +83,9 @@ async fn handle_users_socket(socket: WebSocket, state: AppState, user_id: Option
         _ = &mut send_task => recv_task.abort(),
         _ = &mut recv_task => send_task.abort(),
     }
-    if users_tx.receiver_count() == 0 {
+    let empty = users_tx.receiver_count() == 0;
+    drop(users_tx);
+    if empty {
         state.users_subs.remove(&user_id);
     }
 }

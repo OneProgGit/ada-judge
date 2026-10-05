@@ -93,7 +93,9 @@ async fn handle_contests_socket(socket: WebSocket, state: AppState, contest_id: 
         _ = &mut send_task => recv_task.abort(),
         _ = &mut recv_task => send_task.abort(),
     }
-    if contests_tx.receiver_count() == 0 {
+    let empty = contests_tx.receiver_count() == 0;
+    drop(contests_tx);
+    if empty {
         state.contests_subs.remove(&contest_id);
     }
 }

@@ -16,6 +16,14 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::sync::broadcast;
 use tools::map::MapHttpExt;
 
+pub async fn my_user_ws(
+    ws: WebSocketUpgrade,
+    Auth(auth): Auth,
+    State(state): State<AppState>,
+) -> Result<Response, ApiError> {
+    Ok(ws.on_upgrade(move |socket| handle_users_socket(socket, state, Some(auth.id))))
+}
+
 pub async fn user_ws(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,

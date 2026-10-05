@@ -25,7 +25,8 @@ use crate::{
         },
         users::{
             delete_user_account, get_my_user_profile, get_private_user_profile,
-            get_public_user_profile, get_users, update_user_admin_level, user_ws, users_ws,
+            get_public_user_profile, get_users, my_user_ws, update_user_admin_level, user_ws,
+            users_ws,
         },
     },
     middleware::{
@@ -233,6 +234,7 @@ async fn main() {
         .route("/users/{user_id}", get(get_public_user_profile))
         .route("/users/{user_id}/ws", get(user_ws))
         .route("/users/me", get(get_my_user_profile))
+        .route("/users/me/ws", get(my_user_ws))
         .route("/users/me/delete_account", delete(delete_my_account))
         .route("/contests", get(get_contests))
         .route("/contests/ws", get(contests_ws))

@@ -53,8 +53,15 @@ async fn handle_contests_socket(socket: WebSocket, state: AppState, contest_id: 
     let (mut ws_tx, mut ws_rx) = socket.split();
     let contests_tx = state
         .contests_subs
-        .entry(contest_id)
-        .or_insert_with(|| broadcast::channel(256).0)
+        .get(&contest_id)
+        .map_or_else(
+            || {
+                let (tx, _rx) = broadcast::channel(256);
+                state.contests_subs.insert(contest_id, tx.clone());
+                tx
+            },
+            |tx| tx.value().clone(),
+        )
         .clone();
     let mut contests_rx = contests_tx.subscribe();
 

@@ -43,8 +43,15 @@ async fn handle_users_socket(socket: WebSocket, state: AppState, user_id: Option
     let (mut ws_tx, mut ws_rx) = socket.split();
     let users_tx = state
         .users_subs
-        .entry(user_id)
-        .or_insert_with(|| broadcast::channel(256).0)
+        .get(&user_id)
+        .map_or_else(
+            || {
+                let (tx, _rx) = broadcast::channel(256);
+                state.users_subs.insert(user_id, tx.clone());
+                tx
+            },
+            |tx| tx.value().clone(),
+        )
         .clone();
     let mut users_rx = users_tx.subscribe();
 
@@ -146,6 +153,14 @@ pub async fn delete_user_account(
         database::users::delete_user(&state.db, user_id)
             .await
             .map_http()?;
+        state
+            .users_subs
+            .get(&None)
+            .map(|tx| tx.send(UsersEvent::UserDeleted(user_id)));
+        state
+            .users_subs
+            .get(&Some(user_id))
+            .map(|tx| tx.send(UsersEvent::UserDeleted(user_id)));
         Ok(())
     } else {
         Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?

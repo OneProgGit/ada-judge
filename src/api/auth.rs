@@ -88,6 +88,14 @@ pub async fn delete_my_account(
         database::users::delete_user(&state.db, auth.id)
             .await
             .map_http()?;
+        state
+            .users_subs
+            .get(&None)
+            .map(|tx| tx.send(UsersEvent::UserDeleted(auth.id)));
+        state
+            .users_subs
+            .get(&Some(auth.id))
+            .map(|tx| tx.send(UsersEvent::UserDeleted(auth.id)));
         Ok(())
     } else {
         Err(AdaJudgeError::Deletion(Deletion::InvalidLoginOrPassword)).map_http()?

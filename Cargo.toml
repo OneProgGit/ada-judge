@@ -25,12 +25,12 @@ jsonwebtoken = { version = "11.1.0", features = ["aws_lc_rs"] }
 tower-http = { version = "0.7.1", features = ["cors", "trace"] }
 zip-extensions = "0.14.1"
 toml = "1.1.6+spec-1.1.0"
-uuid = { version = "1.26.1", features = ["v4"] }
+uuid = { version = "1.27.0", features = ["v4"] }
 tokio-util = { version = "0.7.19", features = ["io"] }
 dashmap = "6.2.1"
 futures-util = "0.3.34"
 url = "2.5.8"
-axum-governor = "2.1.0"
+axum-governor = "2.1.2"
 
 [workspace]
 members = [
@@ -48,7 +48,7 @@ models = { path = "crates/models" }
 tools = { path = "crates/tools" }
 database = { path = "crates/database" }
 axum = { version = "0.8.9", features = ["json", "multipart", "ws"] }
-tokio = { version = "1.53.1", features = ["rt-multi-thread", "process", "macros"] }
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "process", "macros"] }
 sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "chrono", "macros"] }
 apalis-redis = "=1.0.0-rc.8"
 apalis = "=1.0.0-rc.9"

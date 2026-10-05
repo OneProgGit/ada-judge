@@ -12,17 +12,23 @@ use crate::{
 };
 use aj_models::{
     DeletionRequest,
-    contests::ContestEvent,
+    contests::ContestsEvent,
     errors::{AdaJudgeError, Deletion, InvalidProblem},
-    problems::{ProblemConfig, ProblemQuestion, ProblemQuestionRequest, PublicProblemConfig},
+    problems::{
+        ProblemConfig, ProblemQuestion, ProblemQuestionRequest, ProblemsEvent, PublicProblemConfig,
+    },
 };
 use axum::{
     Json,
     body::{Body, Bytes},
-    extract::{Multipart, Path, State},
+    extract::{
+        Multipart, Path, State, WebSocketUpgrade,
+        ws::{Message, WebSocket},
+    },
     http::header,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
 };
+use futures_util::{SinkExt, StreamExt};
 use tokio::{
     fs::{self, File, read_to_string},
     io::AsyncWriteExt,
@@ -31,6 +37,48 @@ use tokio_util::io::ReaderStream;
 use tools::map::MapHttpExt;
 use uuid::Uuid;
 use zip_extensions::{zip_extract::zip_extract, zip_writer::zip_create_from_directory};
+
+pub async fn problems_ws(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+) -> Result<Response, ApiError> {
+    Ok(ws.on_upgrade(move |socket| handle_problems_socket(socket, state)))
+}
+
+async fn handle_problems_socket(socket: WebSocket, state: AppState) {
+    let (mut ws_tx, mut ws_rx) = socket.split();
+    let problems_tx = state.problems_subs.clone();
+    let mut problems_rx = problems_tx.subscribe();
+
+    let mut send_task = tokio::spawn(async move {
+        loop {
+            let event = tokio::select! {
+                res = problems_rx.recv() => match res {
+                    Ok(e) => e,
+                    Err(_) => break,
+                },
+                else => break,
+            };
+            let json = serde_json::to_string(&event).expect("serde failed");
+            if ws_tx.send(Message::Text(json.into())).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let mut recv_task = tokio::spawn(async move {
+        while let Some(Ok(msg)) = ws_rx.next().await {
+            if matches!(msg, Message::Close(_)) {
+                break;
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = &mut send_task => recv_task.abort(),
+        _ = &mut recv_task => send_task.abort(),
+    }
+}
 
 pub async fn get_problems(
     State(state): State<AppState>,
@@ -230,7 +278,12 @@ pub async fn create_problem(
     state
         .contests_subs
         .get(&Some(contest.id))
-        .map(|tx| tx.send(ContestEvent::NewProblem(problem_id)));
+        .map(|tx| tx.send(ContestsEvent::NewProblem(problem_id)));
+    state
+        .problems_subs
+        .send(ProblemsEvent::NewProblem(problem_id))
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
 
     Ok(())
 }
@@ -366,7 +419,12 @@ pub async fn update_problem(
     state
         .contests_subs
         .get(&Some(contest.id))
-        .map(|tx| tx.send(ContestEvent::ProblemUpdated(problem_id)));
+        .map(|tx| tx.send(ContestsEvent::ProblemUpdated(problem_id)));
+    state
+        .problems_subs
+        .send(ProblemsEvent::ProblemUpdated(problem_id))
+        .map_err(|_| AdaJudgeError::Internal)
+        .map_http()?;
 
     Ok(())
 }
@@ -425,7 +483,12 @@ pub async fn delete_problem(
             state
                 .contests_subs
                 .get(&Some(contest.id))
-                .map(|tx| tx.send(ContestEvent::ProblemDeleted(problem_id)));
+                .map(|tx| tx.send(ContestsEvent::ProblemDeleted(problem_id)));
+            state
+                .problems_subs
+                .send(ProblemsEvent::ProblemDeleted(problem_id))
+                .map_err(|_| AdaJudgeError::Internal)
+                .map_http()?;
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?
@@ -453,7 +516,7 @@ pub async fn create_problem_question(
     state
         .contests_subs
         .get(&Some(problem.contest_id))
-        .map(|tx| tx.send(ContestEvent::NewProblemQuestion(id)));
+        .map(|tx| tx.send(ContestsEvent::NewProblemQuestion(id)));
     Ok(())
 }
 
@@ -483,7 +546,7 @@ pub async fn answer_problem_question(
     state
         .contests_subs
         .get(&Some(problem.contest_id))
-        .map(|tx| tx.send(ContestEvent::ProblemQuestionAnswered(question_id)));
+        .map(|tx| tx.send(ContestsEvent::ProblemQuestionAnswered(question_id)));
 
     Ok(())
 }
@@ -526,7 +589,7 @@ pub async fn delete_problem_question(
             state
                 .contests_subs
                 .get(&Some(problem.contest_id))
-                .map(|tx| tx.send(ContestEvent::ProblemQuestionDeleted(question_id)));
+                .map(|tx| tx.send(ContestsEvent::ProblemQuestionDeleted(question_id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

@@ -12,12 +12,12 @@ use crate::{
             delete_contest_post, get_all_contest_problems_questions, get_contest_by_id,
             get_contest_leaderboard, get_contest_post_by_id, get_contest_posts,
             get_contest_problems, get_contests, get_my_contest_problems_questions, get_my_contests,
-            get_problem_by_id, my_contests_ws, update_contest, update_contest_post,
+            get_problem_by_id, update_contest, update_contest_post,
         },
         problems::{
             answer_problem_question, create_problem, create_problem_question, delete_problem,
             delete_problem_question, download_problem, get_my_problems, get_problem_by_id_admin,
-            get_problem_question_by_id, get_problems, update_problem,
+            get_problem_question_by_id, get_problems, problems_ws, update_problem,
         },
         submissions::{
             download_submission, get_my_problem_submissions, get_problem_submissions,
@@ -25,7 +25,7 @@ use crate::{
         },
         users::{
             delete_user_account, get_my_user_profile, get_private_user_profile,
-            get_public_user_profile, get_users, update_user_admin_level,
+            get_public_user_profile, get_users, update_user_admin_level, user_ws, users_ws,
         },
     },
     middleware::{
@@ -47,7 +47,10 @@ use axum_governor::{GovernorConfigBuilder, GovernorLayer, PeerIp, Quota, nz};
 use dashmap::DashMap;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, net::SocketAddr, sync::Arc};
-use tokio::{net::TcpListener, sync::Mutex};
+use tokio::{
+    net::TcpListener,
+    sync::{Mutex, broadcast},
+};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::TraceLayer,
@@ -97,6 +100,8 @@ async fn main() {
         db: pg_pool.clone(),
         apalis_backend: Arc::new(Mutex::new(apalis_backend.clone())),
         contests_subs: Arc::new(DashMap::new()),
+        problems_subs: Arc::new(broadcast::channel(256).0),
+        users_subs: Arc::new(DashMap::new()),
     };
 
     let cors = CorsLayer::new()
@@ -146,7 +151,6 @@ async fn main() {
         .route("/contests/{contest_id}/update", patch(update_contest))
         .route("/contests/{contest_id}/delete", delete(delete_contest))
         .route("/contests/my", get(get_my_contests))
-        .route("/contests/my/ws", get(my_contests_ws))
         .route(
             "/problems/{problem_id}/submissions",
             get(get_problem_submissions),
@@ -165,6 +169,7 @@ async fn main() {
         )
         .route("/problems/{problem_id}/delete", delete(delete_problem))
         .route("/problems/my", get(get_my_problems))
+        .route("/problems/ws", get(problems_ws))
         .route("/problems/{problem_id}", get(get_problem_by_id_admin))
         .route(
             "/problems/{problem_id}/retest",
@@ -196,6 +201,7 @@ async fn main() {
 
     let owner_routes = Router::new()
         .route("/users", get(get_users))
+        .route("/users/ws", get(users_ws))
         .route("/users/{user_id}/private", get(get_private_user_profile))
         .route(
             "/users/{user_id}/update_admin_level",
@@ -225,6 +231,7 @@ async fn main() {
             get(download_submission),
         )
         .route("/users/{user_id}", get(get_public_user_profile))
+        .route("/users/{user_id}/ws", get(user_ws))
         .route("/users/me", get(get_my_user_profile))
         .route("/users/me/delete_account", delete(delete_my_account))
         .route("/contests", get(get_contests))

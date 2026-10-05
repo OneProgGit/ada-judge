@@ -118,3 +118,10 @@ pub struct ProblemQuestion {
     pub answer: String,
     pub created_at: DateTime<Utc>,
 }
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub enum ProblemsEvent {
+    NewProblem(i64),
+    ProblemUpdated(i64),
+    ProblemDeleted(i64),
+}

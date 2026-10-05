@@ -1,6 +1,6 @@
 [package]
 name = "aj-models"
-version = "0.10.12"
+version = "0.10.13"
 description = "Public data models for ada-judge frontends"
 license = "MIT"
 edition = "2024"
@@ -10,4 +10,4 @@ serde.workspace = true
 chrono.workspace = true
 sqlx.workspace = true
 sqlx.optional = true
-thiserror = "2.0.20"
+thiserror = "2.0.21"

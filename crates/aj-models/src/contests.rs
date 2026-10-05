@@ -74,7 +74,7 @@ pub struct ContestPost {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
-pub enum ContestEvent {
+pub enum ContestsEvent {
     NewPost(i64),
     PostUpdated(i64),
     PostDeleted(i64),
@@ -87,4 +87,6 @@ pub enum ContestEvent {
     NewProblemQuestion(i64),
     ProblemQuestionDeleted(i64),
     ProblemQuestionAnswered(i64),
+    NewSubmission(i64),
+    SubmissionUpdated(i64),
 }

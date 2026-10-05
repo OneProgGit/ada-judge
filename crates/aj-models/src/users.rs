@@ -41,3 +41,10 @@ pub enum AdminLevel {
     Admin,
     Owner,
 }
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub enum UsersEvent {
+    NewUser(i64),
+    UserUpdated(i64),
+    UserDeleted(i64),
+}

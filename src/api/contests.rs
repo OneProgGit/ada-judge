@@ -13,7 +13,7 @@ use crate::{
 use aj_models::{
     DeletionRequest,
     contests::{
-        ContestEvent, ContestPost, ContestPostRequest, ContestRequest, LeaderboardRow,
+        ContestPost, ContestPostRequest, ContestRequest, ContestsEvent, LeaderboardRow,
         PublicContestConfig,
     },
     errors::{AdaJudgeError, Contest, Deletion},
@@ -40,13 +40,6 @@ pub async fn contest_ws(
     Path(contest_id): Path<i64>,
 ) -> Result<Response, ApiError> {
     Ok(ws.on_upgrade(move |socket| handle_contests_socket(socket, state, Some(contest_id))))
-}
-
-pub async fn my_contests_ws(
-    ws: WebSocketUpgrade,
-    State(state): State<AppState>,
-) -> Result<Response, ApiError> {
-    Ok(ws.on_upgrade(move |socket| handle_contests_socket(socket, state, None)))
 }
 
 pub async fn contests_ws(
@@ -231,7 +224,7 @@ pub async fn create_contest(
         state
             .contests_subs
             .get(&None)
-            .map(|tx| tx.send(ContestEvent::NewContest(id)));
+            .map(|tx| tx.send(ContestsEvent::NewContest(id)));
         Ok(())
     }
 }
@@ -262,11 +255,11 @@ pub async fn update_contest(
         state
             .contests_subs
             .get(&None)
-            .map(|tx| tx.send(ContestEvent::ContestUpdated(contest_id)));
+            .map(|tx| tx.send(ContestsEvent::ContestUpdated(contest_id)));
         state
             .contests_subs
             .get(&Some(contest_id))
-            .map(|tx| tx.send(ContestEvent::ContestUpdated(contest_id)));
+            .map(|tx| tx.send(ContestsEvent::ContestUpdated(contest_id)));
         Ok(())
     }
 }
@@ -326,7 +319,7 @@ pub async fn delete_contest(
             state
                 .contests_subs
                 .get(&Some(contest_id))
-                .map(|tx| tx.send(ContestEvent::ContestDeleted(contest_id)));
+                .map(|tx| tx.send(ContestsEvent::ContestDeleted(contest_id)));
             state.contests_subs.remove(&Some(contest_id));
             Ok(())
         } else {
@@ -357,7 +350,7 @@ pub async fn create_contest_post(
     state
         .contests_subs
         .get(&Some(contest_id))
-        .map(|tx| tx.send(ContestEvent::NewPost(id)));
+        .map(|tx| tx.send(ContestsEvent::NewPost(id)));
     Ok(())
 }
 
@@ -384,7 +377,7 @@ pub async fn update_contest_post(
     state
         .contests_subs
         .get(&Some(post.contest_id))
-        .map(|tx| tx.send(ContestEvent::PostUpdated(post_id)));
+        .map(|tx| tx.send(ContestsEvent::PostUpdated(post_id)));
 
     Ok(())
 }
@@ -423,7 +416,7 @@ pub async fn delete_contest_post(
             state
                 .contests_subs
                 .get(&Some(contest.id))
-                .map(|tx| tx.send(ContestEvent::PostDeleted(post.id)));
+                .map(|tx| tx.send(ContestsEvent::PostDeleted(post.id)));
             Ok(())
         } else {
             Err(AdaJudgeError::Forbidden).map_http()?

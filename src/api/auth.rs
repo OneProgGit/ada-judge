@@ -5,7 +5,7 @@ use crate::middleware::auth::Auth;
 use crate::{app_state::AppState, crypt::verify_password};
 use aj_models::DeletionRequest;
 use aj_models::errors::{AdaJudgeError, AuthError, Deletion};
-use aj_models::users::{AdminLevel, LoginRequest, RegisterRequest};
+use aj_models::users::{AdminLevel, LoginRequest, RegisterRequest, UsersEvent};
 use axum::{Json, extract::State};
 use chrono::{Duration, Utc};
 use models::users::JwtClaims;
@@ -29,6 +29,10 @@ pub async fn register(
             .await
             .map_http()?;
     }
+    state
+        .users_subs
+        .get(&None)
+        .map(|tx| tx.send(UsersEvent::NewUser(user_id)));
 
     Ok(())
 }

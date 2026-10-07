@@ -10,6 +10,8 @@ use axum::{Json, extract::State};
 use chrono::{Duration, Utc};
 use models::users::JwtClaims;
 use std::env;
+use std::path::PathBuf;
+use tokio::fs;
 use tools::map::MapHttpExt;
 
 pub async fn register(
@@ -85,6 +87,17 @@ pub async fn delete_my_account(
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if is_valid_password {
+        let submissions = database::submissions::get_user_submissions(&state.db, auth.id)
+            .await
+            .map_http()?;
+        for submission in submissions {
+            let submission_id = submission.id;
+            fs::remove_dir_all(PathBuf::from(format!("/submissions_envs/{submission_id}")))
+                .await
+                .map_err(|_| AdaJudgeError::Internal)
+                .map_http()?;
+        }
+
         database::users::delete_user(&state.db, auth.id)
             .await
             .map_http()?;

@@ -299,6 +299,118 @@ pub async fn get_problem_submissions(
     Ok(submissions)
 }
 
+pub async fn get_user_submissions(
+    pool: &PgPool,
+    user_id: i64,
+) -> Result<Vec<Submission>, AdaJudgeError> {
+    let submissions = sqlx::query_as!(DatabaseSubmission,
+        r#"select
+                c.id,
+                c.problem_id as "problem_id!",
+                c.user_id as "user_id!",
+                users.login as user_login,
+                c.language as "language!: Language",
+                c.verdict as "verdict!: TestingVerdict",
+                c.score,
+                c.created_at,
+                coalesce(s.subgroups_results, '[]') as "subgroups_results!: Json<Vec<SubgroupResult>>",
+                coalesce(t.tests_results, '[]') as "tests_results!: Json<Vec<TestResult>>"
+            from submissions c
+            left join lateral (
+                select json_agg(
+                    json_build_object(
+                        'verdict', verdict,
+                        'test', test,
+                        'score', score
+                    ) order by subgroup_index
+                ) as subgroups_results
+                from submissions_subgroups_results
+                where submission_id = c.id
+            ) s on true
+            left join lateral (
+                select json_agg(
+                    json_build_object(
+                        'verdict', verdict,
+                        'score', score
+                    ) order by test
+                ) as tests_results
+                from submissions_tests_results
+                where submission_id = c.id
+            ) t on true
+            join users on users.id = c.user_id
+                join problems p on p.id = c.problem_id
+            where c.user_id = $1 order by c.id desc"#,
+            user_id
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?
+    .iter()
+    .map(|x| x.clone().into())
+    .collect();
+
+    Ok(submissions)
+}
+
+pub async fn get_contest_submissions(
+    pool: &PgPool,
+    contest_id: i64,
+) -> Result<Vec<Submission>, AdaJudgeError> {
+    let submissions = sqlx::query_as!(DatabaseSubmission,
+        r#"select
+                c.id,
+                c.problem_id as "problem_id!",
+                c.user_id as "user_id!",
+                users.login as user_login,
+                c.language as "language!: Language",
+                c.verdict as "verdict!: TestingVerdict",
+                c.score,
+                c.created_at,
+                coalesce(s.subgroups_results, '[]') as "subgroups_results!: Json<Vec<SubgroupResult>>",
+                coalesce(t.tests_results, '[]') as "tests_results!: Json<Vec<TestResult>>"
+            from submissions c
+            left join lateral (
+                select json_agg(
+                    json_build_object(
+                        'verdict', verdict,
+                        'test', test,
+                        'score', score
+                    ) order by subgroup_index
+                ) as subgroups_results
+                from submissions_subgroups_results
+                where submission_id = c.id
+            ) s on true
+            left join lateral (
+                select json_agg(
+                    json_build_object(
+                        'verdict', verdict,
+                        'score', score
+                    ) order by test
+                ) as tests_results
+                from submissions_tests_results
+                where submission_id = c.id
+            ) t on true
+            join users on users.id = c.user_id
+                join problems p on p.id = c.problem_id
+            where p.contest_id = $1 order by c.id desc"#,
+            contest_id
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+            _ => AdaJudgeError::Internal,
+        })?
+    .iter()
+    .map(|x| x.clone().into())
+    .collect();
+
+    Ok(submissions)
+}
+
 pub async fn delete_problem_subgroups_results(
     pool: &PgPool,
     problem_id: i64,

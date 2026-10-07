@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{api::ApiError, app_state::AppState, crypt::verify_password, middleware::auth::Auth};
 use aj_models::{
     DeletionRequest,
@@ -13,7 +15,7 @@ use axum::{
     response::Response,
 };
 use futures_util::{SinkExt, StreamExt};
-use tokio::sync::broadcast;
+use tokio::{fs, sync::broadcast};
 use tools::map::MapHttpExt;
 
 pub async fn my_user_ws(
@@ -152,6 +154,17 @@ pub async fn delete_user_account(
     let is_valid_password = verify_password(&auth.password_hash, &request.password).map_http()?;
 
     if is_valid_password {
+        let submissions = database::submissions::get_user_submissions(&state.db, user_id)
+            .await
+            .map_http()?;
+        for submission in submissions {
+            let submission_id = submission.id;
+            fs::remove_dir_all(PathBuf::from(format!("/submissions_envs/{submission_id}")))
+                .await
+                .map_err(|_| AdaJudgeError::Internal)
+                .map_http()?;
+        }
+
         database::users::delete_user(&state.db, user_id)
             .await
             .map_http()?;

@@ -40,12 +40,17 @@ async fn main() {
     tracing::info!("connected to Redis");
 
     let host_name = env::var("HOSTNAME").expect("environment variable HOSTNAME must be set");
+    let concurrency = env::var("CONCURRENCY").map_or(1, |concurrency| {
+        concurrency
+            .parse()
+            .expect("environment variable CONCURRENCY must be integer")
+    });
 
     let worker = WorkerBuilder::new(format!("worker-{host_name}"))
         .backend(backend)
         .data(pg_pool)
         .retry(RetryPolicy::retries(0))
-        .concurrency(5)
+        .concurrency(concurrency)
         .build(test_submission);
 
     worker.run().await.expect("worker failed");

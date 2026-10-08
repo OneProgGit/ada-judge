@@ -116,6 +116,13 @@ async fn main() {
         ])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(40u32)))
+        .finish()
+        .expect("faild to build governor config");
+
     let contest_started_routes_1 = Router::new()
         .route("/contests/{contest_id}/problems", get(get_contest_problems))
         .route("/contests/{contest_id}/ws", get(contest_ws))
@@ -123,7 +130,15 @@ async fn main() {
             state.clone(),
             ensure_contest_started_1,
         ))
-        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024))
+        .layer(GovernorLayer::new(governor_config));
+
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(40u32)))
+        .finish()
+        .expect("faild to build governor config");
 
     let contest_started_routes_2 = Router::new()
         .route(
@@ -134,7 +149,15 @@ async fn main() {
             state.clone(),
             ensure_contest_started_2,
         ))
-        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024))
+        .layer(GovernorLayer::new(governor_config));
+
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(40u32)))
+        .finish()
+        .expect("faild to build governor config");
 
     let leaderboard_routes = Router::new()
         .route(
@@ -145,7 +168,15 @@ async fn main() {
             state.clone(),
             ensure_contest_finished,
         ))
-        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024))
+        .layer(GovernorLayer::new(governor_config));
+
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(40u32)))
+        .finish()
+        .expect("faild to build governor config");
 
     let admin_routes = Router::new()
         .route("/contests/new", post(create_contest))
@@ -189,7 +220,15 @@ async fn main() {
             state.clone(),
             require_admin,
         ))
-        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024))
+        .layer(GovernorLayer::new(governor_config));
+
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(5u32)))
+        .finish()
+        .expect("faild to build governor config");
 
     let heavy_problem_routes = Router::new()
         .route("/problems/new", post(create_problem))
@@ -198,7 +237,15 @@ async fn main() {
             state.clone(),
             require_admin,
         ))
-        .layer(DefaultBodyLimit::max(1024 * 1024 * 1024));
+        .layer(DefaultBodyLimit::max(1024 * 1024 * 1024))
+        .layer(GovernorLayer::new(governor_config));
+
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(40u32)))
+        .finish()
+        .expect("faild to build governor config");
 
     let owner_routes = Router::new()
         .route("/users", get(get_users))
@@ -217,11 +264,29 @@ async fn main() {
             state.clone(),
             require_owner,
         ))
-        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024))
+        .layer(GovernorLayer::new(governor_config));
 
-    let default_routes = Router::new()
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_hour(nz!(5u32)))
+        .finish()
+        .expect("faild to build governor config");
+
+    let register_route = Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .layer(GovernorLayer::new(governor_config));
+
+    let governor_config = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(40u32)))
+        .finish()
+        .expect("faild to build governor config");
+
+    let default_routes = Router::new()
         .route(
             "/problems/{problem_id}/submissions/my",
             get(get_my_problem_submissions),
@@ -261,17 +326,12 @@ async fn main() {
             "/problems/questions/{question_id}",
             get(get_problem_question_by_id),
         )
-        .layer(DefaultBodyLimit::max(5 * 1024 * 1024));
-
-    let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
-        .expect_connect_info()
-        .quota_default(Quota::requests_per_minute(nz!(60u32)))
-        .finish()
-        .expect("faild to build governor config");
+        .layer(DefaultBodyLimit::max(5 * 1024 * 1024))
+        .layer(GovernorLayer::new(governor_config));
 
     let app = Router::new()
         .merge(default_routes)
+        .merge(register_route)
         .merge(contest_started_routes_1)
         .merge(contest_started_routes_2)
         .merge(leaderboard_routes)
@@ -281,7 +341,6 @@ async fn main() {
         .layer(Extension(Auth))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
-        .layer(GovernorLayer::new(governor_config))
         .with_state(state);
 
     let listener = TcpListener::bind("0.0.0.0:4444")

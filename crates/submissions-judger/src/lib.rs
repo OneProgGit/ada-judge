@@ -275,7 +275,7 @@ async fn test_subgroup(
             .await
             .map_err(|e| (e, test))?;
 
-        subgroup_result.test = test;
+        subgroup_result.test = Some(test);
         subgroup_result.verdict = test_verdict.clone();
 
         let test_result = TestResult {
@@ -358,7 +358,7 @@ pub async fn test_submission(
         });
         let mut subgroup_result = SubgroupResult {
             verdict: Verdict::Testing,
-            test: 0,
+            test: None,
             score: None,
         };
         database::submissions::create_subgroup_result(&pool, submission_id, subgroup_index)

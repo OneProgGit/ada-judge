@@ -50,7 +50,7 @@ pub struct TestingResult {
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct SubgroupResult {
     pub verdict: Verdict,
-    pub test: i32,
+    pub test: Option<i32>,
     pub score: Option<f64>,
 }
 

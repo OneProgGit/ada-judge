@@ -30,7 +30,7 @@ impl<T: Send> MapDbExt<T> for Result<T, TestingVerdict> {
                     subgroup_index,
                     &SubgroupResult {
                         verdict: Verdict::Fail,
-                        test,
+                        test: Some(test),
                         score: None,
                     },
                 )
@@ -72,7 +72,7 @@ impl<T: Send> MapDbExt<T> for Result<T, AdaJudgeError> {
                     subgroup_index,
                     &SubgroupResult {
                         verdict: Verdict::Fail,
-                        test,
+                        test: Some(test),
                         score: None,
                     },
                 )

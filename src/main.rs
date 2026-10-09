@@ -44,7 +44,7 @@ use axum::{
     http::{Method, header},
     routing::{delete, get, patch, post},
 };
-use axum_governor::{GovernorConfigBuilder, GovernorLayer, PeerIp, Quota, nz};
+use axum_governor::{GovernorConfigBuilder, GovernorLayer, Quota, SmartIp, nz};
 use dashmap::DashMap;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, net::SocketAddr, sync::Arc};
@@ -117,7 +117,7 @@ async fn main() {
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::default())
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
@@ -134,7 +134,7 @@ async fn main() {
         .layer(GovernorLayer::new(governor_config));
 
     let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::default())
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
@@ -153,7 +153,7 @@ async fn main() {
         .layer(GovernorLayer::new(governor_config));
 
     let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::default())
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
@@ -172,7 +172,7 @@ async fn main() {
         .layer(GovernorLayer::new(governor_config));
 
     let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::default())
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
@@ -224,7 +224,7 @@ async fn main() {
         .layer(GovernorLayer::new(governor_config));
 
     let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::default())
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(5u32)))
         .finish()
@@ -241,7 +241,7 @@ async fn main() {
         .layer(GovernorLayer::new(governor_config));
 
     let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::default())
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
@@ -268,7 +268,7 @@ async fn main() {
         .layer(GovernorLayer::new(governor_config));
 
     let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::default())
         .expect_connect_info()
         .quota_default(Quota::requests_per_hour(nz!(5u32)))
         .finish()
@@ -276,17 +276,17 @@ async fn main() {
 
     let register_route = Router::new()
         .route("/register", post(register))
-        .route("/login", post(login))
         .layer(GovernorLayer::new(governor_config));
 
     let governor_config = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::default())
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
         .expect("faild to build governor config");
 
     let default_routes = Router::new()
+        .route("/login", post(login))
         .route(
             "/problems/{problem_id}/submissions/my",
             get(get_my_problem_submissions),

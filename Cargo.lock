@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "ada-judge"
-version = "1.0.0-alpha6"
+version = "1.0.0-alpha7"
 dependencies = [
  "aj-models",
  "apalis",
@@ -56,7 +56,7 @@ dependencies = [
 
 [[package]]
 name = "aj-models"
-version = "0.10.14"
+version = "1.0.0-alpha7"
 dependencies = [
  "chrono",
  "serde",
@@ -81,13 +81,14 @@ dependencies = [
 
 [[package]]
 name = "apalis"
-version = "1.0.0-rc.9"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7780d1e7082500a4fdb463b0a6fc1c00e4012cd9b2af101c26fcabbb2f390f2c"
+checksum = "c4c83691f0f26716d21207e3fd154086a19cd25f7716133fa2f1260ffd73508d"
 dependencies = [
  "apalis-core",
  "futures-util",
  "pin-project",
+ "serde",
  "thiserror 2.0.21",
  "tower",
  "tracing",
@@ -95,9 +96,9 @@ dependencies = [
 
 [[package]]
 name = "apalis-codec"
-version = "0.1.0-rc.9"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c506e7f00c7c9c38eeb02290b3ec6328695f0614a257faefaeb8e8286746a665"
+checksum = "a2c9719cf1d2726f04dfa1d52076e9d1f198e2a226c1be07d0b6cfbc235bc609"
 dependencies = [
  "apalis-core",
  "serde",
@@ -106,9 +107,9 @@ dependencies = [
 
 [[package]]
 name = "apalis-core"
-version = "1.0.0-rc.9"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "797af42a40f6bc297365f2fed187b74d089c63641f57ce2a5e0f629db560cb47"
+checksum = "93a749c6487cede1a1ca503997f59fca75aeca305fcbf555d5a13606b1c7ecb1"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -116,31 +117,31 @@ dependencies = [
  "futures-timer",
  "futures-util",
  "pin-project",
+ "rand 0.10.3",
  "serde",
  "thiserror 2.0.21",
  "tower-layer",
  "tower-service",
  "tracing",
+ "ulid",
+ "uuid",
 ]
 
 [[package]]
 name = "apalis-redis"
-version = "1.0.0-rc.8"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10742f1eee3a77f221537f81304a881a695f853c015e61fe301bfd3da27756c8"
+checksum = "ea67c8cb8a2c5c71ff545bbcb63002e0b83f297bb789552fc900e1b650f460c1"
 dependencies = [
  "apalis-codec",
  "apalis-core",
- "chrono",
- "event-listener",
  "futures",
- "log",
  "redis",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
  "tokio",
- "tower",
+ "tracing",
  "ulid",
 ]
 
@@ -1805,9 +1806,9 @@ checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
 name = "redis"
-version = "1.7.0"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2acbc41a996f7652b2ddd9dfd98cc4ff602cfd742ae35382f07f608405ab50ed"
+checksum = "ed5b98ae99461e02895c3a96a25dbe4d852a3d5e5b815d31d5d9e4b5344d99e9"
 dependencies = [
  "arc-swap",
  "arcstr",
@@ -1915,9 +1916,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.151"
+version = "1.0.154"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
+checksum = "e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6"
 dependencies = [
  "itoa",
  "memchr",
@@ -1939,9 +1940,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6662b5879511e06e8999a8a235d848113e942c9124f211511b16466ee2995f26"
+checksum = "4e7523beb55eece201a2356bee0bbca0d1ab466c14c07703b2e0ee6d42cb0c2c"
 dependencies = [
  "serde_core",
 ]
@@ -2302,25 +2303,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "submissions-judger"
-version = "0.0.0"
-dependencies = [
- "aj-models",
- "apalis",
- "apalis-redis",
- "database",
- "fs_extra",
- "models",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tools",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "syn"
 version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2357,6 +2339,25 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
+]
+
+[[package]]
+name = "tester"
+version = "0.0.0"
+dependencies = [
+ "aj-models",
+ "apalis",
+ "apalis-redis",
+ "database",
+ "fs_extra",
+ "models",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tools",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2456,9 +2457,9 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 
 [[package]]
 name = "tokio"
-version = "1.53.2"
+version = "1.53.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e95f91fcc7a621e8b030f6aa23c71fe9838ae2fb4d8118b75602a328f5144044"
+checksum = "ce3335fa71841cda333a58d7615b03901380ecf09d59b3296d21f8bbac0dde4e"
 dependencies = [
  "bytes",
  "libc",
@@ -2506,9 +2507,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.19"
+version = "0.7.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "494815d09bf52b5548659851081238f0ca39ff638363907596da739561c62c52"
+checksum = "e464cf451ba96ebfc6f9b6542f17ee8b8956e33f1e40d9690624e59d7a7f8a4b"
 dependencies = [
  "bytes",
  "futures-core",
@@ -2520,9 +2521,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "1.1.6+spec-1.1.0"
+version = "1.1.8+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "920602543f0911ab71da12c50d59701da54c196d1a2bf5cb4b75667f137a406a"
+checksum = "20489e00e4d8741d6be680764cc12e270655e375a20d1011e844a9c3379e678d"
 dependencies = [
  "indexmap",
  "serde_core",
@@ -2535,27 +2536,27 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "1.1.1+spec-1.1.0"
+version = "1.1.2+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3165f65f62e28e0115a00b2ebdd37eb6f3b641855f9d636d3cd4103767159ad7"
+checksum = "2b86d767906c6c42421dcba507eb9d203e779497710a47782a224bb871653053"
 dependencies = [
  "serde_core",
 ]
 
 [[package]]
 name = "toml_parser"
-version = "1.1.3+spec-1.1.0"
+version = "1.1.5+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56"
+checksum = "baa693a8032d7e1cada7d0041e96126df243179ff061456783ac7f12bda4744c"
 dependencies = [
  "winnow",
 ]
 
 [[package]]
 name = "toml_writer"
-version = "1.1.2+spec-1.1.0"
+version = "1.1.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
+checksum = "06bdbd8cfc056b8d2e2e85f29b56a3bdbecb527cef81eb39e3e7b98af4652770"
 
 [[package]]
 name = "tools"
@@ -2701,12 +2702,13 @@ checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
 name = "ulid"
-version = "1.2.1"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "470dbf6591da1b39d43c14523b2b469c86879a53e8b758c8e090a470fe7b1fbe"
+checksum = "947dde63b6d514cc5e044edad4e0ca7261afd1099d16c83d942cb2b2f348689c"
 dependencies = [
- "rand 0.9.5",
+ "rand 0.10.3",
  "serde",
+ "uuid",
  "web-time",
 ]
 
@@ -2763,12 +2765,14 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "uuid"
-version = "1.27.0"
+version = "1.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97277d36b9c3ace13e58fa6e753f8b0bbbf302a18dd193240d70f9e29681059a"
+checksum = "7cc1186384beb7dd8eedea376413fd654937285ea6c9cfbb928dc3043ea4b606"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
+ "serde_core",
+ "sha1_smol",
  "wasm-bindgen",
 ]
 

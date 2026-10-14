@@ -11,7 +11,7 @@ use apalis::{
 use apalis_redis::RedisStorage;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
-use submissions_judger::test_submission;
+use tester::test_submission;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]

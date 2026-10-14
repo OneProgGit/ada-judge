@@ -7,13 +7,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ProblemConfig {
-    pub owner_id: Option<i64>,
     pub name_ru: String,
     pub name_en: String,
     pub r#type: ProblemType,
     pub testing_type: ProblemTestingType,
-    pub contest_id: i64,
-    pub index: i64,
     pub time_limit_ms: i32,
     pub memory_limit_mb: i32,
     pub checker_path: String,

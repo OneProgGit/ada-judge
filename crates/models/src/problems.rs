@@ -49,11 +49,8 @@ impl From<DatabaseProblemConfig> for PublicProblemConfig {
 impl From<DatabaseProblemConfig> for ProblemConfig {
     fn from(value: DatabaseProblemConfig) -> Self {
         Self {
-            owner_id: value.owner_id,
             r#type: value.r#type,
             testing_type: value.testing_type,
-            contest_id: value.contest_id,
-            index: value.index,
             name_ru: value.name_ru,
             name_en: value.name_en,
             time_limit_ms: value.time_limit_ms,

@@ -163,7 +163,9 @@ pub async fn get_problems(
 pub async fn create_problem(
     pool: &PgPool,
     owner_id: i64,
+    contest_id: i64,
     problem: &ProblemConfig,
+    problem_index: i64,
 ) -> Result<i64, AdaJudgeError> {
     let mut tx = pool.begin().await.map_err(|_| AdaJudgeError::Internal)?;
 
@@ -174,8 +176,8 @@ pub async fn create_problem(
         owner_id,
         problem.r#type.clone() as ProblemType,
         problem.testing_type.clone() as ProblemTestingType,
-        problem.contest_id,
-        problem.index,
+        contest_id,
+        problem_index,
         &problem.name_ru,
         &problem.name_en,
         problem.time_limit_ms,
@@ -238,6 +240,8 @@ pub async fn create_problem(
 pub async fn update_problem(
     pool: &PgPool,
     problem_id: i64,
+    problem_index: i64,
+    contest_id: i64,
     problem: &ProblemConfig,
 ) -> Result<(), AdaJudgeError> {
     let mut tx = pool.begin().await.map_err(|_| AdaJudgeError::Internal)?;
@@ -247,8 +251,8 @@ pub async fn update_problem(
                                 name_ru = $5, name_en = $6, time_limit_ms = $7, memory_limit_mb = $8,
                                 checker_path = $9, checker_lang = $10, tests_path = $11 where id = $12"#, problem.r#type.clone() as ProblemType,
         problem.testing_type.clone() as ProblemTestingType,
-        problem.contest_id,
-        problem.index,
+        contest_id,
+        problem_index,
         &problem.name_ru,
         &problem.name_en,
         problem.time_limit_ms,

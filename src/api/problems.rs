@@ -159,27 +159,47 @@ fn validate_subgroups(config: &ProblemConfig) -> Result<(), AdaJudgeError> {
 pub async fn create_problem(
     State(state): State<AppState>,
     Auth(auth): Auth,
+    Path(contest_id): Path<i64>,
     mut multipart: Multipart,
 ) -> Result<(), ApiError> {
     let mut file_stream: Option<Bytes> = None;
+    let mut problem_index: Option<i64> = None;
     while let Some(field) = multipart
         .next_field()
         .await
         .map_err(|_| AdaJudgeError::BadRequest)
         .map_http()?
     {
-        if field.name() == Some("problem_archive") {
-            file_stream = Some(
-                field
-                    .bytes()
+        match field.name() {
+            Some("problem_index") => {
+                let text = field
+                    .text()
                     .await
                     .map_err(|_| AdaJudgeError::BadRequest)
-                    .map_http()?,
-            );
+                    .map_http()?;
+                problem_index = Some(
+                    serde_json::from_str(&text)
+                        .map_err(|_| AdaJudgeError::BadRequest)
+                        .map_http()?,
+                );
+            }
+            Some("problem_archive") => {
+                file_stream = Some(
+                    field
+                        .bytes()
+                        .await
+                        .map_err(|_| AdaJudgeError::BadRequest)
+                        .map_http()?,
+                );
+            }
+            _ => {}
         }
     }
 
     let Some(file_stream) = file_stream else {
+        return Err(AdaJudgeError::BadRequest).map_http()?;
+    };
+    let Some(problem_index) = problem_index else {
         return Err(AdaJudgeError::BadRequest).map_http()?;
     };
 
@@ -217,22 +237,7 @@ pub async fn create_problem(
         .map_cleanup(&problem_path)
         .await
         .map_http()?;
-    match config.owner_id {
-        None => {
-            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId))
-                .map_cleanup(&problem_path)
-                .await
-                .map_http()?;
-        }
-        Some(owner_id) if owner_id != auth.id => {
-            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId))
-                .map_cleanup(&problem_path)
-                .await
-                .map_http()?;
-        }
-        _ => {}
-    }
-    let contest = database::contests::get_contest(&state.db, config.contest_id)
+    let contest = database::contests::get_contest(&state.db, contest_id)
         .await
         .map_cleanup(&problem_path)
         .await
@@ -259,11 +264,12 @@ pub async fn create_problem(
         .map_cleanup(&problem_path)
         .await
         .map_http()?;
-    let problem_id = database::problems::create_problem(&state.db, auth.id, &config)
-        .await
-        .map_cleanup(&problem_path)
-        .await
-        .map_http()?;
+    let problem_id =
+        database::problems::create_problem(&state.db, auth.id, contest_id, &config, problem_index)
+            .await
+            .map_cleanup(&problem_path)
+            .await
+            .map_http()?;
     let new_problem_path = PathBuf::from(format!("/problems/{problem_id}"));
     let new_problem_archive_path = PathBuf::from(format!("/problems/{problem_id}.zip"));
 
@@ -295,24 +301,43 @@ pub async fn update_problem(
     mut multipart: Multipart,
 ) -> Result<(), ApiError> {
     let mut file_stream: Option<Bytes> = None;
+    let mut problem_index: Option<i64> = None;
     while let Some(field) = multipart
         .next_field()
         .await
         .map_err(|_| AdaJudgeError::BadRequest)
         .map_http()?
     {
-        if field.name() == Some("problem_archive") {
-            file_stream = Some(
-                field
-                    .bytes()
+        match field.name() {
+            Some("problem_index") => {
+                let text = field
+                    .text()
                     .await
                     .map_err(|_| AdaJudgeError::BadRequest)
-                    .map_http()?,
-            );
+                    .map_http()?;
+                problem_index = Some(
+                    serde_json::from_str(&text)
+                        .map_err(|_| AdaJudgeError::BadRequest)
+                        .map_http()?,
+                );
+            }
+            Some("problem_archive") => {
+                file_stream = Some(
+                    field
+                        .bytes()
+                        .await
+                        .map_err(|_| AdaJudgeError::BadRequest)
+                        .map_http()?,
+                );
+            }
+            _ => {}
         }
     }
 
     let Some(file_stream) = file_stream else {
+        return Err(AdaJudgeError::BadRequest).map_http()?;
+    };
+    let Some(problem_index) = problem_index else {
         return Err(AdaJudgeError::BadRequest).map_http()?;
     };
 
@@ -350,28 +375,18 @@ pub async fn update_problem(
         .map_cleanup(&problem_path)
         .await
         .map_http()?;
-    match config.owner_id {
-        None => {
-            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId))
-                .map_cleanup(&problem_path)
-                .await
-                .map_http()?;
-        }
-        Some(owner_id) if owner_id != auth.id => {
-            return Err(AdaJudgeError::InvalidProblem(InvalidProblem::OwnerId))
-                .map_cleanup(&problem_path)
-                .await
-                .map_http()?;
-        }
-        _ => {}
-    }
-    let contest = database::contests::get_contest(&state.db, config.contest_id)
+    let problem = database::problems::get_problem(&state.db, problem_id)
+        .await
+        .map_cleanup(&problem_path)
+        .await
+        .map_http()?;
+    let contest = database::contests::get_contest(&state.db, problem.contest_id)
         .await
         .map_cleanup(&problem_path)
         .await
         .map_http()?;
     if !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
-        && !is_allowed(auth.id, config.owner_id, &auth.admin_level)
+        && !is_allowed(auth.id, problem.owner_id, &auth.admin_level)
     {
         return Err(AdaJudgeError::Forbidden)
             .map_cleanup(&problem_path)
@@ -410,7 +425,7 @@ pub async fn update_problem(
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
-    database::problems::update_problem(&state.db, problem_id, &config)
+    database::problems::update_problem(&state.db, problem_id, problem_index, contest.id, &config)
         .await
         .map_cleanup(&new_problem_path)
         .await

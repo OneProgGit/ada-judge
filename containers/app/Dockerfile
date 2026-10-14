@@ -15,11 +15,11 @@ COPY --from=cacher /usr/src/app/target /usr/src/app/target
 COPY . .
 RUN cargo build --release -p ada-judge
 
-FROM chef AS builder-submissions-judger
+FROM chef AS builder-tester
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 COPY --from=cacher /usr/src/app/target /usr/src/app/target
 COPY . .
-RUN cargo build --release -p submissions-judger
+RUN cargo build --release -p tester
 
 FROM debian:trixie-slim AS main
 WORKDIR /usr/local/bin
@@ -45,7 +45,7 @@ USER 1000:1000
 
 CMD ["./ada-judge"]
 
-FROM debian:trixie-slim AS submissions-judger
+FROM debian:trixie-slim AS tester
 WORKDIR /usr/local/bin
 
 # Install docker & other required system packages
@@ -54,7 +54,7 @@ RUN apt-get update && apt-get install -y \
     xz-utils gcc g++ make libgmp-dev libffi-dev libncurses-dev libtinfo-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder-submissions-judger /usr/src/app/target/release/submissions-judger ./submissions-judger
+COPY --from=builder-tester /usr/src/app/target/release/tester ./tester
 
 ARG DOCKER_GID
 
@@ -67,4 +67,4 @@ RUN groupadd --gid 1000 runner \
 
 USER 1000:1000
 
-CMD ["./submissions-judger"]
+CMD ["./tester"]

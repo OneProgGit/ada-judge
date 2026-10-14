@@ -231,7 +231,7 @@ async fn main() {
         .expect("faild to build governor config");
 
     let heavy_problem_routes = Router::new()
-        .route("/problems/new", post(create_problem))
+        .route("/contests/{contest_id}/problems/new", post(create_problem))
         .route("/problems/{problem_id}/update", patch(update_problem))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

@@ -279,11 +279,10 @@ pub async fn create_problem(
         .contests_subs
         .get(&Some(contest.id))
         .map(|tx| tx.send(ContestsEvent::NewProblem(problem_id)));
-    state
+    _ = state
         .problems_subs
         .send(ProblemsEvent::NewProblem(problem_id))
-        .map_err(|_| AdaJudgeError::Internal)
-        .map_http()?;
+        .map_err(|_| AdaJudgeError::Internal);
 
     Ok(())
 }
@@ -420,11 +419,10 @@ pub async fn update_problem(
         .contests_subs
         .get(&Some(contest.id))
         .map(|tx| tx.send(ContestsEvent::ProblemUpdated(problem_id)));
-    state
+    _ = state
         .problems_subs
         .send(ProblemsEvent::ProblemUpdated(problem_id))
-        .map_err(|_| AdaJudgeError::Internal)
-        .map_http()?;
+        .map_err(|_| AdaJudgeError::Internal);
 
     Ok(())
 }

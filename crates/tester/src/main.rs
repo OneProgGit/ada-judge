@@ -49,7 +49,7 @@ async fn main() {
     let worker = WorkerBuilder::new(format!("worker-{host_name}"))
         .backend(backend)
         .data(pg_pool)
-        .retry(RetryPolicy::retries(0))
+        .retry(RetryPolicy::retries(3))
         .concurrency(concurrency)
         .build(test_submission);
 

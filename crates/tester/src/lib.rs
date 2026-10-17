@@ -338,11 +338,14 @@ pub async fn test_submission(
         &config,
         &submission.language,
     );
-    compile_solution(&run_path, &tests_paths, &submission)
+    if compile_solution(&run_path, &tests_paths, &submission)
         .await
         .map_db(&pool, submission_id, None)
-        .await?;
-
+        .await
+        .is_err()
+    {
+        return Ok(());
+    }
     let mut total_score = 0.;
     let mut max_score = 0.;
     let mut subgroups_results: Vec<SubgroupResult> = Vec::with_capacity(config.subgroups.len());

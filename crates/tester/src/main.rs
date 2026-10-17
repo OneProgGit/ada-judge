@@ -12,11 +12,12 @@ use apalis_redis::RedisStorage;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 use tester::test_submission;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
+        .with(EnvFilter::from_env("LOG_LEVEL"))
         .with(tracing_subscriber::fmt::layer())
         .init();
 

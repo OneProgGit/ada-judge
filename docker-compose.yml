@@ -60,6 +60,7 @@ services:
       HOST_RUNS_DIR: ${PWD}
       SANDBOX_IMAGE: ${SANDBOX_IMAGE}
       CONCURRENCY: ${CONCURRENCY:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-"info"}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./submissions_envs:/submissions_envs
@@ -87,6 +88,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP_HOURS: ${JWT_EXP_HOURS}
       SANDBOX_IMAGE: ${SANDBOX_IMAGE}
+      LOG_LEVEL: ${LOG_LEVEL:-"info"}
     ports:
       - "4444:4444"
     volumes:

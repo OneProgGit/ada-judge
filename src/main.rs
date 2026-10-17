@@ -56,7 +56,7 @@ use tower_http::{
     cors::{Any, CorsLayer},
     trace::TraceLayer,
 };
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
 mod app_state;
@@ -70,6 +70,7 @@ mod tools;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
+        .with(EnvFilter::from_env("LOG_LEVEL"))
         .with(tracing_subscriber::fmt::layer())
         .init();
 

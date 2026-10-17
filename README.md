@@ -43,8 +43,10 @@ JWT_EXP_HOURS=
 SANDBOX_IMAGE=
 # Number of parallel workers 
 WORKERS_COUNT=
-# Max number of in-flight requests for each worker (optional)
+# Max number of in-flight requests for each worker (default 1)
 CONCURRENCY=
+# Logging level (default "info")
+LOG_LEVEL=
 # Database url (for dev)
 DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB}
 ```

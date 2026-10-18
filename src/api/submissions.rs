@@ -109,10 +109,11 @@ pub async fn download_submission(
     } else {
         let file_ext = &submission.language.file_ext();
         let file_path = PathBuf::from(format!("/submissions_envs/{submission_id}/run.{file_ext}"));
-        let file = File::open(&file_path)
-            .await
-            .map_err(|_| AdaJudgeError::Internal)
-            .map_http()?;
+        let file = File::open(&file_path).await.map_err(|error| {
+            tracing::error!(submission_id, %error, path = %file_path.display(), "failed to open submission file");
+            AdaJudgeError::Internal
+        })
+        .map_http()?;
         let stream = ReaderStream::new(file);
         let body = Body::from_stream(stream);
 
@@ -180,6 +181,13 @@ pub async fn submit(
     if !is_contest_active(&state.db, auth.id, contest_id, problem_id, auth.admin_level).await {
         return Err(AdaJudgeError::Forbidden).map_http()?;
     }
+    tracing::info!(
+        user_id = auth.id,
+        contest_id,
+        problem_id,
+        language = ?submission.language,
+        "submission received"
+    );
     let submission_id = database::submissions::create_submission(
         &state.db,
         auth.id,
@@ -191,7 +199,10 @@ pub async fn submit(
     let run_dir = PathBuf::from("/submissions_envs").join(submission_id.to_string());
     fs::create_dir(run_dir.clone())
         .await
-        .map_err(|_| AdaJudgeError::Internal)
+        .map_err(|error| {
+            tracing::error!(submission_id, %error, dir = %run_dir.display(), "failed to create run directory");
+            AdaJudgeError::Internal
+        })
         .map_db(&state.db, submission_id, None)
         .await
         .map_err(|_| AdaJudgeError::Internal)
@@ -199,7 +210,10 @@ pub async fn submit(
     let run_path = run_dir.join(format!("run.{}", submission.language.file_ext()));
     let mut run_file = File::create(run_path)
         .await
-        .map_err(|_| AdaJudgeError::Internal)
+        .map_err(|error| {
+            tracing::error!(submission_id, %error, "failed to create solution file");
+            AdaJudgeError::Internal
+        })
         .map_db(&state.db, submission_id, None)
         .await
         .map_err(|_| AdaJudgeError::Internal)
@@ -207,7 +221,10 @@ pub async fn submit(
     run_file
         .write_all(&file_stream)
         .await
-        .map_err(|_| AdaJudgeError::Internal)
+        .map_err(|error| {
+            tracing::error!(submission_id, %error, "failed to write solution file");
+            AdaJudgeError::Internal
+        })
         .map_db(&state.db, submission_id, None)
         .await
         .map_err(|_| AdaJudgeError::Internal)
@@ -215,7 +232,10 @@ pub async fn submit(
     run_file
         .flush()
         .await
-        .map_err(|_| AdaJudgeError::Internal)
+        .map_err(|error| {
+            tracing::error!(submission_id, %error, "failed to flush solution file");
+            AdaJudgeError::Internal
+        })
         .map_http()?;
 
     let submission_task = SubmissionTask {
@@ -232,11 +252,16 @@ pub async fn submit(
         .await
         .push(submission_task)
         .await
-        .map_err(|_| AdaJudgeError::Internal)
+        .map_err(|error| {
+            tracing::error!(submission_id, %error, "failed to enqueue submission");
+            AdaJudgeError::Internal
+        })
         .map_db(&state.db, submission_id, None)
         .await
         .map_err(|_| AdaJudgeError::Internal)
         .map_http()?;
+
+    tracing::info!(submission_id, "submission enqueued");
 
     Ok(Json(submission_id))
 }
@@ -287,11 +312,20 @@ pub async fn retest_problem_submissions(
             .await
             .push(submission_task)
             .await
-            .map_err(|_| AdaJudgeError::Internal)
+            .map_err(|error| {
+                tracing::error!(submission_id = submission.id, %error, "failed to enqueue submission for retest");
+                AdaJudgeError::Internal
+            })
             .map_db(&state.db, submission.id, None)
             .await
             .map_err(|_| AdaJudgeError::Forbidden)
             .map_http()?;
+
+        tracing::info!(
+            submission_id = submission.id,
+            problem_id,
+            "submission enqueued for retest"
+        );
     }
     Ok(())
 }

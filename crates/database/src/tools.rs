@@ -19,9 +19,18 @@ pub trait MapDbExt<T> {
 impl<T: Send> MapDbExt<T> for Result<T, TestingVerdict> {
     async fn map_db(self, pool: &PgPool, submission_id: i64, subgroup: Option<(i32, i32)>) -> Self {
         if let Err(verdict) = &self {
+            tracing::error!(
+                submission_id,
+                verdict = %verdict,
+                subgroup = ?subgroup,
+                "submission step failed"
+            );
             update_submission(pool, submission_id, verdict, 0.)
                 .await
-                .map_err(|_| TestingVerdict::Fail)?;
+                .map_err(|error| {
+                    tracing::error!(submission_id, %error, "failed to record testing verdict");
+                    TestingVerdict::Fail
+                })?;
             if let Some(subgroup) = subgroup {
                 let (subgroup_index, test) = subgroup;
                 update_subgroup_result(
@@ -60,10 +69,19 @@ impl<T: Send> MapDbExt<T> for Result<T, AdaJudgeError> {
         submission_id: i64,
         subgroup: Option<(i32, i32)>,
     ) -> Result<T, TestingVerdict> {
-        if self.is_err() {
+        if let Err(error) = &self {
+            tracing::error!(
+                submission_id,
+                %error,
+                subgroup = ?subgroup,
+                "database operation failed while testing"
+            );
             update_submission(pool, submission_id, &TestingVerdict::Fail, 0.)
                 .await
-                .map_err(|_| TestingVerdict::Fail)?;
+                .map_err(|update_error| {
+                    tracing::error!(submission_id, %update_error, "failed to record testing verdict");
+                    TestingVerdict::Fail
+                })?;
             if let Some(subgroup) = subgroup {
                 let (subgroup_index, test) = subgroup;
                 update_subgroup_result(

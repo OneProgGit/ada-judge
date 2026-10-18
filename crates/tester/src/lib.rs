@@ -271,9 +271,15 @@ async fn test_subgroup(
             continue;
         }
 
-        let test_verdict = get_test_verdict(config, tests_paths, test)
-            .await
-            .map_err(|e| (e, test))?;
+        let test_verdict = match get_test_verdict(config, tests_paths, test).await {
+            Ok(test_verdict) => test_verdict,
+            Err(error) => {
+                tracing::error!(submission_id, test, verdict = %error, "test failed");
+                return Err((error, test));
+            }
+        };
+
+        tracing::debug!(submission_id, test, verdict = ?test_verdict, "test completed");
 
         subgroup_result.test = Some(test);
         subgroup_result.verdict = test_verdict.clone();
@@ -320,12 +326,19 @@ pub async fn test_submission(
     pool: Data<PgPool>,
 ) -> Result<(), BoxDynError> {
     let submission_id = submission.id;
+    let problem_id = submission.problem_id;
+    tracing::info!(
+        submission_id,
+        problem_id,
+        language = ?submission.language,
+        "processing submission"
+    );
+
     database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Compiling, 0.)
         .await
         .map_db(&pool, submission_id, None)
         .await?;
 
-    let problem_id = submission.problem_id;
     let run_path = submission.run_dir.clone();
     let config = get_problem(&pool, problem_id)
         .await
@@ -344,6 +357,7 @@ pub async fn test_submission(
         .await
         .is_err()
     {
+        tracing::warn!(submission_id, "solution compilation failed");
         return Ok(());
     }
     let mut total_score = 0.;
@@ -351,6 +365,11 @@ pub async fn test_submission(
     let mut subgroups_results: Vec<SubgroupResult> = Vec::with_capacity(config.subgroups.len());
     database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Testing, 0.)
         .await?;
+    tracing::info!(
+        submission_id,
+        subgroups = config.subgroups.len(),
+        "running tests"
+    );
     for (i, subgroup) in config.subgroups.clone().iter().enumerate() {
         let subgroup_index = i as i32;
         max_score += subgroup.score.unwrap_or_else(|| {
@@ -425,18 +444,29 @@ pub async fn test_submission(
         .await
         .map_db(&pool, submission_id, None)
         .await?;
+
+        tracing::debug!(
+            submission_id,
+            subgroup_index,
+            verdict = ?subgroup_result.verdict,
+            score = ?subgroup_result.score,
+            "subgroup tested"
+        );
     }
-    database::submissions::update_submission(
-        &pool,
+    let verdict = if (total_score - max_score).abs() < EPS {
+        &TestingVerdict::Ok
+    } else {
+        &TestingVerdict::PartialSolution
+    };
+    database::submissions::update_submission(&pool, submission_id, verdict, total_score).await?;
+
+    tracing::info!(
         submission_id,
-        if (total_score - max_score).abs() < EPS {
-            &TestingVerdict::Ok
-        } else {
-            &TestingVerdict::PartialSolution
-        },
-        total_score,
-    )
-    .await?;
+        verdict = %verdict,
+        score = total_score,
+        max_score,
+        "submission tested"
+    );
 
     Ok(())
 }

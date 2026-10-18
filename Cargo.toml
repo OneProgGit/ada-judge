@@ -48,7 +48,7 @@ models = { path = "crates/models" }
 tools = { path = "crates/tools" }
 database = { path = "crates/database" }
 axum = { version = "0.8.9", features = ["json", "multipart", "ws"] }
-tokio = { version = "1.53.3", features = ["rt-multi-thread", "process", "macros"] }
+tokio = { version = "1.53.3", features = ["rt-multi-thread", "process", "macros", "time"] }
 sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "chrono", "macros"] }
 apalis-redis = "1.0.0"
 apalis = "1.0.0"

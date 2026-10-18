@@ -74,25 +74,38 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
+    tracing::info!(%log_level, "starting ada-judge API");
+
     let postgres_url =
         env::var("DATABASE_URL").expect("environment variable DATABASE_URL must be set");
-    let pg_pool = PgPoolOptions::new()
+    let pg_pool = match PgPoolOptions::new()
         .max_connections(10)
         .connect(&postgres_url)
         .await
-        .expect("failed to connect to PostgreSQL");
+    {
+        Ok(pg_pool) => pg_pool,
+        Err(error) => {
+            tracing::error!(%error, "failed to connect to PostgreSQL");
+            std::process::exit(1);
+        }
+    };
 
-    sqlx::migrate!()
-        .run(&pg_pool)
-        .await
-        .expect("failed to run database migrations");
+    if let Err(error) = sqlx::migrate!().run(&pg_pool).await {
+        tracing::error!(%error, "failed to run database migrations");
+        std::process::exit(1);
+    }
 
     tracing::info!("connected to PostgreSQL");
 
     let redis_url = env::var("REDIS_URL").expect("environment variable REDIS_URL must be set");
-    let redis_pool = apalis_redis::connect(redis_url)
-        .await
-        .expect("failed to connect to Redis");
+    let redis_pool = match apalis_redis::connect(redis_url).await {
+        Ok(redis_pool) => redis_pool,
+        Err(error) => {
+            tracing::error!(%error, "failed to connect to Redis");
+            std::process::exit(1);
+        }
+    };
 
     let apalis_backend = RedisStorage::new(redis_pool);
 
@@ -344,14 +357,23 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let listener = TcpListener::bind("0.0.0.0:4444")
-        .await
-        .expect("failed to bind TCP listener");
+    let listener = match TcpListener::bind("0.0.0.0:4444").await {
+        Ok(listener) => listener,
+        Err(error) => {
+            tracing::error!(%error, "failed to bind TCP listener");
+            std::process::exit(1);
+        }
+    };
 
-    axum::serve(
+    tracing::info!("API listening on 0.0.0.0:4444");
+
+    if let Err(error) = axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .await
-    .expect("failed to serve application");
+    {
+        tracing::error!(%error, "failed to serve application");
+        std::process::exit(1);
+    }
 }

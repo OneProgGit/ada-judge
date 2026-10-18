@@ -1,6 +1,7 @@
 use std::{
     env,
     path::{Path, PathBuf},
+    process::Stdio,
 };
 
 use aj_models::{testing::Language, verdicts::TestingVerdict};
@@ -47,7 +48,7 @@ pub async fn compile_solution(
         .to_string_lossy()
         .to_string();
 
-    let mut compile_cmd = Command::new("docker")
+    let compilation_result = Command::new("docker")
         .args([
             "run",
             "--rm",
@@ -112,16 +113,23 @@ pub async fn compile_solution(
             Language::FreePascal => vec![compile_cmd, "-O2", &solution_source_path],
             Language::Unknown => unreachable!(),
         })
-        .spawn()
-        .map_err(|_| TestingVerdict::CompilationError)?;
-    let compilation_result = compile_cmd
-        .wait()
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .output()
         .await
-        .map_err(|_| TestingVerdict::CompilationError)?;
-
-    _ = compile_cmd.kill();
-    match compilation_result.code() {
+        .map_err(|error| {
+            tracing::error!(%error, "failed to run compilation sandbox");
+            TestingVerdict::CompilationError
+        })?;
+    match compilation_result.status.code() {
         Some(0) => Ok(()),
-        _ => Err(TestingVerdict::CompilationError),
+        code => {
+            tracing::warn!(
+                ?code,
+                stderr = %String::from_utf8_lossy(&compilation_result.stderr),
+                "solution compilation failed"
+            );
+            Err(TestingVerdict::CompilationError)
+        }
     }
 }

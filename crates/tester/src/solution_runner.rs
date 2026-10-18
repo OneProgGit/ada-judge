@@ -13,14 +13,21 @@ pub async fn get_solution_verdict(
     input_path: &Path,
     tests_paths: &TestsPaths,
 ) -> Result<Verdict, TestingVerdict> {
-    let stdin_file = File::open(input_path)
-        .await
-        .map_err(|_| TestingVerdict::Fail)?;
+    let stdin_file = File::open(input_path).await.map_err(|error| {
+        tracing::error!(%error, path = %input_path.display(), "failed to open test input");
+        TestingVerdict::Fail
+    })?;
     let stdout_file = File::create(tests_paths.output.clone())
         .await
-        .map_err(|_| TestingVerdict::Fail)?;
+        .map_err(|error| {
+            tracing::error!(%error, path = %tests_paths.output.display(), "failed to create test output");
+            TestingVerdict::Fail
+        })?;
 
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|error| {
+        tracing::error!(%error, "SANDBOX_IMAGE is not set");
+        TestingVerdict::Fail
+    })?;
 
     let solution_cmd = Command::new("docker")
         .args([
@@ -65,12 +72,19 @@ pub async fn get_solution_verdict(
 
     let solution_status = solution_cmd.await;
 
-    solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
-        match status.code() {
+    solution_status.map_or_else(
+        |error| {
+            tracing::error!(%error, "failed to run solution sandbox");
+            Ok(Verdict::TimeLimitExceeded)
+        },
+        |status| match status.code() {
             Some(VERDICT_OK) => Ok(Verdict::Ok),
             Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
             Some(VERDICT_TLE) | None => Ok(Verdict::TimeLimitExceeded),
-            Some(_code) => Ok(Verdict::RuntimeError),
-        }
-    })
+            Some(code) => {
+                tracing::debug!(code, "solution exited with non-verdict code");
+                Ok(Verdict::RuntimeError)
+            }
+        },
+    )
 }

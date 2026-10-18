@@ -20,9 +20,10 @@ pub async fn get_interactive_verdict(
     answer_path: &Path,
     tests_paths: &TestsPaths,
 ) -> Result<Verdict, TestingVerdict> {
-    fs::create_dir_all(&tests_paths.fifo)
-        .await
-        .map_err(|_| TestingVerdict::Fail)?;
+    fs::create_dir_all(&tests_paths.fifo).await.map_err(|error| {
+        tracing::error!(%error, path = %tests_paths.fifo.display(), "failed to create fifo directory");
+        TestingVerdict::Fail
+    })?;
 
     let checker_to_solution = format!("{}/checker_to_solution", tests_paths.fifo.display());
     let solution_to_checker = format!("{}/solution_to_checker", tests_paths.fifo.display());
@@ -41,16 +42,20 @@ pub async fn get_interactive_verdict(
             .arg(path)
             .status()
             .await
-            .map_err(|_| TestingVerdict::Fail)?;
+            .map_err(|error| {
+                tracing::error!(%error, path = %path, "failed to run mkfifo");
+                TestingVerdict::Fail
+            })?;
         if !status.success() {
-            return Err(TestingVerdict::Fail);
-        }
-        if !status.success() {
+            tracing::error!(%status, path = %path, "mkfifo failed");
             return Err(TestingVerdict::Fail);
         }
     }
 
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|error| {
+        tracing::error!(%error, "SANDBOX_IMAGE is not set");
+        TestingVerdict::Fail
+    })?;
 
     let mut checker_child = Command::new("docker")
         .args([
@@ -103,7 +108,10 @@ pub async fn get_interactive_verdict(
             "/sandbox/answer",
         ])
         .spawn()
-        .map_err(|_| TestingVerdict::Fail)?;
+        .map_err(|error| {
+            tracing::error!(%error, "failed to start sandbox process");
+            TestingVerdict::Fail
+        })?;
 
     let opened = tokio::select! {
         opened = async {
@@ -118,14 +126,25 @@ pub async fn get_interactive_verdict(
     let (checker_to_solution_read, solution_to_checker_write) = if let Some((read, write)) = opened
     {
         (
-            read.map_err(|_| TestingVerdict::Fail)?.into_std().await,
-            write.map_err(|_| TestingVerdict::Fail)?.into_std().await,
+            read.map_err(|error| {
+                tracing::error!(%error, "failed to open checker->solution fifo");
+                TestingVerdict::Fail
+            })?
+            .into_std()
+            .await,
+            write
+                .map_err(|error| {
+                    tracing::error!(%error, "failed to open solution->checker fifo");
+                    TestingVerdict::Fail
+                })?
+                .into_std()
+                .await,
         )
     } else {
-        let status = checker_child
-            .wait()
-            .await
-            .map_err(|_| TestingVerdict::Fail)?;
+        let status = checker_child.wait().await.map_err(|error| {
+            tracing::error!(%error, "failed to wait for checker sandbox");
+            TestingVerdict::Fail
+        })?;
         return match status.code() {
             Some(VERDICT_TLE) => Ok(Verdict::TimeLimitExceeded),
             _ => Err(TestingVerdict::Fail),
@@ -170,26 +189,43 @@ pub async fn get_interactive_verdict(
         .stdin(Stdio::from(checker_to_solution_read))
         .stdout(Stdio::from(solution_to_checker_write))
         .spawn()
-        .map_err(|_| TestingVerdict::Fail)?;
+        .map_err(|error| {
+            tracing::error!(%error, "failed to start sandbox process");
+            TestingVerdict::Fail
+        })?;
 
     let (checker_status, solution_status) =
         tokio::join!(checker_child.wait(), solution_child.wait());
 
-    solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
-        match status.code() {
-            Some(VERDICT_OK) => {
-                checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
+    solution_status.map_or_else(
+        |error| {
+            tracing::error!(%error, "failed to run solution sandbox");
+            Ok(Verdict::TimeLimitExceeded)
+        },
+        |status| match status.code() {
+            Some(VERDICT_OK) => checker_status.map_or_else(
+                |error| {
+                    tracing::error!(%error, "failed to run checker sandbox");
+                    Err(TestingVerdict::Fail)
+                },
+                |status| match status.code() {
                     Some(CHECKER_OK) => Ok(Verdict::Ok),
                     Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
                     Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-                    _ => Err(TestingVerdict::Fail),
-                })
-            }
+                    code => {
+                        tracing::warn!(?code, "checker exited with unexpected code");
+                        Err(TestingVerdict::Fail)
+                    }
+                },
+            ),
             Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
             Some(VERDICT_TLE) | None => Ok(Verdict::TimeLimitExceeded),
-            Some(_code) => Ok(Verdict::RuntimeError),
-        }
-    })
+            Some(code) => {
+                tracing::debug!(code, "solution exited with non-verdict code");
+                Ok(Verdict::RuntimeError)
+            }
+        },
+    )
 }
 
 pub async fn get_interactive_run_twice_verdict(
@@ -199,9 +235,10 @@ pub async fn get_interactive_run_twice_verdict(
     tests_paths: &TestsPaths,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
-    fs::create_dir_all(&tests_paths.fifo)
-        .await
-        .map_err(|_| TestingVerdict::Fail)?;
+    fs::create_dir_all(&tests_paths.fifo).await.map_err(|error| {
+        tracing::error!(%error, path = %tests_paths.fifo.display(), "failed to create fifo directory");
+        TestingVerdict::Fail
+    })?;
 
     let checker_to_solution = format!("{}/checker_to_solution", tests_paths.fifo.display());
     let solution_to_checker = format!("{}/solution_to_checker", tests_paths.fifo.display());
@@ -220,13 +257,20 @@ pub async fn get_interactive_run_twice_verdict(
             .arg(path)
             .status()
             .await
-            .map_err(|_| TestingVerdict::Fail)?;
+            .map_err(|error| {
+                tracing::error!(%error, path = %path, "failed to run mkfifo");
+                TestingVerdict::Fail
+            })?;
         if !status.success() {
+            tracing::error!(%status, path = %path, "mkfifo failed");
             return Err(TestingVerdict::Fail);
         }
     }
 
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|error| {
+        tracing::error!(%error, "SANDBOX_IMAGE is not set");
+        TestingVerdict::Fail
+    })?;
 
     let mut checker_child = Command::new("docker")
         .args([
@@ -286,7 +330,10 @@ pub async fn get_interactive_run_twice_verdict(
             &stage.to_string(),
         ])
         .spawn()
-        .map_err(|_| TestingVerdict::Fail)?;
+        .map_err(|error| {
+            tracing::error!(%error, "failed to start sandbox process");
+            TestingVerdict::Fail
+        })?;
 
     let opened = tokio::select! {
         opened = async {
@@ -301,14 +348,25 @@ pub async fn get_interactive_run_twice_verdict(
     let (checker_to_solution_read, solution_to_checker_write) = if let Some((read, write)) = opened
     {
         (
-            read.map_err(|_| TestingVerdict::Fail)?.into_std().await,
-            write.map_err(|_| TestingVerdict::Fail)?.into_std().await,
+            read.map_err(|error| {
+                tracing::error!(%error, "failed to open checker->solution fifo");
+                TestingVerdict::Fail
+            })?
+            .into_std()
+            .await,
+            write
+                .map_err(|error| {
+                    tracing::error!(%error, "failed to open solution->checker fifo");
+                    TestingVerdict::Fail
+                })?
+                .into_std()
+                .await,
         )
     } else {
-        let status = checker_child
-            .wait()
-            .await
-            .map_err(|_| TestingVerdict::Fail)?;
+        let status = checker_child.wait().await.map_err(|error| {
+            tracing::error!(%error, "failed to wait for checker sandbox");
+            TestingVerdict::Fail
+        })?;
         return match status.code() {
             Some(VERDICT_TLE) => Ok(Verdict::TimeLimitExceeded),
             _ => Err(TestingVerdict::Fail),
@@ -353,24 +411,41 @@ pub async fn get_interactive_run_twice_verdict(
         .stdin(Stdio::from(checker_to_solution_read))
         .stdout(Stdio::from(solution_to_checker_write))
         .spawn()
-        .map_err(|_| TestingVerdict::Fail)?;
+        .map_err(|error| {
+            tracing::error!(%error, "failed to start sandbox process");
+            TestingVerdict::Fail
+        })?;
 
     let (checker_status, solution_status) =
         tokio::join!(checker_child.wait(), solution_child.wait());
 
-    solution_status.map_or(Ok(Verdict::TimeLimitExceeded), |status| {
-        match status.code() {
-            Some(VERDICT_OK) => {
-                checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
+    solution_status.map_or_else(
+        |error| {
+            tracing::error!(%error, "failed to run solution sandbox");
+            Ok(Verdict::TimeLimitExceeded)
+        },
+        |status| match status.code() {
+            Some(VERDICT_OK) => checker_status.map_or_else(
+                |error| {
+                    tracing::error!(%error, "failed to run checker sandbox");
+                    Err(TestingVerdict::Fail)
+                },
+                |status| match status.code() {
                     Some(CHECKER_OK) => Ok(Verdict::Ok),
                     Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
                     Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-                    _ => Err(TestingVerdict::Fail),
-                })
-            }
+                    code => {
+                        tracing::warn!(?code, "checker exited with unexpected code");
+                        Err(TestingVerdict::Fail)
+                    }
+                },
+            ),
             Some(VERDICT_MLE) => Ok(Verdict::MemoryLimitExceeded),
             Some(VERDICT_TLE) | None => Ok(Verdict::TimeLimitExceeded),
-            Some(_code) => Ok(Verdict::RuntimeError),
-        }
-    })
+            Some(code) => {
+                tracing::debug!(code, "solution exited with non-verdict code");
+                Ok(Verdict::RuntimeError)
+            }
+        },
+    )
 }

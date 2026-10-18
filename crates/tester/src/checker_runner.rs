@@ -14,7 +14,10 @@ pub async fn get_checker_verdict(
     answer_path: &Path,
     tests_paths: &TestsPaths,
 ) -> Result<Verdict, TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|error| {
+        tracing::error!(%error, "SANDBOX_IMAGE is not set");
+        TestingVerdict::Fail
+    })?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -66,12 +69,21 @@ pub async fn get_checker_verdict(
         .status();
 
     let checker_status = checker_cmd.await;
-    checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
-        Some(CHECKER_OK) => Ok(Verdict::Ok),
-        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
-        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-        _ => Err(TestingVerdict::Fail),
-    })
+    checker_status.map_or_else(
+        |error| {
+            tracing::error!(%error, "failed to run checker sandbox");
+            Err(TestingVerdict::Fail)
+        },
+        |status| match status.code() {
+            Some(CHECKER_OK) => Ok(Verdict::Ok),
+            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+            code => {
+                tracing::warn!(?code, "checker exited with unexpected code");
+                Err(TestingVerdict::Fail)
+            }
+        },
+    )
 }
 
 pub async fn get_checker_run_twice_verdict(
@@ -80,7 +92,10 @@ pub async fn get_checker_run_twice_verdict(
     tests_paths: &TestsPaths,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|error| {
+        tracing::error!(%error, "SANDBOX_IMAGE is not set");
+        TestingVerdict::Fail
+    })?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -133,12 +148,21 @@ pub async fn get_checker_run_twice_verdict(
         .status();
 
     let checker_status = checker_cmd.await;
-    checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
-        Some(CHECKER_OK) => Ok(Verdict::Ok),
-        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
-        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-        _ => Err(TestingVerdict::Fail),
-    })
+    checker_status.map_or_else(
+        |error| {
+            tracing::error!(%error, "failed to run checker sandbox");
+            Err(TestingVerdict::Fail)
+        },
+        |status| match status.code() {
+            Some(CHECKER_OK) => Ok(Verdict::Ok),
+            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+            code => {
+                tracing::warn!(?code, "checker exited with unexpected code");
+                Err(TestingVerdict::Fail)
+            }
+        },
+    )
 }
 
 pub async fn get_checker_run_twice_interactive_verdict(
@@ -148,7 +172,10 @@ pub async fn get_checker_run_twice_interactive_verdict(
     tests_paths: &TestsPaths,
     stage: i32,
 ) -> Result<Verdict, TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
+    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|error| {
+        tracing::error!(%error, "SANDBOX_IMAGE is not set");
+        TestingVerdict::Fail
+    })?;
 
     let checker_cmd = Command::new("docker")
         .args([
@@ -207,10 +234,19 @@ pub async fn get_checker_run_twice_interactive_verdict(
         .status();
 
     let checker_status = checker_cmd.await;
-    checker_status.map_or(Err(TestingVerdict::Fail), |status| match status.code() {
-        Some(CHECKER_OK) => Ok(Verdict::Ok),
-        Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
-        Some(CHECKER_PE) => Ok(Verdict::PresentationError),
-        _ => Err(TestingVerdict::Fail),
-    })
+    checker_status.map_or_else(
+        |error| {
+            tracing::error!(%error, "failed to run checker sandbox");
+            Err(TestingVerdict::Fail)
+        },
+        |status| match status.code() {
+            Some(CHECKER_OK) => Ok(Verdict::Ok),
+            Some(CHECKER_WA) => Ok(Verdict::WrongAnswer),
+            Some(CHECKER_PE) => Ok(Verdict::PresentationError),
+            code => {
+                tracing::warn!(?code, "checker exited with unexpected code");
+                Err(TestingVerdict::Fail)
+            }
+        },
+    )
 }

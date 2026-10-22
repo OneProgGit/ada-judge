@@ -135,7 +135,7 @@ async fn main() {
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
-        .expect("faild to build governor config");
+        .expect("failed to build governor config");
 
     let contest_started_routes_1 = Router::new()
         .route("/contests/{contest_id}/problems", get(get_contest_problems))
@@ -152,7 +152,7 @@ async fn main() {
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
-        .expect("faild to build governor config");
+        .expect("failed to build governor config");
 
     let contest_started_routes_2 = Router::new()
         .route(
@@ -171,7 +171,7 @@ async fn main() {
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
-        .expect("faild to build governor config");
+        .expect("failed to build governor config");
 
     let leaderboard_routes = Router::new()
         .route(
@@ -190,7 +190,7 @@ async fn main() {
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
-        .expect("faild to build governor config");
+        .expect("failed to build governor config");
 
     let admin_routes = Router::new()
         .route("/contests/new", post(create_contest))
@@ -242,7 +242,7 @@ async fn main() {
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(5u32)))
         .finish()
-        .expect("faild to build governor config");
+        .expect("failed to build governor config");
 
     let heavy_problem_routes = Router::new()
         .route("/contests/{contest_id}/problems/new", post(create_problem))
@@ -259,7 +259,7 @@ async fn main() {
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
-        .expect("faild to build governor config");
+        .expect("failed to build governor config");
 
     let owner_routes = Router::new()
         .route("/users", get(get_users))
@@ -286,7 +286,7 @@ async fn main() {
         .expect_connect_info()
         .quota_default(Quota::requests_per_hour(nz!(5u32)))
         .finish()
-        .expect("faild to build governor config");
+        .expect("failed to build governor config");
 
     let register_route = Router::new()
         .route("/register", post(register))
@@ -297,7 +297,7 @@ async fn main() {
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(40u32)))
         .finish()
-        .expect("faild to build governor config");
+        .expect("failed to build governor config");
 
     let default_routes = Router::new()
         .route("/login", post(login))

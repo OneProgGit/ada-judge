@@ -111,6 +111,17 @@ pub async fn get_contest_leaderboard(
     ))
 }
 
+pub async fn get_contest_leaderboard_include_unofficial(
+    State(state): State<AppState>,
+    Path(contest_id): Path<i64>,
+) -> Result<Json<Vec<LeaderboardRow>>, ApiError> {
+    Ok(Json(
+        database::contests::get_leaderboard_include_unofficial(&state.db, contest_id)
+            .await
+            .map_http()?,
+    ))
+}
+
 pub async fn get_contest_problems(
     State(state): State<AppState>,
     Path(contest_id): Path<i64>,

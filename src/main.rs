@@ -10,9 +10,10 @@ use crate::{
         contests::{
             contest_ws, contests_ws, create_contest, create_contest_post, delete_contest,
             delete_contest_post, get_all_contest_problems_questions, get_contest_by_id,
-            get_contest_leaderboard, get_contest_post_by_id, get_contest_posts,
-            get_contest_problems, get_contests, get_my_contest_problems_questions, get_my_contests,
-            get_problem_by_id, update_contest, update_contest_post,
+            get_contest_leaderboard, get_contest_leaderboard_include_unofficial,
+            get_contest_post_by_id, get_contest_posts, get_contest_problems, get_contests,
+            get_my_contest_problems_questions, get_my_contests, get_problem_by_id, update_contest,
+            update_contest_post,
         },
         problems::{
             answer_problem_question, create_problem, create_problem_question, delete_problem,
@@ -177,6 +178,10 @@ async fn main() {
         .route(
             "/contests/{contest_id}/leaderboard",
             get(get_contest_leaderboard),
+        )
+        .route(
+            "/contests/{contest_id}/leaderboard/all",
+            get(get_contest_leaderboard_include_unofficial),
         )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

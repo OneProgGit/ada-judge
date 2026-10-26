@@ -110,6 +110,98 @@ pub async fn get_leaderboard(
     Ok(leaderboard)
 }
 
+pub async fn get_leaderboard_include_unofficial(
+    pool: &PgPool,
+    contest_id: i64,
+) -> Result<Vec<LeaderboardRow>, AdaJudgeError> {
+    let leaderboard = sqlx::query_as!(
+        LeaderboardRow,
+        r#"with default_ranked as (
+                select
+                    s.user_id,
+                    s.problem_id,
+                    s.score,
+                    row_number() over (
+                        partition by s.user_id, s.problem_id
+                        order by s.score desc
+                    ) as rn
+                from submissions s
+                join problems p on p.id = s.problem_id
+                join contests c on c.id = p.contest_id
+                where p.contest_id = $1 and p.testing_type = 'ioi'
+            ),
+            default_best as (
+                select user_id, problem_id, score
+                from default_ranked
+                where rn = 1
+            ),
+            merge_subgroups_best_raw as (
+                select
+                    s.user_id,
+                    s.problem_id,
+                    ssr.subgroup_index,
+                    max(ssr.score) as best_score
+                from submissions s
+                join submissions_subgroups_results ssr on ssr.submission_id = s.id
+                join problems p on p.id = s.problem_id
+                join contests c on c.id = p.contest_id
+                where p.contest_id = $1
+                    and p.testing_type = 'ioi_merge_subgroups'
+                group by s.user_id, s.problem_id, ssr.subgroup_index
+            ),
+            merge_subgroups_best as (
+                select
+                    user_id,
+                    problem_id,
+                    sum(best_score)::int as score
+                from merge_subgroups_best_raw
+                group by user_id, problem_id
+            ),
+            best as (
+                select * from default_best
+                union all
+                select * from merge_subgroups_best
+            ),
+            users as (
+                select distinct s.user_id, u.login
+                from submissions s
+                join users u on u.id = s.user_id
+                join problems p on p.id = s.problem_id
+                join contests c on c.id = p.contest_id
+                where p.contest_id = $1
+            ),
+            contest_problems as (
+                select id, index
+                from problems
+                where contest_id = $1
+            )
+            select
+                u.user_id as "user_id!",
+                u.login as user_login,
+                array_agg(
+                    b.score::double precision
+                    order by p.index
+                ) as "scores!: Vec<Option<f64>>",
+                sum(b.score) as "total_score!"
+            from users u
+            cross join contest_problems p
+            left join best b
+                on b.user_id = u.user_id
+                and b.problem_id = p.id
+            group by u.user_id, user_login
+            order by 4 desc"#,
+        contest_id
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AdaJudgeError::NotFound,
+        _ => AdaJudgeError::Internal,
+    })?;
+
+    Ok(leaderboard)
+}
+
 pub async fn get_problems(
     pool: &PgPool,
     contest_id: i64,

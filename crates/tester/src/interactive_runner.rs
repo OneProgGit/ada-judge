@@ -65,7 +65,7 @@ pub async fn get_interactive_verdict(
             "--network",
             "none",
             "--memory",
-            &format!("{}m", config.memory_limit_mb),
+            &format!("{}m", config.memory_limit_mb * 2),
             "--ulimit",
             "stack=67108864:-1",
             "--cpus",
@@ -78,6 +78,11 @@ pub async fn get_interactive_verdict(
             "-i",
             "--security-opt",
             "no-new-privileges",
+            "--tmpfs",
+            &format!(
+                "/tmp:rw,exec,size={}m,mode=1777",
+                config.memory_limit_mb * 2,
+            ),
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
@@ -101,7 +106,7 @@ pub async fn get_interactive_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",
@@ -159,7 +164,7 @@ pub async fn get_interactive_verdict(
             "--network",
             "none",
             "--memory",
-            &format!("{}m", config.memory_limit_mb),
+            &format!("{}m", config.memory_limit_mb * 2),
             "--ulimit",
             "stack=67108864:-1",
             "--cpus",
@@ -172,6 +177,11 @@ pub async fn get_interactive_verdict(
             "-i",
             "--security-opt",
             "no-new-privileges",
+            "--tmpfs",
+            &format!(
+                "/tmp:rw,exec,size={}m,mode=1777",
+                config.memory_limit_mb * 2,
+            ),
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
@@ -183,7 +193,7 @@ pub async fn get_interactive_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(checker_to_solution_read))
@@ -280,7 +290,7 @@ pub async fn get_interactive_run_twice_verdict(
             "--network",
             "none",
             "--memory",
-            &format!("{}m", config.memory_limit_mb),
+            &format!("{}m", config.memory_limit_mb * 2),
             "--ulimit",
             "stack=67108864:-1",
             "--cpus",
@@ -293,6 +303,11 @@ pub async fn get_interactive_run_twice_verdict(
             "-i",
             "--security-opt",
             "no-new-privileges",
+            "--tmpfs",
+            &format!(
+                "/tmp:rw,exec,size={}m,mode=1777",
+                config.memory_limit_mb * 2,
+            ),
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
@@ -321,7 +336,7 @@ pub async fn get_interactive_run_twice_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",
@@ -381,7 +396,7 @@ pub async fn get_interactive_run_twice_verdict(
             "--network",
             "none",
             "--memory",
-            &format!("{}m", config.memory_limit_mb),
+            &format!("{}m", config.memory_limit_mb * 2),
             "--ulimit",
             "stack=67108864:-1",
             "--cpus",
@@ -394,6 +409,11 @@ pub async fn get_interactive_run_twice_verdict(
             "-i",
             "--security-opt",
             "no-new-privileges",
+            "--tmpfs",
+            &format!(
+                "/tmp:rw,exec,size={}m,mode=1777",
+                config.memory_limit_mb * 2,
+            ),
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
@@ -405,7 +425,7 @@ pub async fn get_interactive_run_twice_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(checker_to_solution_read))

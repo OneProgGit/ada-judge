@@ -37,7 +37,7 @@ pub async fn get_solution_verdict(
             "--network",
             "none",
             "--memory",
-            &format!("{}m", config.memory_limit_mb),
+            &format!("{}m", config.memory_limit_mb * 2),
             "--ulimit",
             "stack=67108864:-1",
             "--cpus",
@@ -51,7 +51,10 @@ pub async fn get_solution_verdict(
             "--security-opt",
             "no-new-privileges",
             "--tmpfs",
-            "/tmp:rw,exec,size=64m,mode=1777",
+            &format!(
+                "/tmp:rw,exec,size={}m,mode=1777",
+                config.memory_limit_mb * 2,
+            ),
             "-v",
             &format!(
                 "{}:/sandbox/bin:ro",
@@ -63,7 +66,7 @@ pub async fn get_solution_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(stdin_file.into_std().await))

@@ -25,7 +25,7 @@ jsonwebtoken = { version = "11.1.0", features = ["aws_lc_rs"] }
 tower-http = { version = "0.7.1", features = ["cors", "trace"] }
 zip-extensions = "0.14.1"
 toml = "1.1.8+spec-1.1.0"
-uuid = { version = "1.28.0", features = ["v4"] }
+uuid = { version = "1.29.0", features = ["v4"] }
 tokio-util = { version = "0.7.20", features = ["io"] }
 dashmap = "6.2.1"
 futures-util = "0.3.34"
@@ -48,7 +48,7 @@ models = { path = "crates/models" }
 tools = { path = "crates/tools" }
 database = { path = "crates/database" }
 axum = { version = "0.8.9", features = ["json", "multipart", "ws"] }
-tokio = { version = "1.53.3", features = ["rt-multi-thread", "process", "macros", "time"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "process", "macros", "time"] }
 sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "chrono", "macros"] }
 apalis-redis = "1.0.0"
 apalis = "1.0.0"

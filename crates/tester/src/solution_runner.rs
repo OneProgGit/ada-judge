@@ -66,7 +66,7 @@ pub async fn get_solution_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 2. / 1000.),
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(stdin_file.into_std().await))

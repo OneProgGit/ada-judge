@@ -106,7 +106,7 @@ pub async fn get_interactive_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 2. / 1000.),
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",
@@ -193,7 +193,7 @@ pub async fn get_interactive_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 2. / 1000.),
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(checker_to_solution_read))
@@ -336,7 +336,7 @@ pub async fn get_interactive_run_twice_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 2. / 1000.),
             "/sandbox/bin",
             "/sandbox/input",
             "/sandbox/output",
@@ -425,7 +425,7 @@ pub async fn get_interactive_run_twice_verdict(
             "timeout",
             "-s",
             "KILL",
-            &format!("{}s", f64::from(config.time_limit_ms) * 1.5 / 1000.),
+            &format!("{}s", f64::from(config.time_limit_ms) * 2. / 1000.),
             "/sandbox/bin",
         ])
         .stdin(Stdio::from(checker_to_solution_read))

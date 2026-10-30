@@ -237,7 +237,9 @@ pub async fn create_contest(
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
 ) -> Result<(), ApiError> {
-    if request.starts_at >= request.finishes_at {
+    if let (Some(starts_at), Some(finishes_at)) = (request.starts_at, request.finishes_at)
+        && starts_at >= finishes_at
+    {
         Err(AdaJudgeError::Contest(Contest::Time)).map_http()?
     } else {
         let mut request = request;
@@ -259,7 +261,9 @@ pub async fn update_contest(
     Auth(auth): Auth,
     Json(request): Json<ContestRequest>,
 ) -> Result<(), ApiError> {
-    if request.starts_at >= request.finishes_at {
+    if let (Some(starts_at), Some(finishes_at)) = (request.starts_at, request.finishes_at)
+        && starts_at >= finishes_at
+    {
         Err(AdaJudgeError::Contest(Contest::Time)).map_http()?
     } else {
         let contest = database::contests::get_contest(&state.db, contest_id)

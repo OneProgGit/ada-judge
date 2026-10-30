@@ -166,7 +166,7 @@ pub async fn get_leaderboard(
                 join contests c on c.id = p.contest_id
                 where p.contest_id = $1
                     and s.created_at >= coalesce(c.starts_at, '-infinity'::timestamptz)
-                    and s.created_at <= coalesce(c.finishes_at, '-infinity'::timestamptz)
+                    and s.created_at <= coalesce(c.finishes_at, 'infinity'::timestamptz)
             ),
             contest_problems as (
                 select id, index

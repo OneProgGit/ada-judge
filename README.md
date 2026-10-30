@@ -48,6 +48,8 @@ WORKERS_COUNT=
 CONCURRENCY=
 # Logging level (default "info")
 LOG_LEVEL=
+# Restart delay for testers
+WORKER_RESTART_DELAY_SECS=
 # Database url (for dev)
 DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:1111/${POSTGRES_DB}
 ```

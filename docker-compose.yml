@@ -61,6 +61,7 @@ services:
       SANDBOX_IMAGE: ${SANDBOX_IMAGE}
       CONCURRENCY: ${CONCURRENCY:-1}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      WORKER_RESTART_DELAY_SECS: ${WORKER_RESTART_DELAY_SECS:-3}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./submissions_envs:/submissions_envs

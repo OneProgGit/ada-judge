@@ -4,6 +4,7 @@
 
 [![stars](https://img.shields.io/gitea/stars/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge&logo=codeberg)](https://codeberg.org/oneprog/ada-judge)
 [![release](https://img.shields.io/gitea/v/release/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge)](https://codeberg.org/oneprog/ada-judge/releases)
+[![pre-release](https://img.shields.io/gitea/v/release/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge&include_prereleases&label=pre-release)](https://codeberg.org/oneprog/ada-judge/releases)
 [![last commit](https://img.shields.io/gitea/last-commit/oneprog/ada-judge?gitea_url=https://codeberg.org&style=for-the-badge)](https://codeberg.org/oneprog/ada-judge/commits/branch/master)
 
 > Note: all AI-made PR's are banned from

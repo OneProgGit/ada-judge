@@ -122,7 +122,7 @@ pub async fn get_leaderboard(
                 join contests c on c.id = p.contest_id
                 where p.contest_id = $1 and p.testing_type = 'ioi'
                     and s.created_at >= coalesce(c.starts_at, '-infinity'::timestamptz)
-                    and s.created_at <= coalesce(c.finishes_at, '-infinity'::timestamptz)
+                    and s.created_at <= coalesce(c.finishes_at, 'infinity'::timestamptz)
             ),
             default_best as (
                 select user_id, problem_id, score
@@ -142,7 +142,7 @@ pub async fn get_leaderboard(
                 where p.contest_id = $1
                     and p.testing_type = 'ioi_merge_subgroups'
                     and s.created_at >= coalesce(c.starts_at, '-infinity'::timestamptz)
-                    and s.created_at <= coalesce(c.finishes_at, '-infinity'::timestamptz)
+                    and s.created_at <= coalesce(c.finishes_at, 'infinity'::timestamptz)
                 group by s.user_id, s.problem_id, ssr.subgroup_index
             ),
             merge_subgroups_best as (

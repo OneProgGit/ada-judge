@@ -11,6 +11,11 @@
     first_run: "The first run",
     second_run: "The second run",
     samples: "Samples",
+    run: "Run",
+    stdin: "stdin",
+    stdout: "stdout",
+    interactor: "Interactor",
+    solution: "Solution",
     comments: "Comments",
     scoring: "Scoring",
     subgroup: "Subgroup",
@@ -28,6 +33,11 @@
     first_run: "Первый запуск",
     second_run: "Второй запуск",
     samples: "Примеры",
+    run: "Запуск",
+    stdin: "Ввод",
+    stdout: "Вывод",
+    interactor: "Интерактор",
+    solution: "Решение",
     comments: "Примечание",
     scoring: "Система оценки",
     subgroup: "Подгруппа",
@@ -60,6 +70,19 @@
   body
 }
 
+// Сэмплы лучше передавать строками: raw сохраняет пробелы и переводы строк,
+// поэтому пример одинаково выглядит в PDF и нормально копируется. Content
+// оставлен для совместимости со старыми условиями.
+#let sample-code(body) = {
+  set text(font: "DejaVu Sans Mono", size: 8pt)
+  set par(justify: false, linebreaks: "simple")
+  if type(body) == str {
+    raw(body, block: false, lang: "text")
+  } else {
+    body
+  }
+}
+
 #let problem(title,
              tl,
              ml,
@@ -72,7 +95,18 @@
              samples,
              comments: none,
              subgroups_scoring: none,
-             per_test_scoring: none) = {
+             per_test_scoring: none,
+             sample_headers: none) = {
+  let double-run = first_run != none and second_run != none
+  let interactive = interactive_protocol != none
+  let headers = if sample_headers != none {
+    sample_headers
+  } else if interactive {
+    (t("interactor"), t("solution"))
+  } else {
+    (t("stdin"), t("stdout"))
+  }
+
   [
     = #title
     #table(
@@ -123,13 +157,55 @@
         #second_run
       ]
     }
-    == #t("samples")
-    #table(
-      columns: (150pt, 150pt),
-      table.header([stdin], [stdout]),
-      align: start,
-      ..samples.flatten(),
-    )
+    #if samples.len() > 0 {
+      [
+        == #t("samples")
+        #{
+          let columns = if double-run {
+            (auto, auto, 1fr, 1fr)
+          } else {
+            (auto, 1fr, 1fr)
+          }
+          let align = if double-run {
+            (center, left, left, left)
+          } else {
+            (center, left, left)
+          }
+          let header = if double-run {
+            ("#", t("run"), headers.at(0), headers.at(1))
+          } else {
+            ("#", headers.at(0), headers.at(1))
+          }
+          let cells = range(0, samples.len(), step: 2).map(i => {
+            let pair = calc.quo(i, 2)
+            let number = if double-run { calc.quo(i, 4) + 1 } else { pair + 1 }
+            let output = if i + 1 < samples.len() { samples.at(i + 1) } else { [] }
+            if double-run {
+              let run = if calc.rem(pair, 2) == 0 {
+                t("first_run")
+              } else {
+                t("second_run")
+              }
+              (
+                [#str(number)],
+                [#run],
+                sample-code(samples.at(i)),
+                sample-code(output),
+              )
+            } else {
+              ([#str(number)], sample-code(samples.at(i)), sample-code(output))
+            }
+          }).flatten()
+          table(
+            columns: columns,
+            inset: (x: 5pt, y: 4pt),
+            align: align,
+            table.header(..header),
+            ..cells,
+          )
+        }
+      ]
+    }
     #if comments != none {
       [
         == #t("comments")
@@ -140,9 +216,10 @@
       [
         == #t("scoring")
         #table(
-          columns: (60pt, 100pt, 70pt, 150pt),
+          columns: (auto, 1fr, auto, 1fr),
+          inset: 4pt,
+          align: (center, left, center, left),
           table.header(t("subgroup"), t("limits"), t("score"), t("depends_on")),
-          align: center,
           ..subgroups_scoring.flatten(),
         )
       ]
@@ -163,7 +240,7 @@
       "1 second",
       "256 megabytes",
       [
-        In the shop of the merchant Aristarkh Pankratyevich lie two purses of copper coins: the first holds $n$ coins, the second $m$. Being a prudent man, the merchant wishes to know the total sum in his possession without counting the coins one by one and being thereby distracted from his other trading affairs. You are given integers $n$ and $m$ -- print their sum.
+        Given integers $n$ and $m$, compute their sum.
       ],
       input:
       [
@@ -171,42 +248,16 @@
       ],
       output:
       [
-        Print a single number -- the answer to the problem.
+        Print a single integer — the sum $n + m$.
       ],
       (
-        [
-          3 4
-        ],
-        [
-          7
-        ],
+        "3 4",
+        "7",
       ),
       subgroups_scoring:
       (
-        [
-          0
-        ],
-        [
-          Тесты из условия
-        ],
-        [
-          0
-        ],
-        [
-          --
-        ],
-        [
-          1
-        ],
-        [
-          $(1 <= n, m <= 1000)$
-        ],
-        [
-          100
-        ],
-        [
-          0
-        ]
+        "0", "Sample tests", "0", "—",
+        "1", $(1 <= n, m <= 1000)$, "100", "0",
       ),
     )
 
@@ -217,7 +268,7 @@
       "1 second",
       "256 megabytes",
       [
-        The clerk Foma keeps two coffers of banknotes -- the first holds $n$ roubles, the second $m$. The shopkeeper demands that Foma report the total sum without delay, so that it may be entered into the ledger before evening prayers. You are given integers $n$ and $m$ -- print their sum.
+        Given integers $n$ and $m$, compute their sum.
       ],
       input:
       [
@@ -225,54 +276,17 @@
       ],
       output:
       [
-        Print a single number -- the answer to the problem.
+        Print a single integer — the sum $n + m$.
       ],
       (
-        [
-          3 4
-        ],
-        [
-          7
-        ],
+        "3 4",
+        "7",
       ),
       subgroups_scoring:
       (
-        [
-          0
-        ],
-        [
-          Тесты из условия
-        ],
-        [
-          0
-        ],
-        [
-          --
-        ],
-        [
-          1
-        ],
-        [
-          $(1 <= n, m <= 500)$
-        ],
-        [
-          50
-        ],
-        [
-          0
-        ],
-        [
-          2
-        ],
-        [
-          $(1 <= n, m <= 1000)$
-        ],
-        [
-          50
-        ],
-        [
-          --
-        ]
+        "0", "Sample tests", "0", "—",
+        "1", $(1 <= n, m <= 500)$, "50", "0",
+        "2", $(1 <= n, m <= 1000)$, "50", "—",
       ),
     )
 
@@ -283,7 +297,7 @@
       "1 second",
       "256 megabytes",
       [
-        The keeper of the post station keeps a tally of passing carriages: yesterday $n$ carriages arrived, and this morning $m$ more. How many carriages have passed the station since the keeper took up his post -- this is the question that has troubled him for three days running. You are given integers $n$ and $m$ -- print their sum.
+        Given integers $n$ and $m$, compute their sum.
       ],
       input:
       [
@@ -291,42 +305,16 @@
       ],
       output:
       [
-        Print a single number -- the answer to the problem.
+        Print a single integer — the sum $n + m$.
       ],
       (
-        [
-          3 4
-        ],
-        [
-          7
-        ],
+        "3 4",
+        "7",
       ),
       subgroups_scoring:
       (
-        [
-          0
-        ],
-        [
-          Тесты из условия
-        ],
-        [
-          0
-        ],
-        [
-          --
-        ],
-        [
-          1
-        ],
-        [
-          $(1 <= n, m <= 1000)$
-        ],
-        [
-          50
-        ],
-        [
-          179
-        ],
+        "0", "Sample tests", "0", "—",
+        "1", $(1 <= n, m <= 1000)$, "50", "179",
       ),
     )
 
@@ -338,7 +326,7 @@
       "256 megabytes",
       [
         *This is a problem with subgroup merging.*\
-        The same station keeper from the previous problem has, a week later, once again lost count of the passing carriages, and once again asks for your assistance -- the task being, at least, already familiar to him. You are given integers $n$ and $m$ -- print their sum.
+        Given integers $n$ and $m$, compute their sum.
       ],
       input:
       [
@@ -346,54 +334,17 @@
       ],
       output:
       [
-        Print a single number -- the answer to the problem.
+        Print a single integer — the sum $n + m$.
       ],
       (
-        [
-          3 4
-        ],
-        [
-          7
-        ],
+        "3 4",
+        "7",
       ),
       subgroups_scoring:
       (
-        [
-          0
-        ],
-        [
-          Тесты из условия
-        ],
-        [
-          0
-        ],
-        [
-          --
-        ],
-        [
-          1
-        ],
-        [
-          $(1 <= n, m <= 500)$
-        ],
-        [
-          50
-        ],
-        [
-          0
-        ],
-        [
-          2
-        ],
-        [
-          $(1 <= n, m <= 1000)$
-        ],
-        [
-          50
-        ],
-        [
-          --
-        ]
+        "0", "Sample tests", "0", "—",
+        "1", $(1 <= n, m <= 500)$, "50", "0",
+        "2", $(1 <= n, m <= 1000)$, "50", "—",
       ),
     )
 
@@ -404,7 +355,8 @@
       "1 second",
       "256 megabytes",
       [
-        The retired lieutenant Sinitsyn collects uniform buttons: one case holds $n$ buttons, the other $m$. Count the total number of buttons in the lieutenant's collection, that he may report it to his fellow officers at the club. You are given integers $n$ and $m$ -- print their sum.
+        *This is a problem with per-test scoring.*\
+        Given integers $n$ and $m$, compute their sum.
       ],
       input:
       [
@@ -412,22 +364,16 @@
       ],
       output:
       [
-        Print a single number -- the answer to the problem.
+        Print a single integer — the sum $n + m$.
       ],
       (
-        [
-          3 4
-        ],
-        [
-          7
-        ],
+        "3 4",
+        "7",
       ),
       per_test_scoring:
-      (
-        [
-          *This problem has 2 tests in addition to the sample tests; each is independently worth 50 points.*
-        ]
-      ),
+      [
+        *This problem has two tests in addition to the sample tests; each of them is scored independently and is worth 50 points.*
+      ],
     )
 
     #pagebreak()
@@ -438,57 +384,25 @@
       "256 megabytes",
       [
         *This is an interactive problem.*\
-        The young cornet Sven Industrievich, for sport, has thought of a number between 1 and $t$, and challenges you to a duel of wits. You may make at most $k$ ($k$ being a hidden number) queries of the form `? x`:
-        - If $x$ is the number thought of, Sven replies `=`, and you win -- no further queries are needed;
-        - If the number thought of is less than $x$, Sven replies `<`;
-        - Otherwise Sven replies `>`.
+        An integer from $1$ to $t$ is chosen, where $t$ is a positive integer reported to the program. At most $k$ queries of the form `? x` may be made ($k$ is a hidden number):
+        - if $x$ equals the chosen number, the interactor replies `=`, and the program must terminate immediately;
+        - if the chosen number is less than $x$, the interactor replies `<`;
+        - otherwise the interactor replies `>`.
       ],
       interactive_protocol:
       [
-        First, Sven gives you a natural number $t$ $(1 <= t <= 10000)$ -- the bound on the number thought of.\
-        You may then make at most $t$ queries of the form `? x`, where $x$ is a natural number from 1 to $t$; to each query Sven replies with one of the symbols `<`, `>`, or `=`.\
-        As soon as you receive the reply `=`, your program must terminate immediately.
+        First, the interactor reports a positive integer $t$ $(1 <= t <= 10000)$ — the upper bound on the chosen number.\
+        Then the program may make at most $t$ queries of the form `? x`, where $x$ is an integer from $1$ to $t$. To each query the interactor replies with one of the symbols `<`, `>` or `=`.\
+        After receiving the reply `=`, the program must terminate immediately.
       ],
       (
-        [
-          10\
-          >\
-          <\
-          \=
-        ],
-        [
-          \
-          ? 5\
-          ? 8\
-          ? 7
-        ]
+        "10\n>\n<\n=",
+        "\n? 5\n? 8\n? 7",
       ),
       subgroups_scoring:
       (
-        [
-          0
-        ],
-        [
-          Тесты из условия
-        ],
-        [
-          0
-        ],
-        [
-          --
-        ],
-        [
-          1
-        ],
-        [
-          $(1 <= t <= 10000)$
-        ],
-        [
-          100
-        ],
-        [
-          0
-        ]
+        "0", "Sample tests", "0", "—",
+        "1", $(1 <= t <= 10000)$, "100", "0",
       ),
     )
 
@@ -500,63 +414,30 @@
       "256 megabytes",
       [
         *This is a run-twice problem.*\
-        A clerk of the district office, having received a number $n$ from a petitioner, must add one to it and pass the paper on to the neighbouring department. The official there, upon receiving the paper bearing the number $n + 1$, must subtract one from it and return the number to the petitioner in its original form -- yet he neither knows nor is meant to know what the number $n$ was before the clerk touched it; only what was written on the paper he received.\
-        Your program will be run twice: the first time it plays the part of the clerk, the second the part of the official. There is no connection between the two runs beyond what the first run prints to its output.
+        The program is run twice. In the first run it receives an integer $n$ and must print $n + 1$. In the second run it receives the value printed by the first run and must recover the original number $n$. The second run receives no other information about $n$.
       ],
       first_run:
       [
-        A single integer $n$ $(1 <= n <= 1000)$ is given. The program must print the number $n + 1$.
+        The single line contains an integer $n$ $(1 <= n <= 1000)$. Print $n + 1$.
       ],
       second_run:
       [
-        A single integer $v$ $(2 <= v <= 1001)$ is given -- the very number printed by the first run. The program must print the number $v - 1$, that is, the original number $n$.
+        The single line contains an integer $v$ $(2 <= v <= 1001)$ — the result of the first run. Print $v - 1$.
       ],
       (
-        [
-          0\
-          10
-        ],
-        [
-          11
-        ],
-        [
-          1\
-          11
-        ],
-        [
-          10
-        ],
+        "0\n10",
+        "11",
+        "1\n11",
+        "10",
       ),
       comments:
       [
-        The example shows both runs separately: first the initial run (input `10`, output `11`), then the second, which takes as input the result of the first (input `11`, output `10`).
+        The example shows both runs separately.
       ],
       subgroups_scoring:
       (
-        [
-          0
-        ],
-        [
-          Тесты из условия
-        ],
-        [
-          0
-        ],
-        [
-          --
-        ],
-        [
-          1
-        ],
-        [
-          $(1 <= n <= 1000)$
-        ],
-        [
-          100
-        ],
-        [
-          0
-        ]
+        "0", "Sample tests", "0", "—",
+        "1", $(1 <= n <= 1000)$, "100", "0",
       ),
     )
   ]

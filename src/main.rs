@@ -30,6 +30,7 @@ use crate::{
             users_ws,
         },
     },
+    database_listener::listen_submissions_verdict_changed,
     middleware::{
         auth::Auth,
         contests::{ensure_contest_finished, ensure_contest_started_1, ensure_contest_started_2},
@@ -63,6 +64,7 @@ mod api;
 mod app_state;
 mod checker_compiler;
 mod crypt;
+mod database_listener;
 mod jwt;
 mod middleware;
 mod tools;
@@ -348,6 +350,8 @@ async fn main() {
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024))
         .layer(GovernorLayer::new(governor_config));
 
+    let listener_state = state.clone();
+
     let app = Router::new()
         .merge(default_routes)
         .merge(register_route)
@@ -361,6 +365,10 @@ async fn main() {
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);
+
+    tracing::info!("starting PostgreSQL listener");
+
+    tokio::spawn(async move { listen_submissions_verdict_changed(listener_state).await });
 
     let listener = match TcpListener::bind("0.0.0.0:4444").await {
         Ok(listener) => listener,

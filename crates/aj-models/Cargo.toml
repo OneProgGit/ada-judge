@@ -1,6 +1,6 @@
 [package]
 name = "aj-models"
-version = "1.0.0-alpha7"
+version = "1.0.0-alpha7-1"
 description = "Public data models for ada-judge frontends"
 license = "MIT"
 edition = "2024"

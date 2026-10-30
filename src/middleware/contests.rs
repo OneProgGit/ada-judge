@@ -23,7 +23,7 @@ pub async fn ensure_contest_started_common(
 
     let now = Utc::now();
 
-    if (now < contest.starts_at || contest.hidden)
+    if (contest.starts_at.is_some_and(|starts_at| now < starts_at) || contest.hidden)
         && !is_allowed(user_id, contest.owner_id, &admin_level)
         && contest.co_authors.binary_search(&user_id).is_err()
     {
@@ -45,7 +45,10 @@ pub async fn ensure_contest_finished_common(
 
     let now = Utc::now();
 
-    if (now < contest.finishes_at || contest.hidden)
+    if (contest
+        .finishes_at
+        .is_some_and(|finishes_at| now < finishes_at)
+        || contest.hidden)
         && !is_allowed(user_id, contest.owner_id, &admin_level)
         && contest.co_authors.binary_search(&user_id).is_err()
         && contest.leaderboard_hidden

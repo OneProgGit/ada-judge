@@ -163,14 +163,16 @@ pub async fn get_contest_by_id(
 
     let now = Utc::now();
 
-    if now < contest.starts_at
+    if let Some(starts_at) = contest.starts_at
+        && now < starts_at
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && contest.co_authors.binary_search(&auth.id).is_err()
     {
         contest.statements_url_ru = String::default();
         contest.statements_url_en = String::default();
     }
-    if now < contest.finishes_at
+    if let Some(finishes_at) = contest.finishes_at
+        && now < finishes_at
         && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
         && contest.co_authors.binary_search(&auth.id).is_err()
     {
@@ -197,14 +199,16 @@ pub async fn get_contests(
             .map_http()?
             .into_iter()
             .map(|mut contest| {
-                if now < contest.starts_at
+                if let Some(starts_at) = contest.starts_at
+                    && now < starts_at
                     && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
                     && contest.co_authors.binary_search(&auth.id).is_err()
                 {
                     contest.statements_url_ru = String::default();
                     contest.statements_url_en = String::default();
                 }
-                if now < contest.finishes_at
+                if let Some(finishes_at) = contest.finishes_at
+                    && now < finishes_at
                     && !is_allowed(auth.id, contest.owner_id, &auth.admin_level)
                     && contest.co_authors.binary_search(&auth.id).is_err()
                 {

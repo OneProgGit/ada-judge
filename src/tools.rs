@@ -25,8 +25,11 @@ pub async fn is_contest_active(
 
     let now = Utc::now();
 
-    (now >= contest.starts_at
-        && (now <= contest.finishes_at || contest.upsolving_enabled)
+    (contest.starts_at.is_some_and(|starts_at| now >= starts_at)
+        && (contest
+            .finishes_at
+            .is_some_and(|finishes_at| now <= finishes_at)
+            || contest.upsolving_enabled)
         && !contest.hidden)
         || is_allowed(user_id, problem.owner_id, &admin_level)
         || is_allowed(user_id, contest.owner_id, &admin_level)

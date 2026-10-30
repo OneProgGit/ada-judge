@@ -1,6 +1,7 @@
 use crate::api::ApiError;
 use crate::tools::{is_allowed, is_contest_active};
 use crate::{app_state::AppState, middleware::auth::Auth};
+use aj_models::contests::ContestsEvent;
 use aj_models::errors::AdaJudgeError;
 use aj_models::testing::{Submission, SubmissonRequest};
 use apalis_core::backend::TaskSink;
@@ -262,6 +263,11 @@ pub async fn submit(
         .map_http()?;
 
     tracing::info!(submission_id, "submission enqueued");
+
+    state
+        .contests_subs
+        .get(&Some(contest_id))
+        .map(|tx| tx.send(ContestsEvent::NewSubmission(submission_id)));
 
     Ok(Json(submission_id))
 }

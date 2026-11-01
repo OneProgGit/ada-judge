@@ -233,7 +233,7 @@
   ]
 }
 
-#template([Test Contest], subtitle: [long, long ago],
+#template([Test Contest],
   [
     #problem(
       "A. Sum of Numbers I",

@@ -33,11 +33,11 @@
   ]
 }
 
-#template([Editorial for the Test Contest], subtitle: [long, long ago],
+#template([Editorial for the Test Contest],
   [
     #problem("A. Sum of Numbers I",
       [
-        For all his prudence, the merchant Aristarkh Pankratyevich has set a simple task: observe that the answer is simply the number $n + m$. No further reasoning is required -- read $n$ and $m$, add them, and print the result. Under the given constraints $(1 <= n, m <= 1000)$ the sum is certain to fit in any integer type, so overflow need not concern us. The solution runs in $O(1)$.
+        The answer is $n + m$: it suffices to read the two numbers, add them and print the result. Under the constraint $(1 <= n, m <= 1000)$ the sum does not exceed $2000$ and fits in any integer type, so overflow is impossible. The running time is $O(1)$.
       ]
     )
 
@@ -45,7 +45,7 @@
 
     #problem("B. Sum of Numbers II",
       [
-        The solution is identical to that of problem A: the answer is $n + m$. The split into subgroups here serves a purely didactic purpose -- to remind the reader that not every subgroup makes the algorithm harder; sometimes it merely narrows the range of the input while leaving the solution unchanged. A correct solution for the first subgroup is therefore automatically correct for the second as well, and writing separate code for $(1 <= n, m <= 500)$ would be a needless expense of ink.
+        The solution is the same as in problem A. The subgroups differ only in their constraints: $1 <= n, m <= 500$ in the first one and up to $1000$ in the second. The algorithm does not change, so no separate code for the first subgroup is needed: a correct program passes both subgroups and receives 100 points.
       ]
     )
 
@@ -53,7 +53,7 @@
 
     #problem("C. Sum of Numbers III",
       [
-        For all his forgetfulness, the station keeper has set the very same task: the answer is the sum $n + m$. Full marks are awarded for passing all the tests of subgroup 1, which include the sample tests as well. The problem holds no further tricks -- it suffices to read two numbers and print their sum.
+        The answer is $n + m$, as in problems A and B. Full marks for subgroup 1 are awarded for passing all of its tests, which include the sample tests. The problem has no other peculiarities.
       ]
     )
 
@@ -61,7 +61,7 @@
 
     #problem("D. Sum of Numbers IV",
       [
-        Algorithmically the problem does not differ from the previous three: the answer is $n + m$. What deserves attention is only the merged-subgroup scoring: to receive the points for subgroup 2, a solution must pass *all* the tests of both subgroup 1 and subgroup 2 -- in other words, the points for subgroup 2 are not awarded on their own, but only in addition to an already-passed subgroup 1. Since the same solution works for every constraint, a correct submission receives the full hundred points at once.
+        The algorithm is the same: the answer is $n + m$. The distinctive feature is the merged-subgroup scoring: for each subgroup the best result among all submissions is taken separately, and the points for the problem equal the sum of these maxima. Thus a submission that passes only subgroup 1 and another one that passes only subgroup 2 together bring the full 100 points. A correct solution passes all the tests of both subgroups and receives 100 points with a single submission.
       ]
     )
 
@@ -69,7 +69,7 @@
 
     #problem("E. Sum of Numbers V",
       [
-        Here too the answer is $n + m$, read and printed without any special contrivance. The only difference from problems A--D lies in the scoring: each of the two additional tests, beyond the sample tests, is scored independently (50 points apiece) rather than as a single subgroup. In practice this makes no difference to the solver -- a partial solution is simply impossible here, since the problem is either solved in full or not solved at all.
+        The answer is $n + m$. The difference from problems A--D lies in the scoring system: the two tests besides the sample tests are scored independently, 50 points each, rather than as a single subgroup. This does not affect the solution: the problem admits no partial solution, it is either solved completely or not solved at all.
       ]
     )
 
@@ -77,12 +77,12 @@
 
     #problem("F. Guess the Number",
       [
-        Cornet Sven offers a classic exercise in *binary search*. Maintain the bounds of the interval of possible values $["lo", "hi"]$, initially $"lo" = 1$, $"hi" = t$. At each step query the midpoint $x = floor(("lo" + "hi") / 2)$:
-        - on the reply `=` -- the number has been guessed; terminate at once;
-        - on the reply `<` (the number sought is less than $x$) -- shrink the interval to $["lo", x - 1]$;
-        - on the reply `>` -- shrink the interval to $[x + 1, "hi"]$.
+        Binary search applies. Keep the bounds of the interval of possible values $["lo", "hi"]$, initially $"lo" = 1$, $"hi" = t$. At each step make the query $x = floor(("lo" + "hi") / 2)$:
+        - on the reply `=` the number has been guessed, and the program must terminate immediately;
+        - on the reply `<` the sought number is less than $x$, and the interval shrinks to $["lo", x - 1]$;
+        - on the reply `>` the interval shrinks to $[x + 1, "hi"]$.
 
-        The interval shrinks by at least half with every query, so the number of queries never exceeds $ceil(log_2 t)$. For $t <= 10000$, fourteen queries suffice -- comfortably within any reasonable hidden bound $k$. Remember to flush the output after every query, and to terminate the program the moment the reply `=` is received.
+        The length of the interval decreases by at least half with every query, so the number of queries does not exceed $ceil(log_2 t)$; for $t <= 10000$, $14$ queries suffice. The output buffer must be flushed after every query, and the program must terminate immediately after receiving the reply `=`.
       ]
     )
 
@@ -90,9 +90,9 @@
 
     #problem("G. Add 1",
       [
-        The problem is best understood by splitting it into the roles of the clerk and the official. In the first run, the program reads a number $n$ and prints $n + 1$ -- nothing more complicated than adding one is required here. In the second run, the program receives on its input exactly the number printed by the first run (the judge itself carries this value from the first run's standard output to the second run's standard input -- no temporary files need be created), and it must print $v - 1$, that is, the original $n$.
+        A run-twice problem is solved in parts. In the first run the program reads the number $n$ and prints $n + 1$. In the second run its input is the value printed by the first run: the value is transferred by the system, so no temporary files are needed. The program must print $v - 1$, that is, recover the original $n$.
 
-        The chief difficulty of the problem is not algorithmic but organizational: one must ensure that both runs read and write through the standard streams exactly once, with no extraneous prompts or debug output that might confuse the judging system.
+        The main difficulty of the problem is technical rather than algorithmic: both runs must use only the standard input and output streams, print nothing extraneous and terminate correctly.
       ]
     )
   ]

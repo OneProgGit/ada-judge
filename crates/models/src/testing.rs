@@ -28,6 +28,7 @@ pub struct DatabaseSubmission {
     pub score: f64,
     pub subgroups_results: Json<Vec<SubgroupResult>>,
     pub tests_results: Json<Vec<TestResult>>,
+    pub compilation_log: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -43,6 +44,7 @@ impl From<DatabaseSubmission> for Submission {
             score: value.score,
             created_at: value.created_at,
             subgroups_results: value.subgroups_results.0,
+            compilation_log: value.compilation_log,
             tests_results: value.tests_results.0,
         }
     }

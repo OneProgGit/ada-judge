@@ -32,12 +32,14 @@ pub async fn update_submission(
     pool: &PgPool,
     submission_id: i64,
     verdict: &TestingVerdict,
+    compilation_log: &str,
     score: f64,
 ) -> Result<(), AdaJudgeError> {
     sqlx::query!(
-        r#"update submissions set verdict = $1, score = $2 where id = $3"#,
+        r#"update submissions set verdict = $1, score = $2, compilation_log = $3 where id = $4"#,
         verdict.clone() as TestingVerdict,
         score,
+        compilation_log,
         submission_id
     )
     .execute(pool)
@@ -155,6 +157,7 @@ pub async fn get_submission(
                 c.language as "language!: Language",
                 c.verdict as "verdict!: TestingVerdict",
                 c.score,
+                c.compilation_log,
                 c.created_at,
                 coalesce(s.subgroups_results, '[]') as "subgroups_results!: Json<Vec<SubgroupResult>>",
                 coalesce(t.tests_results, '[]') as "tests_results!: Json<Vec<TestResult>>"
@@ -209,6 +212,7 @@ pub async fn get_problem_submissions(
                     c.language as "language!: Language",
                     c.verdict as "verdict!: TestingVerdict",
                     c.score,
+                    c.compilation_log,
                     c.created_at,
                     coalesce(s.subgroups_results, '[]') as "subgroups_results!: Json<Vec<SubgroupResult>>",
                     coalesce(t.tests_results, '[]') as "tests_results!: Json<Vec<TestResult>>"
@@ -254,6 +258,7 @@ pub async fn get_problem_submissions(
                 c.language as "language!: Language",
                 c.verdict as "verdict!: TestingVerdict",
                 c.score,
+                c.compilation_log,
                 c.created_at,
                 coalesce(s.subgroups_results, '[]') as "subgroups_results!: Json<Vec<SubgroupResult>>",
                 coalesce(t.tests_results, '[]') as "tests_results!: Json<Vec<TestResult>>"
@@ -312,6 +317,7 @@ pub async fn get_user_submissions(
                 c.language as "language!: Language",
                 c.verdict as "verdict!: TestingVerdict",
                 c.score,
+                c.compilation_log,
                 c.created_at,
                 coalesce(s.subgroups_results, '[]') as "subgroups_results!: Json<Vec<SubgroupResult>>",
                 coalesce(t.tests_results, '[]') as "tests_results!: Json<Vec<TestResult>>"
@@ -368,6 +374,7 @@ pub async fn get_contest_submissions(
                 c.language as "language!: Language",
                 c.verdict as "verdict!: TestingVerdict",
                 c.score,
+                c.compilation_log,
                 c.created_at,
                 coalesce(s.subgroups_results, '[]') as "subgroups_results!: Json<Vec<SubgroupResult>>",
                 coalesce(t.tests_results, '[]') as "tests_results!: Json<Vec<TestResult>>"

@@ -334,10 +334,16 @@ pub async fn test_submission(
         "processing submission"
     );
 
-    database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Compiling, 0.)
-        .await
-        .map_db(&pool, submission_id, None)
-        .await?;
+    database::submissions::update_submission(
+        &pool,
+        submission_id,
+        &TestingVerdict::Compiling,
+        &String::default(),
+        0.,
+    )
+    .await
+    .map_db(&pool, submission_id, None)
+    .await?;
 
     let run_path = submission.run_dir.clone();
     let config = get_problem(&pool, problem_id)
@@ -363,8 +369,14 @@ pub async fn test_submission(
     let mut total_score = 0.;
     let mut max_score = 0.;
     let mut subgroups_results: Vec<SubgroupResult> = Vec::with_capacity(config.subgroups.len());
-    database::submissions::update_submission(&pool, submission_id, &TestingVerdict::Testing, 0.)
-        .await?;
+    database::submissions::update_submission(
+        &pool,
+        submission_id,
+        &TestingVerdict::Testing,
+        &String::default(),
+        0.,
+    )
+    .await?;
     tracing::info!(
         submission_id,
         subgroups = config.subgroups.len(),
@@ -458,7 +470,14 @@ pub async fn test_submission(
     } else {
         &TestingVerdict::PartialSolution
     };
-    database::submissions::update_submission(&pool, submission_id, verdict, total_score).await?;
+    database::submissions::update_submission(
+        &pool,
+        submission_id,
+        verdict,
+        &String::default(),
+        total_score,
+    )
+    .await?;
 
     tracing::info!(
         submission_id,

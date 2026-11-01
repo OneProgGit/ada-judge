@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n                    c.id,\n                    c.problem_id as \"problem_id!\",\n                    c.user_id as \"user_id!\",\n                    users.login as user_login,\n                    c.language as \"language!: Language\",\n                    c.verdict as \"verdict!: TestingVerdict\",\n                    c.score,\n                    c.created_at,\n                    coalesce(s.subgroups_results, '[]') as \"subgroups_results!: Json<Vec<SubgroupResult>>\",\n                    coalesce(t.tests_results, '[]') as \"tests_results!: Json<Vec<TestResult>>\"\n                from submissions c\n                left join lateral (\n                    select json_agg(\n                        json_build_object(\n                            'verdict', verdict,\n                            'test', test,\n                            'score', score\n                        ) order by subgroup_index\n                    ) as subgroups_results\n                    from submissions_subgroups_results\n                    where submission_id = c.id\n                ) s on true\n                left join lateral (\n                    select json_agg(\n                        json_build_object(\n                            'verdict', verdict,\n                            'score', score\n                        ) order by test\n                    ) as tests_results\n                    from submissions_tests_results\n                    where submission_id = c.id\n                ) t on true\n                join users on users.id = c.user_id\n                    join problems p on p.id = c.problem_id\n                where c.problem_id = $1 order by c.id desc",
+  "query": "select\n                c.id,\n                c.problem_id as \"problem_id!\",\n                c.user_id as \"user_id!\",\n                users.login as user_login,\n                c.language as \"language!: Language\",\n                c.verdict as \"verdict!: TestingVerdict\",\n                c.score,\n                c.compilation_log,\n                c.created_at,\n                coalesce(s.subgroups_results, '[]') as \"subgroups_results!: Json<Vec<SubgroupResult>>\",\n                coalesce(t.tests_results, '[]') as \"tests_results!: Json<Vec<TestResult>>\"\n            from submissions c\n            left join lateral (\n                select json_agg(\n                    json_build_object(\n                        'verdict', verdict,\n                        'test', test,\n                        'score', score\n                    ) order by subgroup_index\n                ) as subgroups_results\n                from submissions_subgroups_results\n                where submission_id = c.id\n            ) s on true\n            left join lateral (\n                select json_agg(\n                    json_build_object(\n                        'verdict', verdict,\n                        'score', score\n                    ) order by test\n                ) as tests_results\n                from submissions_tests_results\n                where submission_id = c.id\n            ) t on true\n            join users on users.id = c.user_id\n            where c.id = $1",
   "describe": {
     "columns": [
       {
@@ -112,6 +112,17 @@
       },
       {
         "ordinal": 7,
+        "name": "compilation_log",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "compilation_log"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -122,13 +133,13 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "subgroups_results!: Json<Vec<SubgroupResult>>",
         "type_info": "Json",
         "origin": "Expression"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "tests_results!: Json<Vec<TestResult>>",
         "type_info": "Json",
         "origin": "Expression"
@@ -148,9 +159,10 @@
       false,
       false,
       false,
+      false,
       null,
       null
     ]
   },
-  "hash": "4b81d169653f0a51fadadbae8b6ee742aab1558b271b9c578131ec617bc2402c"
+  "hash": "de1fbb509d3b82d40e243de84ed41d3633ec36476e9272122d12e35a69ca2c86"
 }

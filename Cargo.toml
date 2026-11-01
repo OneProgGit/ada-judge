@@ -1,6 +1,6 @@
 [package]
 name = "ada-judge"
-version = "1.0.0-alpha7"
+version = "1.0.0-beta1"
 edition = "2024"
 rust-version = "1.99.1"
 

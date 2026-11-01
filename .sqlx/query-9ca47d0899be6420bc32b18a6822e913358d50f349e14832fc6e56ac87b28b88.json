@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "update submissions set verdict = $1, score = $2 where id = $3",
+  "query": "update submissions set verdict = $1, score = $2, compilation_log = $3 where id = $4",
   "describe": {
     "columns": [],
     "parameters": {
@@ -22,10 +22,11 @@
           }
         },
         "Float8",
+        "Text",
         "Int8"
       ]
     },
     "nullable": []
   },
-  "hash": "76c4ef8666aea7712862eb7eeb5514749d6f3b0497e698b8200bc70da5cf2caa"
+  "hash": "9ca47d0899be6420bc32b18a6822e913358d50f349e14832fc6e56ac87b28b88"
 }

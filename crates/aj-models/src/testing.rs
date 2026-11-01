@@ -73,5 +73,6 @@ pub struct Submission {
     pub score: f64,
     pub subgroups_results: Vec<SubgroupResult>,
     pub tests_results: Vec<TestResult>,
+    pub compilation_log: String,
     pub created_at: DateTime<Utc>,
 }

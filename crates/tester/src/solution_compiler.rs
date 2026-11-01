@@ -13,8 +13,9 @@ pub async fn compile_solution(
     run_path: &Path,
     tests_paths: &TestsPaths,
     submission: &SubmissionTask,
-) -> Result<(), TestingVerdict> {
-    let sandbox_image = env::var("SANDBOX_IMAGE").map_err(|_| TestingVerdict::Fail)?;
+) -> Result<(), (TestingVerdict, String)> {
+    let sandbox_image =
+        env::var("SANDBOX_IMAGE").map_err(|_| (TestingVerdict::Fail, String::new()))?;
 
     let compile_cmd = match submission.language {
         Language::C => "clang",
@@ -23,14 +24,14 @@ pub async fn compile_solution(
         Language::Rust => "rustc",
         Language::Python => "pyinstaller",
         Language::FreePascal => "fpc",
-        Language::Unknown => return Err(TestingVerdict::Fail),
+        Language::Unknown => return Err((TestingVerdict::Fail, String::new())),
     };
     let solution_source_path = PathBuf::from("env")
         .join(
             tests_paths
                 .solution_source
                 .file_name()
-                .ok_or(TestingVerdict::Fail)?
+                .ok_or((TestingVerdict::Fail, String::new()))?
                 .to_string_lossy()
                 .to_string(),
         )
@@ -41,7 +42,7 @@ pub async fn compile_solution(
             tests_paths
                 .solution
                 .file_name()
-                .ok_or(TestingVerdict::Fail)?
+                .ok_or((TestingVerdict::Fail, String::new()))?
                 .to_string_lossy()
                 .to_string(),
         )
@@ -65,7 +66,13 @@ pub async fn compile_solution(
             "--security-opt",
             "no-new-privileges",
             "-v",
-            &format!("{}:/sandbox/env", run_path.to_host()?.display()),
+            &format!(
+                "{}:/sandbox/env",
+                run_path
+                    .to_host()
+                    .map_err(|_| (TestingVerdict::Fail, String::new()))?
+                    .display()
+            ),
             "-w",
             "/sandbox",
             &sandbox_image,
@@ -114,22 +121,25 @@ pub async fn compile_solution(
             Language::Unknown => unreachable!(),
         })
         .stdout(Stdio::null())
-        .stderr(Stdio::piped())
         .output()
         .await
         .map_err(|error| {
             tracing::error!(%error, "failed to run compilation sandbox");
-            TestingVerdict::CompilationError
+            (TestingVerdict::CompilationError, String::new())
         })?;
     match compilation_result.status.code() {
         Some(0) => Ok(()),
         code => {
+            let compilation_log = String::from_utf8_lossy(&compilation_result.stderr);
             tracing::warn!(
                 ?code,
-                stderr = %String::from_utf8_lossy(&compilation_result.stderr),
+                stderr = %compilation_log,
                 "solution compilation failed"
             );
-            Err(TestingVerdict::CompilationError)
+            Err((
+                TestingVerdict::CompilationError,
+                compilation_log.to_string(),
+            ))
         }
     }
 }

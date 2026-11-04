@@ -112,8 +112,8 @@ async fn main() {
         let worker = WorkerBuilder::new(worker_name.clone())
             .backend(backend.clone())
             .data(pg_pool.clone())
-            .retry(RetryPolicy::retries(3))
             .concurrency(concurrency)
+            .retry(RetryPolicy::retries(3))
             .build(test_submission);
 
         tracing::info!(worker = %worker_name, "worker started");

@@ -120,7 +120,8 @@ pub async fn compile_solution(
             Language::FreePascal => vec![compile_cmd, "-O2", &solution_source_path],
             Language::Unknown => unreachable!(),
         })
-        .stdout(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .output()
         .await
         .map_err(|error| {
